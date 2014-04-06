@@ -1,9 +1,11 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-level estimation method for the OMOP CDMv4 that estimates incidence rate comparison of exposed/unexposed time within an exposed cohort
+Title: Population-level estimation method for the OMOP CDMv4 that estimates
+    incidence rate comparison of exposed/unexposed time within an exposed
+    cohort
 Version: 1.0
 Date: 2014-04-06
 Author: Patrick Ryan, Martijn Schuemie
-Maintainer: Patrick Ryan (ryan@ohdsi.org)
-Description: HOMEWORK:  add more
+Maintainer: Patrick Ryan <ryan@ohdsi.org>
+Description: HOMEWORK-  add more
 License: Apache 2.0
