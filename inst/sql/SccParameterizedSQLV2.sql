@@ -10,7 +10,8 @@ current assumptions:
 connected to valid server with schema that contains CDMv4 instance
 all tables in CDMv4 exist
 ******************/
-
+{DEFAULT @analysis_id = 1}
+{DEFAULT @source_name = ""}
 {DEFAULT @exposure_table = 'drug_era'} --name of table where contains in format of DRUG_ERA live (could be temp table if pre-processing was necessary)
 {DEFAULT @exposure_start_date = 'drug_era_start_date'} 
 {DEFAULT @exposure_end_date = 'drug_era_end_date'} 
@@ -49,13 +50,80 @@ all tables in CDMv4 exist
 {DEFAULT @shrinkage = '0.0001'} --shrinkage used in IRR calculations, required >0 to deal with 0 case counts, but larger number means more shrinkage
 
 --Delete these:
-drop table #age_group;
-drop table #self_controlled_cohort_exposure_summary;
-drop table #self_controlled_cohort_outcome_summary;
+--drop table #age_group;
+--drop table #self_controlled_cohort_exposure_summary;
+--drop table #self_controlled_cohort_outcome_summary;
 
 {@create_results_table} ? {
-IF OBJECT_ID('results_schema.dbo.@results_table', 'U') IS NOT NULL 
-	DROP TABLE @results_schema.dbo.@results_table;
+IF OBJECT_ID('results_schema.dbo.@results_table_prefix_results', 'U') IS NOT NULL 
+	DROP TABLE @results_schema.dbo.@results_table_prefix_results;
+
+IF OBJECT_ID('results_schema.dbo.@results_table_prefix_analysis', 'U') IS NOT NULL 
+	DROP TABLE @results_schema.dbo.@results_table_prefix_analysis;
+
+SELECT
+	@analysis_id AS analysis_id,
+	@exposure_table AS exposure_table,
+	@outcome_table AS outcome_table,
+	@first_occurrence_drug_only AS first_occurrence_drug_only,
+	@first_occurrence_condition_only AS first_occurrence_condition_only,
+	@drug_type_concept_id_list AS drug_type_concept_id_list,
+	@condition_type_concept_id_list AS condition_type_concept_id_list,
+	@drug_concept_id_list AS drug_concept_id_list,
+	@condition_concept_id_list AS condition_concept_id_list,
+	@gender_concept_id_list AS gender_concept_id_list,
+	@min_age AS min_age,
+	@max_age AS max_age,
+	@min_index AS min_index,
+	@max_index AS max_index,
+	@stratify_gender AS stratify_gender.
+	@stratify_age AS stratify_age,
+	@stratify_index AS stratify_index,
+	@use_length_of_exposure_exposed AS use_length_of_exposure_exposed,
+	@time_at_risk_exposed_start AS time_at_risk_exposed_start,
+	@surveillance_exposed AS surveillance_exposed,
+	@use_length_of_exposure_unexposed AS use_length_of_exposure_unexposed,
+	@time_at_risk_unexposed_start AS time_at_risk_unexposed_start,
+	@surveillance_unexposed AS surveillance_unexposed,
+	@has_full_time_at_risk AS has_full_time_at_risk,
+	@washout_period_length AS washout_period_length,
+	@followup_period_length AS followup_period_length,
+	@shrinkage AS shrinkage
+INTO
+	@results_schema.dbo.@results_table_prefix_analysis
+;
+} : {
+INSERT INTO
+	@results_schema.dbo.@results_table_prefix_analysis
+SELECT
+	@analysis_id AS analysis_id,
+	@exposure_table AS exposure_table,
+	@outcome_table AS outcome_table,
+	@first_occurrence_drug_only AS first_occurrence_drug_only,
+	@first_occurrence_condition_only AS first_occurrence_condition_only,
+	@drug_type_concept_id_list AS drug_type_concept_id_list,
+	@condition_type_concept_id_list AS condition_type_concept_id_list,
+	@drug_concept_id_list AS drug_concept_id_list,
+	@condition_concept_id_list AS condition_concept_id_list,
+	@gender_concept_id_list AS gender_concept_id_list,
+	@min_age AS min_age,
+	@max_age AS max_age,
+	@min_index AS min_index,
+	@max_index AS max_index,
+	@stratify_gender AS stratify_gender.
+	@stratify_age AS stratify_age,
+	@stratify_index AS stratify_index,
+	@use_length_of_exposure_exposed AS use_length_of_exposure_exposed,
+	@time_at_risk_exposed_start AS time_at_risk_exposed_start,
+	@surveillance_exposed AS surveillance_exposed,
+	@use_length_of_exposure_unexposed AS use_length_of_exposure_unexposed,
+	@time_at_risk_unexposed_start AS time_at_risk_unexposed_start,
+	@surveillance_unexposed AS surveillance_unexposed,
+	@has_full_time_at_risk AS has_full_time_at_risk,
+	@washout_period_length AS washout_period_length,
+	@followup_period_length AS followup_period_length,
+	@shrinkage AS shrinkage
+;
 }
 
 USE @table_cdm; 
@@ -78,12 +146,12 @@ INSERT INTO #age_group (age_group_name, age_group_min, age_group_max) VALUES ('8
 INSERT INTO #age_group (age_group_name, age_group_min, age_group_max) VALUES ('90-99',90,99);
 
 SELECT
-	d1.drug_concept_id,
+	d1.@exposure_concept_id AS exposure_concept_id,
 	{@stratify_gender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
 	{@stratify_age} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
 	{@stratify_index} ? {YEAR(d1.@exposure_start_date) AS index_year,} : {'ALL' AS index_year,}
-	COUNT(DISTINCT d1.person_id) AS num_persons,
-	COUNT(d1.person_id) AS num_exposures,
+	COUNT(DISTINCT d1.@exposure_person_id) AS num_persons,
+	COUNT(d1.@exposure_person_id) AS num_exposures,
 	SUM(
 		--need to account for potential censoring due to observation period length	
 		CASE WHEN 
@@ -133,23 +201,23 @@ INTO
 FROM
 	(
 		SELECT 
-			person_id, 
-			drug_concept_id, 
+			@exposure_person_id, 
+			@exposure_concept_id, 
 			@exposure_start_date, 
 			@exposure_end_date
 		FROM
 			(
 				SELECT 
-					person_id, 
-					drug_concept_id, 
+					@exposure_person_id, 
+					@exposure_concept_id, 
 					@exposure_start_date, 
 					@exposure_end_date
-					{@first_occurrence_drug_only} ? {,ROW_NUMBER() OVER (PARTITION BY person_id, drug_concept_id, drug_type_concept_id ORDER BY @exposure_start_date) AS rn1} 
+					{@first_occurrence_drug_only} ? {,ROW_NUMBER() OVER (PARTITION BY @exposure_person_id, @exposure_concept_id, drug_type_concept_id ORDER BY @exposure_start_date) AS rn1} 
 				FROM 
 					@exposure_table 
 				WHERE 
 					1=1
-					{@drug_concept_id_list != ''} ? {AND drug_concept_id IN (@drug_concept_id_list)}
+					{@drug_concept_id_list != ''} ? {AND @exposure_concept_id IN (@drug_concept_id_list)}
 					{@drug_type_concept_id_list != '' & exposure_table != 'cohort'} ? {AND drug_type_concept_id IN (@drug_type_concept_id_list)}
 			) t1
 		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
@@ -157,11 +225,11 @@ FROM
 	INNER JOIN
 		@table_person p1
 	ON 
-		d1.person_id = p1.person_id
+		d1.@exposure_person_id = p1.person_id
 	INNER JOIN
 		@table_observation_period op1
 	ON 
-		d1.person_id = op1.person_id,
+		d1.@exposure_person_id = op1.person_id,
 	#age_group ag1
 WHERE 
 		d1.@exposure_start_date >= op1.observation_period_start_date
@@ -185,7 +253,7 @@ WHERE
 	{@washout_period_length != ''} ? {AND DATEDIFF(dd, op1.observation_period_start_date, d1.@exposure_start_date) >= @washout_period_length}
 	{@followup_period_length != ''} ? {AND DATEDIFF(dd,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_period_length}
 GROUP BY 
-	drug_concept_id
+	@exposure_concept_id
 	{@stratify_gender} ? {, gender_concept_id}
 	{@stratify_age} ? {, ag1.age_group_name}
 	{@stratify_index} ? {, YEAR(d1.@exposure_start_date)}
@@ -194,8 +262,8 @@ GROUP BY
 
 --query 2:  number of events in each time window
 SELECT 
-	d1.drug_concept_id,
-	c1.condition_concept_id,
+	d1.@exposure_concept_id AS exposure_concept_id,
+	c1.@outcome_concept_id AS outcome_concept_id,
 	{@stratify_gender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
 	{@stratify_age} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
 	{@stratify_index} ? {YEAR(d1.@exposure_start_date) AS index_year,} : {'ALL' AS index_year,}
@@ -231,23 +299,23 @@ INTO
 FROM
 	(
 		SELECT 
-			person_id, 
-			drug_concept_id, 
+			@exposure_person_id, 
+			@exposure_concept_id, 
 			@exposure_start_date, 
 			@exposure_end_date
 		FROM
 			(
 				SELECT 
-					person_id, 
-					drug_concept_id, 
+					@exposure_person_id, 
+					@exposure_concept_id, 
 					@exposure_start_date, 
 					@exposure_end_date
-					{@first_occurrence_drug_only}?{,ROW_NUMBER() OVER (PARTITION BY person_id, drug_concept_id, drug_type_concept_id ORDER BY @exposure_start_date) AS rn1}
+					{@first_occurrence_drug_only}?{,ROW_NUMBER() OVER (PARTITION BY @exposure_person_id, @exposure_concept_id, drug_type_concept_id ORDER BY @exposure_start_date) AS rn1}
 				FROM 
 					@exposure_table 
 				WHERE 
 						1=1
-					{@drug_concept_id_list != ''} ? {AND drug_concept_id IN (@drug_concept_id_list)}
+					{@drug_concept_id_list != ''} ? {AND @exposure_concept_id IN (@drug_concept_id_list)}
 					{@drug_type_concept_id_list != '' & exposure_table != 'cohort'} ? {AND drug_type_concept_id IN (@drug_type_concept_id_list) }
 	
 			) T1
@@ -256,37 +324,37 @@ FROM
 INNER JOIN
 	@table_person p1
 ON 
-	d1.person_id = p1.person_id
+	d1.@exposure_person_id = p1.person_id
 INNER JOIN
 	(
 		SELECT 
-			person_id, 
-			condition_concept_id, 
+			@outcome_person_id, 
+			@outcome_concept_id, 
 			@outcome_start_date, 
 			@outcome_end_date
 		FROM
 			(
 				SELECT 
-					person_id, 
-					condition_concept_id, 
+					@outcome_person_id, 
+					@outcome_concept_id, 
 					@outcome_start_date, 
 					@outcome_end_date
-					{@first_occurrence_condition_only} ? {,ROW_NUMBER() OVER (PARTITION BY person_id, condition_concept_id, condition_type_concept_id ORDER BY @outcome_start_date) AS rn1}
+					{@first_occurrence_condition_only} ? {,ROW_NUMBER() OVER (PARTITION BY @outcome_person_id, @outcome_concept_id, condition_type_concept_id ORDER BY @outcome_start_date) AS rn1}
 				FROM 
 					@outcome_table 
 				WHERE 
 						1=1
-					{@condition_concept_id_list != ''} ? {AND condition_concept_id IN (@condition_concept_id_list)}
+					{@condition_concept_id_list != ''} ? {AND @outcome_concept_id IN (@condition_concept_id_list)}
 					{@condition_type_concept_id_list & outcome_table != 'cohort'} ? {AND condition_type_concept_id IN (@condition_type_concept_id_list)}
 			) T1
 		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
-	) C1
+	) c1
 ON 
-	p1.person_id = c1.person_id
+	p1.person_id = c1.@outcome_person_id
 INNER JOIN
 	@table_observation_period op1
 ON 
-	d1.person_id = op1.person_id,
+	d1.@exposure_person_id = op1.person_id,
 	#age_group ag1
 WHERE 
 		d1.@exposure_start_date >= op1.observation_period_start_date
@@ -316,17 +384,21 @@ WHERE
 	{@washout_period_length != 0} ? {AND DATEDIFF(DD,op1.observation_period_start_date,d1.@exposure_start_date) >= @washout_period_length}
 	{@followup_period_length != 0} ? {AND DATEDIFF(DD,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_period_length}
 GROUP BY 
-	drug_concept_id, 
-	condition_concept_id
+	@exposure_concept_id, 
+	@outcome_concept_id
 	{@stratify_gender} ? {, gender_concept_id}
 	{@stratify_age} ? {, ag1.age_group_name}
 	{@stratify_index} ? {, YEAR(d1.@exposure_start_date)}
 ;
 
 --now create final summary table
+{!@create_results_table} ? {
+INSERT INTO 
+	@results_schema.dbo.@results_table_prefix_results
+}
 SELECT 
-	drug_concept_id,
-	condition_concept_id,
+	exposure_concept_id,
+	outcome_concept_id,
 	gender_concept_id,
 	age_group_name,
 	index_year,
@@ -387,16 +459,17 @@ SELECT
 	
 	--calcuating SElogIRR
 	SQRT( (1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) AS selogirr
-	
+{@create_results_table} ? {	
 INTO 
-	results_schema.dbo.@results_table
+	@results_schema.dbo.@results_table_prefix_results
+}
 FROM
 	(
 		SELECT 
 			source_name = "@source_name",
 			analysis_id = @analysis_id,
-			e2.drug_concept_id,
-			e2.condition_concept_id,
+			e2.exposure_concept_id,
+			e2.outcome_concept_id,
 			CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
 			CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
 			CAST(e2.index_year AS VARCHAR) AS index_year,
@@ -410,12 +483,12 @@ FROM
 			(
 				SELECT 
 					e1.*, 
-					o1.condition_concept_id
+					o1.outcome_concept_id
 				FROM 
 					#self_controlled_cohort_exposure_summary e1,
 					(
 						SELECT DISTINCT 
-							condition_concept_id 
+							outcome_concept_id 
 						FROM 
 							#self_controlled_cohort_outcome_summary
 					) o1
@@ -423,9 +496,9 @@ FROM
 		LEFT JOIN 
 			#self_controlled_cohort_outcome_summary o2
 		ON 
-				e2.drug_concept_id = o2.drug_concept_id
+				e2.exposure_concept_id = o2.exposure_concept_id
 			AND 
-				e2.condition_concept_id = o2.condition_concept_id
+				e2.outcome_concept_id = o2.outcome_concept_id
 			AND 
 				e2.gender_concept_id = o2.gender_concept_id
 			AND 
@@ -436,8 +509,8 @@ FROM
 		{@stratify_gender} ? {
 		UNION
 			SELECT 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
 				CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
 				CAST(e2.index_year AS VARCHAR) AS index_year,
@@ -451,12 +524,12 @@ FROM
 				(
 					SELECT 
 						e1.*, 
-						o1.condition_concept_id
+						o1.outcome_concept_id
 					FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id 
+								outcome_concept_id 
 							FROM 
 								#self_controlled_cohort_outcome_summary
 						) o1
@@ -464,9 +537,9 @@ FROM
 			LEFT JOIN 
 				#self_controlled_cohort_outcome_summary o2
 			ON 
-					e2.drug_concept_id = o2.drug_concept_id
+					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
-					e2.condition_concept_id = o2.condition_concept_id
+					e2.outcome_concept_id = o2.outcome_concept_id
 				AND 
 					e2.gender_concept_id = o2.gender_concept_id
 				AND 
@@ -474,15 +547,15 @@ FROM
 				AND 
 					e2.index_year = o2.index_year
 			GROUP BY 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				e2.age_group_name,
 				e2.index_year
 		}
 		{@stratify_age} ? {
 		UNION
-			SELECT e2.drug_concept_id,
-				e2.condition_concept_id,
+			SELECT e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
 				'ALL' AS age_group_name,
 				CAST(e2.index_year AS VARCHAR) AS index_year,
@@ -496,12 +569,12 @@ FROM
 				(
 					SELECT 
 						e1.*, 
-						o1.condition_concept_id
+						o1.outcome_concept_id
 					FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id	
+								outcome_concept_id	
 							FROM 
 								#self_controlled_cohort_outcome_summary
 						) o1
@@ -509,9 +582,9 @@ FROM
 			LEFT JOIN 
 					#self_controlled_cohort_outcome_summary o2
 			ON 
-					e2.drug_concept_id = o2.drug_concept_id
+					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
-					e2.condition_concept_id = o2.condition_concept_id
+					e2.outcome_concept_id = o2.outcome_concept_id
 				AND 
 					e2.gender_concept_id = o2.gender_concept_id
 				AND 
@@ -519,16 +592,16 @@ FROM
 				AND 
 					e2.index_year = o2.index_year
 			GROUP BY 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				e2.gender_concept_id,
 				e2.index_year
 		}
 		{@stratify_index} ? {
 		UNION
 			SELECT 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
 				CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
 				'ALL' AS index_year,
@@ -542,21 +615,21 @@ FROM
 				(
 					SELECT 
 						e1.*, 
-						o1.condition_concept_id
+						o1.outcome_concept_id
 					FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id 
+								outcome_concept_id 
 							FROM 
 								#self_controlled_cohort_outcome_summary) o1
 						) e2
 					LEFT JOIN 
 						#self_controlled_cohort_outcome_summary o2
 					ON 
-							e2.drug_concept_id = o2.drug_concept_id
+							e2.exposure_concept_id = o2.exposure_concept_id
 						AND 
-							e2.condition_concept_id = o2.condition_concept_id
+							e2.outcome_concept_id = o2.outcome_concept_id
 						AND 
 							e2.gender_concept_id = o2.gender_concept_id
 						AND 
@@ -564,15 +637,15 @@ FROM
 						AND 
 							e2.index_year = o2.index_year
 					GROUP BY 
-						e2.drug_concept_id,
-						e2.condition_concept_id,
+						e2.exposure_concept_id,
+						e2.outcome_concept_id,
 						e2.gender_concept_id,
 						e2.age_group_name
 		}
 		{@stratify_gender & @stratify_age} ? {
 		UNION
-			SELECT e2.drug_concept_id,
-				e2.condition_concept_id,
+			SELECT e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
 				'ALL' AS age_group_name,
 				CAST(e2.index_year AS VARCHAR) AS index_year,
@@ -586,12 +659,12 @@ FROM
 				(
 					SELECT 
 						e1.*, 
-						o1.condition_concept_id
+						o1.outcome_concept_id
 					FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id 
+								outcome_concept_id 
 							FROM 
 								#self_controlled_cohort_outcome_summary
 						) o1
@@ -599,9 +672,9 @@ FROM
 			LEFT JOIN 
 				#self_controlled_cohort_outcome_summary o2
 			ON 
-					e2.drug_concept_id = o2.drug_concept_id
+					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
-					e2.condition_concept_id = o2.condition_concept_id
+					e2.outcome_concept_id = o2.outcome_concept_id
 				AND 
 					e2.gender_concept_id = o2.gender_concept_id
 				AND 
@@ -609,15 +682,15 @@ FROM
 				AND 
 					e2.index_year = o2.index_year
 			GROUP BY 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				e2.index_year
 		}
 		{@stratify_gender & @stratify_index} ? {
 		UNION
 			SELECT 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
 				CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
 				'all' AS index_year,
@@ -631,12 +704,12 @@ FROM
 				(
 					SELECT 
 						e1.*, 
-						o1.condition_concept_id
+						o1.outcome_concept_id
 					 FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id 
+								outcome_concept_id 
 							FROM 
 								#self_controlled_cohort_outcome_summary
 						) o1
@@ -644,9 +717,9 @@ FROM
 			LEFT JOIN 
 				#self_controlled_cohort_outcome_summary o2
 			ON 
-					e2.drug_concept_id = o2.drug_concept_id
+					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
-					e2.condition_concept_id = o2.condition_concept_id
+					e2.outcome_concept_id = o2.outcome_concept_id
 				AND 
 					e2.gender_concept_id = o2.gender_concept_id
 				AND 
@@ -654,15 +727,15 @@ FROM
 				AND 
 					e2.index_year = o2.index_year
 			GROUP BY 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				e2.age_group_name
 		}
 		{@stratify_age & @stratify_index} ? {
 		UNION
 			SELECT 
-				E2.DRUG_CONCEPT_ID,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
 				'ALL' AS age_group_name,
 				'ALL' AS index_year,
@@ -675,12 +748,12 @@ FROM
 			FROM 
 				(
 					SELECT 
-						e1.*, o1.condition_concept_id
+						e1.*, o1.outcome_concept_id
 					FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id
+								outcome_concept_id
 							FROM
 								#self_controlled_cohort_outcome_summary
 						) o1
@@ -688,9 +761,9 @@ FROM
 			LEFT JOIN 
 				#self_controlled_cohort_outcome_summary o2
 			ON 
-					e2.drug_concept_id = o2.drug_concept_id
+					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
-					e2.condition_concept_id = o2.condition_concept_id
+					e2.outcome_concept_id = o2.outcome_concept_id
 				AND 
 					e2.gender_concept_id = o2.gender_concept_id
 				AND 
@@ -698,15 +771,15 @@ FROM
 				AND 
 					e2.index_year = o2.index_year
 			GROUP BY 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				e2.gender_concept_id
 		}
 		{@stratify_gender & @stratify_age & @stratify_index} ? {
 		UNION
 			SELECT 
-				e2.drug_concept_id,
-				e2.condition_concept_id,
+				e2.exposure_concept_id,
+				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
 				'ALL' AS age_group_name,
 				'ALL' AS index_year,
@@ -720,21 +793,21 @@ FROM
 				(
 					SELECT 
 						e1.*, 
-						o1.condition_concept_id
+						o1.outcome_concept_id
 					FROM 
 						#self_controlled_cohort_exposure_summary e1,
 						(
 							SELECT DISTINCT 
-								condition_concept_id 
+								outcome_concept_id 
 							FROM
 								#self_controlled_cohort_outcome_summary) o1
 				) e2
 			LEFT JOIN 
 				#self_controlled_cohort_outcome_summary o2
 			ON 
-					e2.drug_concept_id = o2.drug_concept_id
+					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
-					e2.condition_concept_id = o2.condition_concept_id
+					e2.outcome_concept_id = o2.outcome_concept_id
 				AND 
 					e2.gender_concept_id = o2.gender_concept_id
 				AND 
@@ -742,8 +815,8 @@ FROM
 				AND 
 					e2.index_year = o2.index_year
 			GROUP BY 
-				e2.drug_concept_id,
-				e2.condition_concept_id
+				e2.exposure_concept_id,
+				e2.outcome_concept_id
 		}
 
 	) T1
