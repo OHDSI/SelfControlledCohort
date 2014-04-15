@@ -1,1 +1,3 @@
+import(SqlRender)
+import(DatabaseConnector)
 export(selfControlledCohort)

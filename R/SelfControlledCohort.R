@@ -53,10 +53,10 @@
 #' @param stratifyIndex	if 1, analysis will be calculated overall, and stratified across all years of the index dates
 #' @param useLengthOfExposureExposed	if 1, use the duration from drugEraStart -> drugEraEnd as part of timeAtRisk
 #' @param timeAtRiskExposedStart	integer of days to add to drugEraStart for start of timeAtRisk (0 to include index date, 1 to start the day after)
-#' @param surveillanceExposed	additional window to add to end of exposure period (if @USE_LENGTH_OF_EXPOSURE_EXPOSED = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
+#' @param surveillanceExposed	additional window to add to end of exposure period (if USE_LENGTH_OF_EXPOSURE_EXPOSED = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
 #' @param useLengthOfExposureUnexposed	if 1, use the duration from drugEraStart -> drugEraEnd as part of timeAtRisk looking back before drugEraStart
 #' @param timeAtRiskUnexposedStart	integer of days to add to drugEraStart for start of timeAtRisk (0 to include index date, -1 to start the day before)
-#' @param surveillanceUnexposed	additional window to add to end of exposure period (if @USE_LENGTH_OF_EXPOSURE_UNEXPOSED = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
+#' @param surveillanceUnexposed	additional window to add to end of exposure period (if USE_LENGTH_OF_EXPOSURE_UNEXPOSED = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
 #' @param hasFullTimeAtRisk	if 1, restrict to people who have full time-at-risk exposed and unexposed
 #' @param washoutPeriodLength	integer to define required time observed before exposure start
 #' @param followupPeriodLength	integer to define required time observed after exposure start
@@ -65,7 +65,7 @@
 #' @return An object of type \code{sccResults} containing details for connecting to the database containing the results 
 #' @examples \dontrun{
 #'   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-#'   sccResult <- selfControlledCohort(connectionDetails, "cdm4Sim", "scratch", sourceName = "CPRD", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era")
+#'   sccResult <- selfControlledCohort(connectionDetails, "cdm_truven_mdcr", "scratch", sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era")
 #'   plot(sccResult)
 #' }
 #' @export
@@ -110,7 +110,7 @@ selfControlledCohort <- function (connectionDetails,
   } else if (exposureTable == "drug_era"){
     exposureStartDate = "drug_era_start_date";
     exposureEndDate = "drug_era_end_date";
-    exposureConceptId = "drug_era_concept_id";
+    exposureConceptId = "drug_concept_id";
     exposurePersonId=  "person_id"
   }
   if (outcomeTable == "cohort"){
@@ -121,17 +121,19 @@ selfControlledCohort <- function (connectionDetails,
   } else if (outcomeTable == "condition_era"){
     outcomeStartDate = "condition_era_start_date";
     outcomeEndDate = "condition_era_end_date";
-    outcomeConceptId = "condition_era_concept_id";
+    outcomeConceptId = "condition_concept_id";
     outcomePersonId=  "person_id"
   }
   
-  pathToSql <- system.file("sql", "SccParameterizedSQLV2.sql", package="SelfControlledCohort")
+  pathToSql <- system.file("sql", "SccParameterizedSQL.sql", package="SelfControlledCohort")
+  #pathToSql <- "C:\\Users\\mschuemi\\Documents\\RStudio SVN workspace\\SelfControlledCohort\\inst\\sql\\SccParameterizedSQLV2.sql"
   parameterizedSql <- readChar(pathToSql,file.info(pathToSql)$size)
   
   renderedSql <- renderSql(parameterizedSql[1], 
-                           table_cdm = cdmSchema, 
+                           cdm_schema = cdmSchema, 
                            results_schema = resultsSchema, 
                            results_table_prefix = resultsTablePrefix, 
+                           create_results_table = createResultsTable,
                            source_name = sourceName,
                            analysis_id = analysisId,
                            exposures_of_interest = exposuresOfInterest, 
@@ -157,7 +159,7 @@ selfControlledCohort <- function (connectionDetails,
                            max_index = maxIndex,
                            stratify_gender = stratifyGender,
                            stratify_age = stratifyAge,
-                           stratify_index = stratifyindex,
+                           stratify_index = stratifyIndex,
                            use_length_of_exposure_exposed = useLengthOfExposureExposed,
                            time_at_risk_exposed_start = timeAtRiskExposedStart,
                            surveillance_exposed = surveillanceExposed,
@@ -169,19 +171,23 @@ selfControlledCohort <- function (connectionDetails,
                            followup_period_length = followupPeriodLength,
                            shrinkage = shrinkage                        
   )$sql
-  
-  conn <- connectUsingConnectionDetails(connectionDetails)
+  conn <- connect(connectionDetails)
   
   writeLines("Executing large query. This could take a while")
   dbSendUpdate(conn, renderedSql)
-  writeLines(paste("Done. Results can now be found in ",resultsSchema,".",resultsTable,"_results",sep=""))
+  writeLines(paste("Done. Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))
   
   dbDisconnect(conn)
   
   resultsConnectionDetails <- connectionDetails
   resultsConnectionDetails$schema = resultsSchema
   
-  result <- list(resultsConnectionDetails = resultsConnectionDetails, call = match.call())
+  result <- list(resultsConnectionDetails = resultsConnectionDetails, 
+                 resultsTable = paste(resultsTablePrefix,"_results",sep=""),
+                 analysisTable = paste(resultsTablePrefix,"_analysis",sep=""),
+                 sql = renderedSql,
+                 call = match.call())
   class(result) <- "sccResults"
   result
 }
+
