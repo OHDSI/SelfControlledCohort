@@ -1,0 +1,25 @@
+\name{readSccAnalysesDetailsFromFile}
+\alias{readSccAnalysesDetailsFromFile}
+\title{readSccAnalysesDetailsFromFile}
+\usage{
+readSccAnalysesDetailsFromFile(file)
+}
+\arguments{
+  \item{file}{the name of the file to be loaded}
+}
+\value{
+An object of type \code{analysesDetails}
+}
+\description{
+\code{readSccAnalysesDetailsFromFile} reads an object of
+type \code{analysesDetails} from a CSV file
+}
+\examples{
+\dontrun{
+  connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
+  analysesDetails <- readSccAnalysesDetailsFromFile("c:/temp/test.csv")
+  sccResult <- selfControlledCohort(analysesDetails, connectionDetails, "cdm_truven_mdcr", "scratch", sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era")
+  plot(sccResult)
+}
+}
+

@@ -1,52 +1,46 @@
 /*****************
 Self-controlled cohort design
-Parameterized TSQL
 
 Patrick Ryan
-15 July 2013
-
-
-current assumptions:
-connected to valid server with schema that contains CDMv4 instance
-all tables in CDMv4 exist
+Martijn Schuemie
 ******************/
-{DEFAULT @analysis_id = 1}
-{DEFAULT @source_name = ""}
-{DEFAULT @exposure_table = 'drug_era'} --name of table where contains in format of DRUG_ERA live (could be temp table if pre-processing was necessary)
-{DEFAULT @exposure_start_date = 'drug_era_start_date'} 
-{DEFAULT @exposure_end_date = 'drug_era_end_date'} 
-{DEFAULT @exposure_concept_id = 'drug_concept_id'} 
-{DEFAULT @exposure_person_id = 'person_id'} 
-{DEFAULT @outcome_table = 'condition_era'} --name of table where contains in format of CONDITION_ERA live (could be temp table if pre-processing was necessary)
-{DEFAULT @outcome_start_date = 'condition_era_start_date'} 
-{DEFAULT @outcome_end_date = 'condition_era_end_date'} 
-{DEFAULT @outcome_concept_id = 'condition_concept_id'} 
-{DEFAULT @outcome_person_id = 'person_id'} 
-{DEFAULT @table_person = 'person'} --name of table where contains in format of PERSON live (could be temp table if pre-processing was necessary)
-{DEFAULT @table_observation_period = 'observation_period'} --name of table where contains in format of OBSERVATION_PERIOD live (could be temp table if pre-processing was necessary)
-{DEFAULT @first_occurrence_drug_only = '1'} --if 1, only use first occurrence of each drug concept id for each person in DRUG_ERA table
-{DEFAULT @first_occurrence_condition_only = '1'} --if 1, only use first occurrence of each condition concept id for each person in CONDITION_ERA table
-{DEFAULT @drug_type_concept_id_list = '38000182'} --which DRUG_TYPE to use:  generally only use 1 value (ex:  30d era)
-{DEFAULT @condition_type_concept_id_list = '38000247'} --which CONDITION_TYPE to use:  generally only use 1 value (ex:  30d era)
-{DEFAULT @drug_concept_id_list = '1125315, 1713332, 19011773, 1174888'} --list of DRUG_CONCEPT_IDs to study, if NULL, then all DRUG_CONCEPT_IDs will be used
-{DEFAULT @condition_concept_id_list = '444382, 79106, 138825, 77670'} --list of CONDITION_CONCET_IDs to study, if NULL, all CONDITIONS considered as potential outcomes
-{DEFAULT @gender_concept_id_list = '8507,8532'} --list of GENDER_CONCEPT_IDs, generally use MALE (8507) and FEMALE (8532)
-{DEFAULT @min_age = '0'} --integer for minimum allowable age
-{DEFAULT @max_age = '100'} --integer for maximum allowable age
-{DEFAULT @min_index = '1/1/2000'} --date for minimum allowable data for index exposure
-{DEFAULT @max_index = '1/1/2013'} --date for maximum allowable data for index exposure
-{DEFAULT @stratify_gender = '1'} --if 1, analysis will be calculated overall, and stratified across all gender groups
-{DEFAULT @stratify_age = '1'} --if 1, analysis will be calculated overall, and stratified across all age groups  (using AGE_GROUP table below)
-{DEFAULT @stratify_index = '1'} --if 1, analysis will be calculated overall, and stratified across all years of the index dates
-{DEFAULT @use_length_of_exposure_exposed = '1'} --if 1, use the duration from drug_era_start -> drug_era_end as part of time_at_risk
-{DEFAULT @time_at_risk_exposed_start = '1'} --integer of days to add to drug_era_start for start of time_at_risk (0 to include index date, 1 to start the day after)
-{DEFAULT @surveillance_exposed = '30'} --additional window to add to end of exposure period (if @USE_LENGTH_OF_EXPOSURE_EXPOSED = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
-{DEFAULT @use_length_of_exposure_unexposed = '1'} --if 1, use the duration from drug_era_start -> drug_era_end as part of time_at_risk looking back before drug_era_start
-{DEFAULT @time_at_risk_unexposed_start = '-1'} --integer of days to add to drug_era_start for start of time_at_risk (0 to include index date, -1 to start the day before)
-{DEFAULT @surveillance_unexposed = '-30'} --additional window to add to end of exposure period (if @USE_LENGTH_OF_EXPOSURE_UNEXPOSED = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
-{DEFAULT @has_full_time_at_risk = '0'} --if 1, restrict to people who have full time-at-risk exposed and unexposed
-{DEFAULT @washout_period_length = '0'} --integer to define required time observed before exposure start
-{DEFAULT @followup_period_length = '0'} --integer to define required time observed after exposure start
+{DEFAULT @analysisId = 1}
+{DEFAULT @sourceName = ""}
+{DEFAULT @exposureTable = 'drug_era'} --name of table where contains in format of DRUG_ERA live (could be temp table if pre-processing was necessary)
+{DEFAULT @exposureStartDate = 'drug_era_start_date'} 
+{DEFAULT @exposureEndDate = 'drug_era_end_date'} 
+{DEFAULT @exposureConceptId = 'drug_concept_id'} 
+{DEFAULT @exposurePersonId = 'person_id'} 
+{DEFAULT @outcomeTable = 'condition_era'} --name of table where contains in format of CONDITION_ERA live (could be temp table if pre-processing was necessary)
+{DEFAULT @outcomeStartDate = 'condition_era_start_date'} 
+{DEFAULT @outcomeEndDate = 'condition_era_end_date'} 
+{DEFAULT @outcomeConceptId = 'condition_concept_id'} 
+{DEFAULT @outcomePersontId = 'person_id'} 
+{DEFAULT @personTable = 'person'} --name of table where contains in format of PERSON live (could be temp table if pre-processing was necessary)
+{DEFAULT @observationPeriodTable = 'observation_period'} --name of table where contains in format of OBSERVATION_PERIOD live (could be temp table if pre-processing was necessary)
+{DEFAULT @firstOccurrenceDrugOnly = '1'} --if 1, only use first occurrence of each drug concept id for each person in DRUG_ERA table
+{DEFAULT @firstOccurrenceConditionOnly = '1'} --if 1, only use first occurrence of each condition concept id for each person in CONDITION_ERA table
+{DEFAULT @drugTypeConceptIdList = '38000182'} --which DRUG_TYPE to use:  generally only use 1 value (ex:  30d era)
+{DEFAULT @conditionTypeConceptIdList = '38000247'} --which CONDITION_TYPE to use:  generally only use 1 value (ex:  30d era)
+{DEFAULT @exposuresOfInterest = '1125315, 1713332, 19011773, 1174888'} --list of DRUG_CONCEPT_IDs to study, if NULL, then all DRUG_CONCEPT_IDs will be used
+{DEFAULT @outcomesOfInterest = '444382, 79106, 138825, 77670'} --list of CONDITION_CONCET_IDs to study, if NULL, all CONDITIONS considered as potential outcomes
+{DEFAULT @genderConceptIdList = '8507,8532'} --list of GENDER_CONCEPT_IDs, generally use MALE (8507) and FEMALE (8532)
+{DEFAULT @minAge = '0'} --integer for minimum allowable age
+{DEFAULT @maxAge = '100'} --integer for maximum allowable age
+{DEFAULT @minIndex = '1/1/2000'} --date for minimum allowable data for index exposure
+{DEFAULT @maxIndex = '1/1/2013'} --date for maximum allowable data for index exposure
+{DEFAULT @stratifyGender = '1'} --if 1, analysis will be calculated overall, and stratified across all gender groups
+{DEFAULT @stratifyAge = '1'} --if 1, analysis will be calculated overall, and stratified across all age groups  (using AGE_GROUP table below)
+{DEFAULT @stratifyIndex = '1'} --if 1, analysis will be calculated overall, and stratified across all years of the index dates
+{DEFAULT @useLengthOfExposureExposed = '1'} --if 1, use the duration from drug_era_start -> drug_era_end as part of time_at_risk
+{DEFAULT @timeAtRiskExposedStart = '1'} --integer of days to add to drug_era_start for start of time_at_risk (0 to include index date, 1 to start the day after)
+{DEFAULT @surveillanceExposed = '30'} --additional window to add to end of exposure period (if @useLengthOfExposureExposed = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
+{DEFAULT @useLengthOfExposureUnexposed = '1'} --if 1, use the duration from drug_era_start -> drug_era_end as part of time_at_risk looking back before drug_era_start
+{DEFAULT @timeAtRiskUnexposedStart = '-1'} --integer of days to add to drug_era_start for start of time_at_risk (0 to include index date, -1 to start the day before)
+{DEFAULT @surveillanceUnexposed = '-30'} --additional window to add to end of exposure period (if @useLengthOfExposureUnexposed = 1, then add to DRUG_ERA_END, else add to DRUG_ERA_START)
+{DEFAULT @hasFullTimeAtRisk = '0'} --if 1, restrict to people who have full time-at-risk exposed and unexposed
+{DEFAULT @washoutPeriodLength = '0'} --integer to define required time observed before exposure start
+{DEFAULT @followupPeriodLength = '0'} --integer to define required time observed after exposure start
 {DEFAULT @shrinkage = '0.0001'} --shrinkage used in IRR calculations, required >0 to deal with 0 case counts, but larger number means more shrinkage
 
 --Delete these :
@@ -54,79 +48,79 @@ all tables in CDMv4 exist
 --drop table #self_controlled_cohort_exposure_summary;
 --drop table #self_controlled_cohort_outcome_summary;
 
-{@create_results_table} ? {
-IF OBJECT_ID('@results_schema.dbo.@results_table_prefix_results', 'U') IS NOT NULL 
-	DROP TABLE @results_schema.dbo.@results_table_prefix_results;
+{@createResultsTable} ? {
+IF OBJECT_ID('@resultsSchema.dbo.@resultsTablePrefix_results', 'U') IS NOT NULL 
+  DROP TABLE @resultsSchema.dbo.@resultsTablePrefix_results;
 
-IF OBJECT_ID('@results_schema.dbo.@results_table_prefix_analysis', 'U') IS NOT NULL 
-	DROP TABLE @results_schema.dbo.@results_table_prefix_analysis;
-	
-SELECT
-	@analysis_id AS analysis_id,
-	'@exposure_table' AS exposure_table,
-	'@outcome_table' AS outcome_table,
-	'@first_occurrence_drug_only' AS first_occurrence_drug_only,
-	'@first_occurrence_condition_only' AS first_occurrence_condition_only,
-	'@drug_type_concept_id_list' AS drug_type_concept_id_list,
-	'@condition_type_concept_id_list' AS condition_type_concept_id_list,
-	'@drug_concept_id_list' AS drug_concept_id_list,
-	'@condition_concept_id_list' AS condition_concept_id_list,
-	'@gender_concept_id_list' AS gender_concept_id_list,
-	'@min_age' AS min_age,
-	'@max_age' AS max_age,
-	'@min_index' AS min_index,
-	'@max_index' AS max_index,
-	'@stratify_gender' AS stratify_gender,
-	'@stratify_age' AS stratify_age,
-	'@stratify_index' AS stratify_index,
-	'@use_length_of_exposure_exposed' AS use_length_of_exposure_exposed,
-	@time_at_risk_exposed_start AS time_at_risk_exposed_start,
-	@surveillance_exposed AS surveillance_exposed,
-	'@use_length_of_exposure_unexposed' AS use_length_of_exposure_unexposed,
-	@time_at_risk_unexposed_start AS time_at_risk_unexposed_start,
-	@surveillance_unexposed AS surveillance_unexposed,
-	'@has_full_time_at_risk' AS has_full_time_at_risk,
-	@washout_period_length AS washout_period_length,
-	@followup_period_length AS followup_period_length,
-	@shrinkage AS shrinkage
-INTO
-	@results_schema.dbo.@results_table_prefix_analysis
-;
-} : {
+IF OBJECT_ID('@resultsSchema.dbo.@resultsTablePrefix_analysis', 'U') IS NOT NULL 
+	DROP TABLE @resultsSchema.dbo.@resultsTablePrefix_analysis;
+
+CREATE TABLE @resultsSchema.dbo.@resultsTablePrefix_analysis (
+  analysisId INT NOT NULL,
+	firstOccurrenceDrugOnly VARCHAR(5) NOT NULL,
+	firstOccurrenceConditionOnly VARCHAR(5) NOT NULL,
+	drugTypeConceptIdList VARCHAR(255) NOT NULL,
+	conditionTypeConceptIdList VARCHAR(255) NOT NULL,
+	genderConceptIdList VARCHAR(255) NOT NULL,
+	minAge VARCHAR(10) NOT NULL,
+	maxAge VARCHAR(10) NOT NULL,
+	minIndex VARCHAR(4) NOT NULL,
+	maxIndex VARCHAR(4) NOT NULL,
+	stratifyGender VARCHAR(5) NOT NULL,
+	stratifyAge VARCHAR(5) NOT NULL,
+	stratifyIndex VARCHAR(5) NOT NULL,
+	useLengthOfExposureExposed VARCHAR(5) NOT NULL,
+	timeAtRiskExposedStart INT NOT NULL,
+	surveillanceExposed INT NOT NULL,
+	useLengthOfExposureUnexposed VARCHAR(5) NOT NULL,
+	timeAtRiskUnexposedStart INT NOT NULL,
+	surveillanceUnexposed INT NOT NULL,
+	hasFullTimeAtRisk VARCHAR(5) NOT NULL,
+	washoutPeriodLength INT NOT NULL,
+	followupPeriodLength INT NOT NULL,
+	shrinkage FLOAT NOT NULL
+);
+
+} 
 INSERT INTO
-	@results_schema.dbo.@results_table_prefix_analysis
+	@resultsSchema.dbo.@resultsTablePrefix_analysis
 SELECT
-	@analysis_id AS analysis_id,
-	@exposure_table AS exposure_table,
-	@outcome_table AS outcome_table,
-	@first_occurrence_drug_only AS first_occurrence_drug_only,
-	@first_occurrence_condition_only AS first_occurrence_condition_only,
-	@drug_type_concept_id_list AS drug_type_concept_id_list,
-	@condition_type_concept_id_list AS condition_type_concept_id_list,
-	@drug_concept_id_list AS drug_concept_id_list,
-	@condition_concept_id_list AS condition_concept_id_list,
-	@gender_concept_id_list AS gender_concept_id_list,
-	@min_age AS min_age,
-	@max_age AS max_age,
-	@min_index AS min_index,
-	@max_index AS max_index,
-	@stratify_gender AS stratify_gender.
-	@stratify_age AS stratify_age,
-	@stratify_index AS stratify_index,
-	@use_length_of_exposure_exposed AS use_length_of_exposure_exposed,
-	@time_at_risk_exposed_start AS time_at_risk_exposed_start,
-	@surveillance_exposed AS surveillance_exposed,
-	@use_length_of_exposure_unexposed AS use_length_of_exposure_unexposed,
-	@time_at_risk_unexposed_start AS time_at_risk_unexposed_start,
-	@surveillance_unexposed AS surveillance_unexposed,
-	@has_full_time_at_risk AS has_full_time_at_risk,
-	@washout_period_length AS washout_period_length,
-	@followup_period_length AS followup_period_length,
+	@analysisId AS analysisId,
+	'@firstOccurrenceDrugOnly' AS firstOccurrenceDrugOnly,
+	'@firstOccurrenceConditionOnly' AS firstOccurrenceConditionOnly,
+	'@drugTypeConceptIdList' AS drugTypeConceptIdList,
+	'@conditionTypeConceptIdList' AS conditionTypeConceptIdList,
+	'@genderConceptIdList' AS genderConceptIdList,
+	'@minAge' AS minAge,
+	'@maxAge' AS maxAge,
+	'@minIndex' AS minIndex,
+	'@maxIndex' AS maxIndex,
+	'@stratifyGender' AS stratifyGender,
+	'@stratifyAge' AS stratifyAge,
+	'@stratifyIndex' AS stratifyIndex,
+	'@useLengthOfExposureExposed' AS useLengthOfExposureExposed,
+	@timeAtRiskExposedStart AS timeAtRiskExposedStart,
+	@surveillanceExposed AS surveillanceExposed,
+	'@useLengthOfExposureUnexposed' AS useLengthOfExposureUnexposed,
+	@timeAtRiskUnexposedStart AS timeAtRiskUnexposedStart,
+	@surveillanceUnexposed AS surveillanceUnexposed,
+	'@hasFullTimeAtRisk' AS hasFullTimeAtRisk,
+	@washoutPeriodLength AS washoutPeriodLength,
+	@followupPeriodLength AS followupPeriodLength,
 	@shrinkage AS shrinkage
+WHERE
+  NOT EXISTS (
+    SELECT 
+      *
+    FROM
+      @resultsSchema.dbo.@resultsTablePrefix_analysis
+    WHERE
+      analysisId = @analysisId
+  )
 ;
-}
 
-USE @cdm_schema; 
+
+USE @cdmSchema; 
 
 CREATE TABLE #age_group (
 	age_group_name VARCHAR(255),
@@ -146,31 +140,31 @@ INSERT INTO #age_group (age_group_name, age_group_min, age_group_max) VALUES ('8
 INSERT INTO #age_group (age_group_name, age_group_min, age_group_max) VALUES ('90-99',90,99);
 
 SELECT
-	d1.@exposure_concept_id AS exposure_concept_id,
-	{@stratify_gender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
-	{@stratify_age} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
-	{@stratify_index} ? {YEAR(d1.@exposure_start_date) AS index_year,} : {'ALL' AS index_year,}
-	COUNT(DISTINCT d1.@exposure_person_id) AS num_persons,
-	COUNT(d1.@exposure_person_id) AS num_exposures,
+	d1.@exposureConceptId AS exposure_concept_id,
+	{@stratifyGender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
+	{@stratifyAge} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
+	{@stratifyIndex} ? {YEAR(d1.@exposureStartDate) AS index_year,} : {'ALL' AS index_year,}
+	COUNT(DISTINCT d1.@exposurePersonId) AS num_persons,
+	COUNT(d1.@exposurePersonId) AS num_exposures,
 	SUM(
 		--need to account for potential censoring due to observation period length	
 		CASE WHEN 
 			DATEADD(
 				dd,
-				{@use_length_of_exposure_exposed} ? {DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
-				@exposure_start_date
+				{@useLengthOfExposureExposed} ? {DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceExposed,
+				@exposureStartDate
 			) <= op1.observation_period_end_date
 		THEN 
 			DATEDIFF(
 				dd,
-				DATEADD(dd, @time_at_risk_exposed_start, @exposure_start_date),	
-				DATEADD(dd, {@use_length_of_exposure_exposed} ? {DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
-				@exposure_start_date)
+				DATEADD(dd, @timeAtRiskExposedStart, @exposureStartDate),	
+				DATEADD(dd, {@useLengthOfExposureExposed} ? {DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceExposed,
+				@exposureStartDate)
 			)
 		ELSE
 			DATEDIFF(
 				dd, 
-				DATEADD(dd, @time_at_risk_exposed_start, @exposure_start_date), 
+				DATEADD(dd, @timeAtRiskExposedStart, @exposureStartDate), 
 				op1.observation_period_end_date
 			)
 		END
@@ -179,20 +173,20 @@ SELECT
 		CASE WHEN 
 			DATEADD(
 				dd,
-				{@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed,
-				@exposure_start_date
+				{@useLengthOfExposureUnexposed} ? {-1*DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceUnexposed,
+				@exposureStartDate
 			) >= op1.observation_period_start_date
 		THEN 		
 			DATEDIFF(
 				dd,
-				DATEADD(dd, {@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(dd, d1.@exposure_start_date, d1.@exposure_end_date)} : {0} + @surveillance_unexposed, @exposure_start_date), 
-				DATEADD(dd, @time_at_risk_unexposed_start, @exposure_start_date)
+				DATEADD(dd, {@useLengthOfExposureUnexposed} ? {-1*DATEDIFF(dd, d1.@exposureStartDate, d1.@exposureEndDate)} : {0} + @surveillanceUnexposed, @exposureStartDate), 
+				DATEADD(dd, @timeAtRiskUnexposedStart, @exposureStartDate)
 			)
 		ELSE  
 			DATEDIFF(
 				dd, 
 				op1.observation_period_start_date, 
-				DATEADD(dd, @time_at_risk_unexposed_start, @exposure_start_date)
+				DATEADD(dd, @timeAtRiskUnexposedStart, @exposureStartDate)
 			)
 		END
 	) / 365.25 AS time_at_risk_unexposed
@@ -201,79 +195,79 @@ INTO
 FROM
 	(
 		SELECT 
-			@exposure_person_id, 
-			@exposure_concept_id, 
-			@exposure_start_date, 
-			@exposure_end_date
+			@exposurePersonId, 
+			@exposureConceptId, 
+			@exposureStartDate, 
+			@exposureEndDate
 		FROM
 			(
 				SELECT 
-					@exposure_person_id, 
-					@exposure_concept_id, 
-					@exposure_start_date, 
-					@exposure_end_date
-					{@first_occurrence_drug_only} ? {,ROW_NUMBER() OVER (PARTITION BY @exposure_person_id, @exposure_concept_id, drug_type_concept_id ORDER BY @exposure_start_date) AS rn1} 
+					@exposurePersonId, 
+					@exposureConceptId, 
+					@exposureStartDate, 
+					@exposureEndDate
+					{@firstOccurrenceDrugOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @exposurePersonId, @exposureConceptId, drug_type_concept_id ORDER BY @exposureStartDate) AS rn1} 
 				FROM 
-					@exposure_table 
+					@exposureTable 
 				WHERE 
 					1=1
-					{@drug_concept_id_list != ''} ? {AND @exposure_concept_id IN (@drug_concept_id_list)}
-					{@drug_type_concept_id_list != '' & exposure_table != 'cohort'} ? {AND drug_type_concept_id IN (@drug_type_concept_id_list)}
+					{@exposuresOfInterest != ''} ? {AND @exposureConceptId IN (@exposuresOfInterest)}
+					{@drugTypeConceptIdList != '' & exposure_table != 'cohort'} ? {AND drug_type_concept_id IN (@drugTypeConceptIdList)}
 			) t1
-		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
+		{@firstOccurrenceDrugOnly} ? {WHERE rn1 = 1}
 	) d1
 	INNER JOIN
-		@table_person p1
+		@personTable p1
 	ON 
-		d1.@exposure_person_id = p1.person_id
+		d1.@exposurePersonId = p1.person_id
 	INNER JOIN
-		@table_observation_period op1
+		@observationPeriodTable op1
 	ON 
-		d1.@exposure_person_id = op1.person_id,
+		d1.@exposurePersonId = op1.person_id,
 	#age_group ag1
 WHERE 
-		d1.@exposure_start_date >= op1.observation_period_start_date
+		d1.@exposureStartDate >= op1.observation_period_start_date
 	AND 
-		d1.@exposure_start_date <= op1.observation_period_end_date
+		d1.@exposureStartDate <= op1.observation_period_end_date
 	AND 
-		YEAR(d1.@exposure_start_date) - year_of_birth >= ag1.age_group_min
+		YEAR(d1.@exposureStartDate) - year_of_birth >= ag1.age_group_min
 	AND 
-		YEAR(d1.@exposure_start_date) - year_of_birth <= ag1.age_group_max
-	{@min_index != ''} ? {AND @exposure_start_date >= '@min_index'}
-	{@max_index != ''} ? {AND @exposure_start_date <= '@max_index'}
-	{@min_age != ''} ? {AND YEAR(d1.@exposure_start_date) - p1.year_of_birth  >= @min_age}
-	{@max_age != ''} ? {AND YEAR(d1.@exposure_start_date) - p1.year_of_birth  <= @max_age}
-	{@gender_concept_id_list != ''} ? {AND p1.gender_concept_id IN (@gender_concept_id_list)}
-	{@has_full_time_at_risk}  ? {
+		YEAR(d1.@exposureStartDate) - year_of_birth <= ag1.age_group_max
+	{@minIndex != ''} ? {AND @exposureStartDate >= '@minIndex'}
+	{@maxIndex != ''} ? {AND @exposureStartDate <= '@maxIndex'}
+	{@minAge != ''} ? {AND YEAR(d1.@exposureStartDate) - p1.year_of_birth  >= @minAge}
+	{@maxAge != ''} ? {AND YEAR(d1.@exposureStartDate) - p1.year_of_birth  <= @maxAge}
+	{@genderConceptIdList != ''} ? {AND p1.gender_concept_id IN (@genderConceptIdList)}
+	{@hasFullTimeAtRisk}  ? {
 		AND 
-			op1.observation_period_end_date >= DATEADD(dd, {@use_length_of_exposure_exposed} ? {DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed, @exposure_start_date)
+			op1.observation_period_end_date >= DATEADD(dd, {@useLengthOfExposureExposed} ? {DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceExposed, @exposureStartDate)
 		AND 
-			op1.observation_period_start_date <= DATEADD(dd, {@use_length_of_exposure_exposed} ? {DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed, @exposure_start_date)	
+			op1.observation_period_start_date <= DATEADD(dd, {@useLengthOfExposureExposed} ? {DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceUnexposed, @exposureStartDate)	
 	}
-	{@washout_period_length != ''} ? {AND DATEDIFF(dd, op1.observation_period_start_date, d1.@exposure_start_date) >= @washout_period_length}
-	{@followup_period_length != ''} ? {AND DATEDIFF(dd,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_period_length}
+	{@washoutPeriodLength != ''} ? {AND DATEDIFF(dd, op1.observation_period_start_date, d1.@exposureStartDate) >= @washoutPeriodLength}
+	{@followupPeriodLength != ''} ? {AND DATEDIFF(dd,d1.@exposureStartDate, op1.observation_period_end_date) >= @followupPeriodLength}
 GROUP BY 
-	@exposure_concept_id
-	{@stratify_gender} ? {, gender_concept_id}
-	{@stratify_age} ? {, ag1.age_group_name}
-	{@stratify_index} ? {, YEAR(d1.@exposure_start_date)}
+	@exposureConceptId
+	{@stratifyGender} ? {, gender_concept_id}
+	{@stratifyAge} ? {, ag1.age_group_name}
+	{@stratifyIndex} ? {, YEAR(d1.@exposureStartDate)}
 ;
 
 
 --query 2:  number of events in each time window
 SELECT 
-	d1.@exposure_concept_id AS exposure_concept_id,
-	c1.@outcome_concept_id AS outcome_concept_id,
-	{@stratify_gender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
-	{@stratify_age} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
-	{@stratify_index} ? {YEAR(d1.@exposure_start_date) AS index_year,} : {'ALL' AS index_year,}
+	d1.@exposureConceptId AS exposure_concept_id,
+	c1.@outcomeConceptId AS outcome_concept_id,
+	{@stratifyGender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
+	{@stratifyAge} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
+	{@stratifyIndex} ? {YEAR(d1.@exposureStartDate) AS index_year,} : {'ALL' AS index_year,}
 	SUM(
 		CASE WHEN 
-				c1.@outcome_start_date >= DATEADD(dd,@time_at_risk_exposed_start,@exposure_start_date)
+				c1.@outcomeStartDate >= DATEADD(dd,@timeAtRiskExposedStart,@exposureStartDate)
 			AND 
-				c1.@outcome_start_date <= DATEADD(dd, {@use_length_of_exposure_exposed}?{DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)}:{0} + @surveillance_exposed ,@exposure_start_date)
+				c1.@outcomeStartDate <= DATEADD(dd, {@useLengthOfExposureExposed}?{DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)}:{0} + @surveillanceExposed ,@exposureStartDate)
 			AND 
-				c1.@outcome_start_date <= op1.observation_period_end_date
+				c1.@outcomeStartDate <= op1.observation_period_end_date
 		THEN 
 			1 
 		ELSE 
@@ -282,11 +276,11 @@ SELECT
 	) AS num_outcomes_exposed,
 	SUM(
 		CASE WHEN 
-			c1.@outcome_start_date <= DATEADD(dd,@time_at_risk_unexposed_start, @exposure_start_date)
+			c1.@outcomeStartDate <= DATEADD(dd,@timeAtRiskUnexposedStart, @exposureStartDate)
 		AND 
-			c1.@outcome_start_date >= DATEADD(dd,{@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed ,@exposure_start_date)	
+			c1.@outcomeStartDate >= DATEADD(dd,{@useLengthOfExposureUnexposed} ? {-1*DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceUnexposed ,@exposureStartDate)	
 		AND 
-			c1.@outcome_start_date >= op1.observation_period_start_date
+			c1.@outcomeStartDate >= op1.observation_period_start_date
 		THEN 
 			1 
 		ELSE 
@@ -299,105 +293,105 @@ INTO
 FROM
 	(
 		SELECT 
-			@exposure_person_id, 
-			@exposure_concept_id, 
-			@exposure_start_date, 
-			@exposure_end_date
+			@exposurePersonId, 
+			@exposureConceptId, 
+			@exposureStartDate, 
+			@exposureEndDate
 		FROM
 			(
 				SELECT 
-					@exposure_person_id, 
-					@exposure_concept_id, 
-					@exposure_start_date, 
-					@exposure_end_date
-					{@first_occurrence_drug_only}?{,ROW_NUMBER() OVER (PARTITION BY @exposure_person_id, @exposure_concept_id, drug_type_concept_id ORDER BY @exposure_start_date) AS rn1}
+					@exposurePersonId, 
+					@exposureConceptId, 
+					@exposureStartDate, 
+					@exposureEndDate
+					{@firstOccurrenceDrugOnly}?{,ROW_NUMBER() OVER (PARTITION BY @exposurePersonId, @exposureConceptId, drug_type_concept_id ORDER BY @exposureStartDate) AS rn1}
 				FROM 
-					@exposure_table 
+					@exposureTable 
 				WHERE 
 						1=1
-					{@drug_concept_id_list != ''} ? {AND @exposure_concept_id IN (@drug_concept_id_list)}
-					{@drug_type_concept_id_list != '' & exposure_table != 'cohort'} ? {AND drug_type_concept_id IN (@drug_type_concept_id_list) }
+					{@exposuresOfInterest != ''} ? {AND @exposureConceptId IN (@exposuresOfInterest)}
+					{@drugTypeConceptIdList != '' & exposure_table != 'cohort'} ? {AND drug_type_concept_id IN (@drugTypeConceptIdList) }
 	
 			) T1
-		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
+		{@firstOccurrenceDrugOnly} ? {WHERE rn1 = 1}
 	) D1
 INNER JOIN
-	@table_person p1
+	@personTable p1
 ON 
-	d1.@exposure_person_id = p1.person_id
+	d1.@exposurePersonId = p1.person_id
 INNER JOIN
 	(
 		SELECT 
-			@outcome_person_id, 
-			@outcome_concept_id, 
-			@outcome_start_date, 
-			@outcome_end_date
+			@outcomePersontId, 
+			@outcomeConceptId, 
+			@outcomeStartDate, 
+			@outcomeEndDate
 		FROM
 			(
 				SELECT 
-					@outcome_person_id, 
-					@outcome_concept_id, 
-					@outcome_start_date, 
-					@outcome_end_date
-					{@first_occurrence_condition_only} ? {,ROW_NUMBER() OVER (PARTITION BY @outcome_person_id, @outcome_concept_id, condition_type_concept_id ORDER BY @outcome_start_date) AS rn1}
+					@outcomePersontId, 
+					@outcomeConceptId, 
+					@outcomeStartDate, 
+					@outcomeEndDate
+					{@firstOccurrenceConditionOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @outcomePersontId, @outcomeConceptId, condition_type_concept_id ORDER BY @outcomeStartDate) AS rn1}
 				FROM 
-					@outcome_table 
+					@outcomeTable 
 				WHERE 
 						1=1
-					{@condition_concept_id_list != ''} ? {AND @outcome_concept_id IN (@condition_concept_id_list)}
-					{@condition_type_concept_id_list & outcome_table != 'cohort'} ? {AND condition_type_concept_id IN (@condition_type_concept_id_list)}
+					{@outcomesOfInterest != ''} ? {AND @outcomeConceptId IN (@outcomesOfInterest)}
+					{@conditionTypeConceptIdList & outcome_table != 'cohort'} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
 			) T1
-		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
+		{@firstOccurrenceDrugOnly} ? {WHERE rn1 = 1}
 	) c1
 ON 
-	p1.person_id = c1.@outcome_person_id
+	p1.person_id = c1.@outcomePersontId
 INNER JOIN
-	@table_observation_period op1
+	@observationPeriodTable op1
 ON 
-	d1.@exposure_person_id = op1.person_id,
+	d1.@exposurePersonId = op1.person_id,
 	#age_group ag1
 WHERE 
-		d1.@exposure_start_date >= op1.observation_period_start_date
+		d1.@exposureStartDate >= op1.observation_period_start_date
 	AND 
-		d1.@exposure_start_date <= op1.observation_period_end_date
+		d1.@exposureStartDate <= op1.observation_period_end_date
 	AND 
-		YEAR(d1.@exposure_start_date) - year_of_birth >= ag1.age_group_min
+		YEAR(d1.@exposureStartDate) - year_of_birth >= ag1.age_group_min
 	AND 
-		YEAR(d1.@exposure_start_date) - year_of_birth <= ag1.age_group_max
-	{@min_index != ''} ? {AND @exposure_start_date >= '@min_index'}
-	{@max_index != ''} ? {AND @exposure_start_date <= '@max_index'}
-	{@min_age != ''} ? {AND YEAR(d1.@exposure_start_date) - p1.year_of_birth >= @min_age}
-	{@max_age != ''} ? {AND YEAR(d1.@exposure_start_date) - p1.year_of_birth <= @max_age}
-	{@gender_concept_id_list != ''} ? {AND p1.gender_concept_id IN (@gender_concept_id_list)}
-	{@has_full_time_at_risk} ? {
+		YEAR(d1.@exposureStartDate) - year_of_birth <= ag1.age_group_max
+	{@minIndex != ''} ? {AND @exposureStartDate >= '@minIndex'}
+	{@maxIndex != ''} ? {AND @exposureStartDate <= '@maxIndex'}
+	{@minAge != ''} ? {AND YEAR(d1.@exposureStartDate) - p1.year_of_birth >= @minAge}
+	{@maxAge != ''} ? {AND YEAR(d1.@exposureStartDate) - p1.year_of_birth <= @maxAge}
+	{@genderConceptIdList != ''} ? {AND p1.gender_concept_id IN (@genderConceptIdList)}
+	{@hasFullTimeAtRisk} ? {
 		AND 
 			op1.observation_period_end_date >= DATEADD(
 				dd, 
-				{@use_length_of_exposure_exposed = 1} ? {DATEDIFF(dd,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
-				@exposure_start_date)		
+				{@useLengthOfExposureExposed = 1} ? {DATEDIFF(dd,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceExposed,
+				@exposureStartDate)		
 		AND 
 			op1.observation_period_start_date <= DATEADD(
 				dd,
-				{@use_length_of_exposure_exposed} ? {DATEDIFF(DD,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed,
-				@exposure_start_date)	
+				{@useLengthOfExposureExposed} ? {DATEDIFF(DD,d1.@exposureStartDate,d1.@exposureEndDate)} : {0} + @surveillanceUnexposed,
+				@exposureStartDate)	
 	}
-	{@washout_period_length != 0} ? {AND DATEDIFF(DD,op1.observation_period_start_date,d1.@exposure_start_date) >= @washout_period_length}
-	{@followup_period_length != 0} ? {AND DATEDIFF(DD,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_period_length}
+	{@washoutPeriodLength != 0} ? {AND DATEDIFF(DD,op1.observation_period_start_date,d1.@exposureStartDate) >= @washoutPeriodLength}
+	{@followupPeriodLength != 0} ? {AND DATEDIFF(DD,d1.@exposureStartDate, op1.observation_period_end_date) >= @followupPeriodLength}
 GROUP BY 
-	@exposure_concept_id, 
-	@outcome_concept_id
-	{@stratify_gender} ? {, gender_concept_id}
-	{@stratify_age} ? {, ag1.age_group_name}
-	{@stratify_index} ? {, YEAR(d1.@exposure_start_date)}
+	@exposureConceptId, 
+	@outcomeConceptId
+	{@stratifyGender} ? {, gender_concept_id}
+	{@stratifyAge} ? {, ag1.age_group_name}
+	{@stratifyIndex} ? {, YEAR(d1.@exposureStartDate)}
 ;
 
 --now create final summary table
-{!@create_results_table} ? {
+{!@createResultsTable} ? {
 INSERT INTO 
-	@results_schema.dbo.@results_table_prefix_results
+	@resultsSchema.dbo.@resultsTablePrefix_results
 }
 SELECT 
-	@analysis_id AS analysis_id,
+	@analysisId AS analysisId,
 	exposure_concept_id,
 	outcome_concept_id,
 	gender_concept_id,
@@ -460,15 +454,15 @@ SELECT
 	
 	--calcuating SElogIRR
 	SQRT( (1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) AS selogirr
-{@create_results_table} ? {	
+{@createResultsTable} ? {	
 INTO 
-	@results_schema.dbo.@results_table_prefix_results
+	@resultsSchema.dbo.@resultsTablePrefix_results
 }
 FROM
 	(
 		SELECT 
-			source_name = '@source_name',
-			analysis_id = @analysis_id,
+			source_name = '@sourceName',
+			analysis_id = @analysisId,
 			e2.exposure_concept_id,
 			e2.outcome_concept_id,
 			CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
@@ -507,7 +501,7 @@ FROM
 			AND 
 				e2.index_year = o2.index_year
 
-		{@stratify_gender} ? {
+		{@stratifyGender} ? {
 		UNION
 			SELECT 
 				e2.exposure_concept_id,
@@ -553,7 +547,7 @@ FROM
 				e2.age_group_name,
 				e2.index_year
 		}
-		{@stratify_age} ? {
+		{@stratifyAge} ? {
 		UNION
 			SELECT e2.exposure_concept_id,
 				e2.outcome_concept_id,
@@ -598,7 +592,7 @@ FROM
 				e2.gender_concept_id,
 				e2.index_year
 		}
-		{@stratify_index} ? {
+		{@stratifyIndex} ? {
 		UNION
 			SELECT 
 				e2.exposure_concept_id,
@@ -643,7 +637,7 @@ FROM
 						e2.gender_concept_id,
 						e2.age_group_name
 		}
-		{@stratify_gender & @stratify_age} ? {
+		{@stratifyGender & @stratifyAge} ? {
 		UNION
 			SELECT e2.exposure_concept_id,
 				e2.outcome_concept_id,
@@ -687,7 +681,7 @@ FROM
 				e2.outcome_concept_id,
 				e2.index_year
 		}
-		{@stratify_gender & @stratify_index} ? {
+		{@stratifyGender & @stratifyIndex} ? {
 		UNION
 			SELECT 
 				e2.exposure_concept_id,
@@ -732,7 +726,7 @@ FROM
 				e2.outcome_concept_id,
 				e2.age_group_name
 		}
-		{@stratify_age & @stratify_index} ? {
+		{@stratifyAge & @stratifyIndex} ? {
 		UNION
 			SELECT 
 				e2.exposure_concept_id,
@@ -776,7 +770,7 @@ FROM
 				e2.outcome_concept_id,
 				e2.gender_concept_id
 		}
-		{@stratify_gender & @stratify_age & @stratify_index} ? {
+		{@stratifyGender & @stratifyAge & @stratifyIndex} ? {
 		UNION
 			SELECT 
 				e2.exposure_concept_id,
@@ -824,4 +818,6 @@ FROM
 ;
 
 
-
+DROP TABLE #age_group;
+DROP TABLE #self_controlled_cohort_exposure_summary;
+DROP TABLE #self_controlled_cohort_outcome_summary;
