@@ -509,12 +509,12 @@ summary.sccResults <- function(sccResults){
 #' @export
 plot.sccResults <- function(sccResults){
   colnames(sccResults$effectEstimates) <- toupper(colnames(sccResults$effectEstimates))
-  ggplot(sccResults$effectEstimates, aes(x=as.factor(EXPOSURECONCEPTID), y=IRR,ymin=IRRLB95, ymax=IRRUB95)) + 
-    geom_hline(yintercept=1, colour ="#888888", lty=1, lw=1) +
-    geom_point(size=2,alpha=0.7) +
-    geom_errorbar(width=.1,alpha=0.7) +
-    coord_flip() +  
-    facet_grid(ANALYSISID~OUTCOMECONCEPTID) +
-    scale_y_log10()
+    ggplot(sccResults$effectEstimates, aes(x=as.factor(EXPOSURECONCEPTID), y=IRR,ymin=IRRLB95, ymax=IRRUB95)) + 
+      geom_hline(yintercept=1, colour ="#888888", lty=1, lw=1) +
+      geom_point(size=2,alpha=0.7) +
+      geom_errorbar(width=.1,alpha=0.7) +
+      coord_flip() +  
+      facet_grid(ANALYSISID~OUTCOMECONCEPTID) +
+      scale_y_log10()
 }
 
