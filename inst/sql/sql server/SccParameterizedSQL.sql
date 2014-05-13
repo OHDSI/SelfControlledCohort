@@ -45,8 +45,8 @@ Martijn Schuemie
 
 --Delete these :
 --drop table #age_group;
---drop table #self_controlled_cohort_exposure_summary;
---drop table #self_controlled_cohort_outcome_summary;
+--drop table #scc_exposure_summary;
+--drop table #scc_outcome_summary;
 
 {@createResultsTable} ? {
 IF OBJECT_ID('@resultsSchema.dbo.@resultsTablePrefix_results', 'U') IS NOT NULL 
@@ -57,28 +57,28 @@ IF OBJECT_ID('@resultsSchema.dbo.@resultsTablePrefix_analysis', 'U') IS NOT NULL
 
 CREATE TABLE @resultsSchema.dbo.@resultsTablePrefix_analysis (
   analysisId INT NOT NULL,
-	firstOccurrenceDrugOnly VARCHAR(5) NOT NULL,
-	firstOccurrenceConditionOnly VARCHAR(5) NOT NULL,
-	drugTypeConceptIdList VARCHAR(255) NOT NULL,
-	conditionTypeConceptIdList VARCHAR(255) NOT NULL,
-	genderConceptIdList VARCHAR(255) NOT NULL,
-	minAge VARCHAR(10) NOT NULL,
-	maxAge VARCHAR(10) NOT NULL,
-	minIndex VARCHAR(4) NOT NULL,
-	maxIndex VARCHAR(4) NOT NULL,
-	stratifyGender VARCHAR(5) NOT NULL,
-	stratifyAge VARCHAR(5) NOT NULL,
-	stratifyIndex VARCHAR(5) NOT NULL,
-	useLengthOfExposureExposed VARCHAR(5) NOT NULL,
-	timeAtRiskExposedStart INT NOT NULL,
-	surveillanceExposed INT NOT NULL,
-	useLengthOfExposureUnexposed VARCHAR(5) NOT NULL,
-	timeAtRiskUnexposedStart INT NOT NULL,
-	surveillanceUnexposed INT NOT NULL,
-	hasFullTimeAtRisk VARCHAR(5) NOT NULL,
-	washoutPeriodLength INT NOT NULL,
-	followupPeriodLength INT NOT NULL,
-	shrinkage FLOAT NOT NULL
+	firstOccurrenceDrugOnly VARCHAR(5),
+	firstOccurrenceConditionOnly VARCHAR(5),
+	drugTypeConceptIdList VARCHAR(255),
+	conditionTypeConceptIdList VARCHAR(255),
+	genderConceptIdList VARCHAR(255),
+	minAge VARCHAR(10),
+	maxAge VARCHAR(10),
+	minIndex VARCHAR(4),
+	maxIndex VARCHAR(4),
+	stratifyGender VARCHAR(5),
+	stratifyAge VARCHAR(5),
+	stratifyIndex VARCHAR(5),
+	useLengthOfExposureExposed VARCHAR(5),
+	timeAtRiskExposedStart INT,
+	surveillanceExposed INT,
+	useLengthOfExposureUnexposed VARCHAR(5),
+	timeAtRiskUnexposedStart INT,
+	surveillanceUnexposed INT,
+	hasFullTimeAtRisk VARCHAR(5),
+	washoutPeriodLength INT,
+	followupPeriodLength INT,
+	shrinkage FLOAT
 );
 
 } 
@@ -191,7 +191,7 @@ SELECT
 		END
 	) / 365.25 AS time_at_risk_unexposed
 INTO 
-	#self_controlled_cohort_exposure_summary
+	#scc_exposure_summary
 FROM
 	(
 		SELECT 
@@ -289,7 +289,7 @@ SELECT
 	) AS num_outcomes_unexposed
 	--no additional time censored to be calculated, because doing so would violate assumption of Poisson rates and cause problems with patients with events in UNEXPOSED-time not counting EXPOSED-exposure time
 INTO 
-	#self_controlled_cohort_outcome_summary
+	#scc_outcome_summary
 FROM
 	(
 		SELECT 
@@ -391,18 +391,19 @@ INSERT INTO
 	@resultsSchema.dbo.@resultsTablePrefix_results
 }
 SELECT 
+  '@sourceName' AS sourceName,
 	@analysisId AS analysisId,
-	exposure_concept_id,
-	outcome_concept_id,
-	gender_concept_id,
-	age_group_name,
-	index_year,
-	num_persons,
-	num_exposures,
-	num_outcomes_exposed,
-	num_outcomes_unexposed,
-	time_at_risk_exposed,
-	time_at_risk_unexposed,
+	exposure_concept_id AS exposureConceptId,
+	outcome_concept_id AS outcomeConceptId,
+	gender_concept_id AS genderConceptId,
+	age_group_name AS ageGroupName,
+	index_year AS indexYear,
+	num_persons AS numPersons,
+	num_exposures AS numExposures,
+	num_outcomes_exposed AS numOutcomesExposed,
+	num_outcomes_unexposed AS numOutcomesUnexposed,
+	time_at_risk_exposed AS timeAtRiskExposed,
+	time_at_risk_unexposed AS timeAtRiskUnexposed,
 	--error handling, cant have 0 time at risk, or else division is undefined, set IRR = 1
 	CASE WHEN 
 			t1.time_at_risk_exposed = 0 
@@ -432,7 +433,7 @@ SELECT
 			END
 		)
 		- 1.96 * SQRT((1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) 
-	) AS irrlb95,
+	) AS irrLb95,
 
 	--calculating IRRUB95 : LOG ( IRR + 1.96*SElogRR)
 	EXP(
@@ -450,10 +451,10 @@ SELECT
 			END
 		)
 		+ 1.96 * SQRT((1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) 
-	) AS irrub95,	
+	) AS irrUb95,	
 	
 	--calcuating SElogIRR
-	SQRT( (1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) AS selogirr
+	SQRT( (1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) AS seLogIrr
 {@createResultsTable} ? {	
 INTO 
 	@resultsSchema.dbo.@resultsTablePrefix_results
@@ -461,13 +462,11 @@ INTO
 FROM
 	(
 		SELECT 
-			source_name = '@sourceName',
-			analysis_id = @analysisId,
 			e2.exposure_concept_id,
 			e2.outcome_concept_id,
-			CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
-			CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
-			CAST(e2.index_year AS VARCHAR) AS index_year,
+			CAST(e2.gender_concept_id AS VARCHAR(255)) AS gender_concept_id,
+			CAST(e2.age_group_name AS VARCHAR(255)) AS age_group_name,
+			CAST(e2.index_year AS VARCHAR(255)) AS index_year,
 			e2.num_persons,
 			e2.num_exposures,
 			CASE WHEN o2.num_outcomes_exposed IS NULL THEN 0 ELSE o2.num_outcomes_exposed END AS num_outcomes_exposed,
@@ -480,16 +479,16 @@ FROM
 					e1.*, 
 					o1.outcome_concept_id
 				FROM 
-					#self_controlled_cohort_exposure_summary e1,
+					#scc_exposure_summary e1,
 					(
 						SELECT DISTINCT 
 							outcome_concept_id 
 						FROM 
-							#self_controlled_cohort_outcome_summary
+							#scc_outcome_summary
 					) o1
 			) e2
 		LEFT JOIN 
-			#self_controlled_cohort_outcome_summary o2
+			#scc_outcome_summary o2
 		ON 
 				e2.exposure_concept_id = o2.exposure_concept_id
 			AND 
@@ -507,8 +506,8 @@ FROM
 				e2.exposure_concept_id,
 				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
-				CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
-				CAST(e2.index_year AS VARCHAR) AS index_year,
+				CAST(e2.age_group_name AS VARCHAR(255)) AS age_group_name,
+				CAST(e2.index_year AS VARCHAR(255)) AS index_year,
 				SUM(e2.num_persons) AS num_persons,
 				SUM(e2.num_exposures) AS num_exposures,
 				SUM(CASE WHEN O2.num_outcomes_exposed IS NULL THEN 0 ELSE o2.num_outcomes_exposed END) AS num_outcomes_exposed,
@@ -521,16 +520,16 @@ FROM
 						e1.*, 
 						o1.outcome_concept_id
 					FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id 
 							FROM 
-								#self_controlled_cohort_outcome_summary
+								#scc_outcome_summary
 						) o1
 				) e2
 			LEFT JOIN 
-				#self_controlled_cohort_outcome_summary o2
+				#scc_outcome_summary o2
 			ON 
 					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
@@ -551,9 +550,9 @@ FROM
 		UNION
 			SELECT e2.exposure_concept_id,
 				e2.outcome_concept_id,
-				CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
+				CAST(e2.gender_concept_id AS VARCHAR(255)) AS gender_concept_id,
 				'ALL' AS age_group_name,
-				CAST(e2.index_year AS VARCHAR) AS index_year,
+				CAST(e2.index_year AS VARCHAR(255)) AS index_year,
 				SUM(e2.num_persons) AS num_persons,
 				SUM(e2.num_exposures) AS num_exposures,
 				SUM(CASE WHEN o2.num_outcomes_exposed IS NULL THEN 0 ELSE o2.num_outcomes_exposed END) AS num_outcomes_exposed,
@@ -566,16 +565,16 @@ FROM
 						e1.*, 
 						o1.outcome_concept_id
 					FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id	
 							FROM 
-								#self_controlled_cohort_outcome_summary
+								#scc_outcome_summary
 						) o1
 				) e2
 			LEFT JOIN 
-					#self_controlled_cohort_outcome_summary o2
+					#scc_outcome_summary o2
 			ON 
 					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
@@ -597,8 +596,8 @@ FROM
 			SELECT 
 				e2.exposure_concept_id,
 				e2.outcome_concept_id,
-				CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
-				CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
+				CAST(e2.gender_concept_id AS VARCHAR(255)) AS gender_concept_id,
+				CAST(e2.age_group_name AS VARCHAR(255)) AS age_group_name,
 				'ALL' AS index_year,
 				SUM(e2.num_persons) AS num_persons,
 				SUM(e2.num_exposures) AS num_exposures,
@@ -612,15 +611,15 @@ FROM
 						e1.*, 
 						o1.outcome_concept_id
 					FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id 
 							FROM 
-								#self_controlled_cohort_outcome_summary) o1
+								#scc_outcome_summary) o1
 						) e2
 					LEFT JOIN 
-						#self_controlled_cohort_outcome_summary o2
+						#scc_outcome_summary o2
 					ON 
 							e2.exposure_concept_id = o2.exposure_concept_id
 						AND 
@@ -643,7 +642,7 @@ FROM
 				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
 				'ALL' AS age_group_name,
-				CAST(e2.index_year AS VARCHAR) AS index_year,
+				CAST(e2.index_year AS VARCHAR(255)) AS index_year,
 				SUM(e2.num_persons) AS num_persons,
 				SUM(e2.num_exposures) AS num_exposures,
 				SUM(CASE WHEN o2.num_outcomes_exposed IS NULL THEN 0 ELSE o2.num_outcomes_exposed END) AS num_outcomes_exposed,
@@ -656,16 +655,16 @@ FROM
 						e1.*, 
 						o1.outcome_concept_id
 					FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id 
 							FROM 
-								#self_controlled_cohort_outcome_summary
+								#scc_outcome_summary
 						) o1
 				) e2
 			LEFT JOIN 
-				#self_controlled_cohort_outcome_summary o2
+				#scc_outcome_summary o2
 			ON 
 					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
@@ -687,7 +686,7 @@ FROM
 				e2.exposure_concept_id,
 				e2.outcome_concept_id,
 				'ALL' AS gender_concept_id,
-				CAST(e2.age_group_name AS VARCHAR) AS age_group_name,
+				CAST(e2.age_group_name AS VARCHAR(255)) AS age_group_name,
 				'all' AS index_year,
 				SUM(e2.num_persons) AS num_persons,
 				SUM(e2.num_exposures) AS num_exposures,
@@ -701,16 +700,16 @@ FROM
 						e1.*, 
 						o1.outcome_concept_id
 					 FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id 
 							FROM 
-								#self_controlled_cohort_outcome_summary
+								#scc_outcome_summary
 						) o1
 				) e2
 			LEFT JOIN 
-				#self_controlled_cohort_outcome_summary o2
+				#scc_outcome_summary o2
 			ON 
 					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
@@ -731,7 +730,7 @@ FROM
 			SELECT 
 				e2.exposure_concept_id,
 				e2.outcome_concept_id,
-				CAST(e2.gender_concept_id AS VARCHAR) AS gender_concept_id,
+				CAST(e2.gender_concept_id AS VARCHAR(255)) AS gender_concept_id,
 				'ALL' AS age_group_name,
 				'ALL' AS index_year,
 				SUM(e2.num_persons) AS num_persons,
@@ -745,16 +744,16 @@ FROM
 					SELECT 
 						e1.*, o1.outcome_concept_id
 					FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id
 							FROM
-								#self_controlled_cohort_outcome_summary
+								#scc_outcome_summary
 						) o1
 				) e2
 			LEFT JOIN 
-				#self_controlled_cohort_outcome_summary o2
+				#scc_outcome_summary o2
 			ON 
 					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
@@ -790,15 +789,15 @@ FROM
 						e1.*, 
 						o1.outcome_concept_id
 					FROM 
-						#self_controlled_cohort_exposure_summary e1,
+						#scc_exposure_summary e1,
 						(
 							SELECT DISTINCT 
 								outcome_concept_id 
 							FROM
-								#self_controlled_cohort_outcome_summary) o1
+								#scc_outcome_summary) o1
 				) e2
 			LEFT JOIN 
-				#self_controlled_cohort_outcome_summary o2
+				#scc_outcome_summary o2
 			ON 
 					e2.exposure_concept_id = o2.exposure_concept_id
 				AND 
@@ -817,7 +816,10 @@ FROM
 	) T1
 ;
 
+TRUNCATE TABLE #age_group;
+TRUNCATE TABLE #scc_exposure_summary;
+TRUNCATE TABLE #scc_outcome_summary;
 
 DROP TABLE #age_group;
-DROP TABLE #self_controlled_cohort_exposure_summary;
-DROP TABLE #self_controlled_cohort_outcome_summary;
+DROP TABLE #scc_exposure_summary;
+DROP TABLE #scc_outcome_summary;

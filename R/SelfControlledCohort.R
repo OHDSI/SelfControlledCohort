@@ -26,9 +26,9 @@
 #' \code{selfControlledCohort} generates population-level estimation from OMOP CDMv4 instance by comparing exposed and unexposed time among exposed cohort.
 #'
 #' @usage 
-#' selfControlledCohort(connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "self_controlled_cohort", createResultsTable = TRUE, sourceName = "", exposuresOfInterest = c(), outcomesOfInterest = c(), exposureTable = "drug_era", outcomeTable = "cohort", analysisId = 1, firstOccurrenceDrugOnly = TRUE, firstOccurrenceConditionOnly = TRUE, drugTypeConceptIdList = c(38000182), conditionTypeConceptIdList = c(38000247), genderConceptIdList = c(8507,8532), minAge = "", maxAge = "", minIndex = "", maxIndex = "", stratifyGender = FALSE, stratifyAge = FALSE, stratifyIndex = FALSE, useLengthOfExposureExposed = TRUE, timeAtRiskExposedStart = 1, surveillanceExposed = 30, useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1, surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE, washoutPeriodLength = 0, followupPeriodLength = 0, shrinkage = 0.0001)
-#' selfControlledCohort(sccAnalysisDetails, connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "self_controlled_cohort", createResultsTable = TRUE, sourceName = "", exposuresOfInterest = c(), outcomesOfInterest = c(), exposureTable = "drug_era", outcomeTable = "cohort")
-#' selfControlledCohort(sccAnalysesDetails, connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "self_controlled_cohort", createResultsTable = TRUE, sourceName = "", exposuresOfInterest = c(), outcomesOfInterest = c(), exposureTable = "drug_era", outcomeTable = "cohort")
+#' selfControlledCohort(connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "scc", createResultsTable = TRUE, sourceName = "", exposuresOfInterest = c(), outcomesOfInterest = c(), exposureTable = "drug_era", outcomeTable = "condition_era", analysisId = 1, firstOccurrenceDrugOnly = TRUE, firstOccurrenceConditionOnly = TRUE, drugTypeConceptIdList = c(38000182), conditionTypeConceptIdList = c(38000247), genderConceptIdList = c(8507,8532), minAge = "", maxAge = "", minIndex = "", maxIndex = "", stratifyGender = FALSE, stratifyAge = FALSE, stratifyIndex = FALSE, useLengthOfExposureExposed = TRUE, timeAtRiskExposedStart = 1, surveillanceExposed = 30, useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1, surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE, washoutPeriodLength = 0, followupPeriodLength = 0, shrinkage = 0.0001)
+#' selfControlledCohort(sccAnalysisDetails, connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "scc", createResultsTable = TRUE, sourceName = "", exposuresOfInterest = c(), outcomesOfInterest = c(), exposureTable = "drug_era", outcomeTable = "condition_era")
+#' selfControlledCohort(sccAnalysesDetails, connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "scc", createResultsTable = TRUE, sourceName = "", exposuresOfInterest = c(), outcomesOfInterest = c(), exposureTable = "drug_era", outcomeTable = "condition_era")
 #'
 #' @details
 #' PATRICK HOMEWORK:   complete details
@@ -84,13 +84,13 @@ selfControlledCohort <- function(...){
 selfControlledCohort.connectionDetails <- function (connectionDetails, 
                                                     cdmSchema, 
                                                     resultsSchema, 
-                                                    resultsTablePrefix = "self_controlled_cohort", 
+                                                    resultsTablePrefix = "scc", 
                                                     createResultsTable = TRUE, 
                                                     sourceName = "", 
                                                     exposuresOfInterest = c(), 
                                                     outcomesOfInterest = c(), 
                                                     exposureTable = "drug_era",
-                                                    outcomeTable = "cohort",
+                                                    outcomeTable = "condition_era",
                                                     analysisId = 1,
                                                     firstOccurrenceDrugOnly = TRUE,
                                                     firstOccurrenceConditionOnly = TRUE,
@@ -137,8 +137,11 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
     outcomePersonId=  "person_id"
   }
   
-  pathToSql <- system.file("sql", "SccParameterizedSQL.sql", package="SelfControlledCohort")
-  parameterizedSql <- readChar(pathToSql,file.info(pathToSql)$size)
+  pathToSql <- system.file(paste("sql/",connectionDetails$dbms,sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")
+  mustTranslate <- !file.exists(pathToSql)
+  if (mustTranslate) # If DBMS-specific code does not exists, load SQL Server code and translate after rendering
+    pathToSql <- system.file(paste("sql/","sql server",sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")      
+  parameterizedSql <- readChar(pathToSql,file.info(pathToSql)$size)  
   
   renderedSql <- renderSql(parameterizedSql[1], 
                            cdmSchema = cdmSchema, 
@@ -182,8 +185,14 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
                            followupPeriodLength = followupPeriodLength,
                            shrinkage = shrinkage                        
   )$sql
-  write.table(renderedSql,file="c:/temp/temp.sql")
   
+  write.table(renderedSql,file="c:/temp/preTranslate.sql")
+  
+  if (mustTranslate)
+    renderedSql <- translateSql(renderedSql, "sql server", connectionDetails$dbms)$sql
+  
+  write.table(renderedSql,file="c:/temp/postTranslate.sql")   
+    
   #Check if connection already open:
   if (is.null(connectionDetails$conn)){
     conn <- connect(connectionDetails)
@@ -192,28 +201,58 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
   }
   
   writeLines(paste("Executing analysis (analysisId = ",analysisId,"). This could take a while",sep=""))
-  dbSendUpdate(conn, renderedSql)
+  i <- 1
+  for (sqlStatement in splitSql(renderedSql)){
+    write.table(sqlStatement,file=paste("c:/temp/sql_",i,".sql",sep=""))
+    i = i + 1
+    dbSendUpdate(conn, sqlStatement)
+  }
   writeLines(paste("Finished analysis (analysisId = ",analysisId,"). Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
                    resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))
-  
-  if (is.null(connectionDetails$conn)){
-    dbDisconnect(conn)
-  }
-  
+    
   resultsConnectionDetails <- connectionDetails
   resultsConnectionDetails$schema = resultsSchema
   resultsConnectionDetails$conn <- NULL
-  
+    
   result <- list(resultsConnectionDetails = resultsConnectionDetails, 
                  resultsTable = paste(resultsTablePrefix,"_results",sep=""),
                  analysisTable = paste(resultsTablePrefix,"_analysis",sep=""),
-                 analysisId = analysisId,
+                 sourceName = sourceName,
+                 analysisIds = analysisId,
                  exposuresOfInterest = exposuresOfInterest,
                  outcomesOfInterest = outcomesOfInterest,
                  sql = renderedSql,
                  call = match.call())
+  
   class(result) <- "sccResults"
+  
+  if (is.null(connectionDetails$conn)){
+    dbDisconnect(conn)
+    result <- addResults(result)
+  }
+
   result
+}
+
+addResults <- function(results) {
+  conn <- connect(results$resultsConnectionDetails)
+  sql <- "SELECT * FROM @table WHERE sourceName = '@sourceName' AND analysisId IN (@analysisIds) AND exposureConceptId IN (@exposureConceptIds) AND outcomeConceptId IN (@outcomeConceptIds)"
+  sql <- renderSql(sql,
+                   table = results$resultsTable, 
+                   sourceName = results$sourceName,
+                   analysisIds = results$analysisIds, 
+                   exposureConceptIds = results$exposuresOfInterest,
+                   outcomeConceptIds = results$outcomesOfInterest
+  )$sql
+  results$effectEstimates <- dbGetQuery(conn,sql)
+  sql <- "SELECT * FROM @table WHERE analysisId IN (@analysisIds)" 
+  sql <- renderSql(sql,
+                   table = results$analysisTable, 
+                   analysisIds = results$analysisIds
+  )$sql
+  results$analyses <- dbGetQuery(conn,sql)
+  dbDisconnect(conn)
+  results
 }
 
 #' @export
@@ -221,7 +260,7 @@ selfControlledCohort.sccAnalysisDetails <- function(sccAnalysisDetails,
                                                     connectionDetails, 
                                                     cdmSchema, 
                                                     resultsSchema, 
-                                                    resultsTablePrefix = "self_controlled_cohort", 
+                                                    resultsTablePrefix = "scc", 
                                                     createResultsTable = TRUE, 
                                                     sourceName = "", 
                                                     exposuresOfInterest = c(), 
@@ -248,18 +287,18 @@ selfControlledCohort.sccAnalysesDetails <- function(sccAnalysesDetails,
                                                     connectionDetails, 
                                                     cdmSchema, 
                                                     resultsSchema, 
-                                                    resultsTablePrefix = "self_controlled_cohort", 
+                                                    resultsTablePrefix = "scc", 
                                                     createResultsTable = TRUE, 
                                                     sourceName = "", 
                                                     exposuresOfInterest = c(), 
                                                     outcomesOfInterest = c(), 
                                                     exposureTable = "drug_era",
-                                                    outcomeTable = "cohort"
+                                                    outcomeTable = "condition_era"
 ){
   connectionDetails$conn <- connect(connectionDetails)
   
   sql <- c()  
-  analysisId <- c()
+  analysisIds <- c()
   for (i in 1:length(sccAnalysesDetails)) {
     sccResults <- selfControlledCohort.sccAnalysisDetails(sccAnalysesDetails[[i]], 
                                                           connectionDetails = connectionDetails, 
@@ -273,14 +312,16 @@ selfControlledCohort.sccAnalysesDetails <- function(sccAnalysesDetails,
                                                           exposureTable = exposureTable,
                                                           outcomeTable = outcomeTable)
     sql <- c(sql,sccResults$sql)
-    analysisId <- c(analysisId,sccResults$analysisId)
+    analysisIds <- c(analysisIds,sccResults$analysisIds)
     createResultsTable = FALSE # no point in overwriting results of previous analysis in same run
   }
   dbDisconnect(connectionDetails$conn)
   connectionDetails$conn <- NULL
   
   sccResults$sql <- sql
-  sccResults$analysisId <- analysisId
+  sccResults$analysisIds <- analysisIds
+  sccResults <- addResults(sccResults)
+  
   sccResults
 }
 
@@ -456,118 +497,24 @@ readSccAnalysesDetailsFromFile <- function(file){
 
 #' @export
 print.sccResults <- function(sccResults){
-  #to do: add some printing functionality
+  sccResults$effectEstimates
 }
 
 #' @export
 summary.sccResults <- function(sccResults){
-  conn <- connect(sccResults$resultsConnectionDetails)
-  sql <- "SELECT * FROM @table WHERE analysisId IN (@analysisId) AND exposure_concept_id IN (@exposureConceptIds) AND outcome_concept_id IN (@outcomeConceptIds)"
-  sql <- renderSql(sql,
-                   table = sccResults$resultsTable, 
-                   analysisId = sccResults$analysisId, 
-                   exposureConceptIds = sccResults$exposuresOfInterest,
-                   outcomeConceptIds = sccResults$outcomesOfInterest
-  )$sql
-  effectEstimates <- dbGetQuery(conn,sql)
-  sql <- "SELECT * FROM @table WHERE analysisId IN (@analysisId)" 
-  sql <- renderSql(sql,
-                   table = sccResults$analysisTable, 
-                   analysisId = sccResults$analysisId
-  )$sql
-  analyses <- dbGetQuery(conn,sql)
-  dbDisconnect(conn)
-  result <- list(effectEstimates = effectEstimates, analyses = analyses)
-  result
+  sccResults$effectEstimates
 }
 
 
 #' @export
 plot.sccResults <- function(sccResults){
-  #to do: add some plotting functionality
+  colnames(sccResults$effectEstimates) <- toupper(colnames(sccResults$effectEstimates))
+  ggplot(sccResults$effectEstimates, aes(x=as.factor(EXPOSURECONCEPTID), y=IRR,ymin=IRRLB95, ymax=IRRUB95)) + 
+    geom_hline(yintercept=1, colour ="#888888", lty=1, lw=1) +
+    geom_point(size=2,alpha=0.7) +
+    geom_errorbar(width=.1,alpha=0.7) +
+    coord_flip() +  
+    facet_grid(ANALYSISID~OUTCOMECONCEPTID) +
+    scale_y_log10()
 }
 
-# Temporary placeholder for testing code until we figure out unit testing with DB and filesys dependencies
-sccTestRoutines <- function(){
-  #Test: create analysesDetails
-  analysesDetails <- NULL
-  analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 1,firstOccurrenceDrugOnly=TRUE),analysesDetails)
-  analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 2,firstOccurrenceDrugOnly=FALSE),analysesDetails)
-  
-  #Test: write analysesDetails to file
-  writeSccAnalysesDetailsToFile(analysesDetails,"c:/temp/test.csv")
-  
-  #Test: read analysisDetails from file
-  analysesDetails2 <- readSccAnalysesDetailsFromFile("c:/temp/test.csv")
-  
-  #Test: check if two objects are the same
-  min(as.character(analysesDetails) == as.character(analysesDetails2)) == 1
-  
-  #Test: create the connectDetails
-  connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-  
-  #Test: run the method:
-  sccResults <- selfControlledCohort(analysesDetails, connectionDetails, cdmSchema="cdm_truven_mdcr", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
-  
-  #Test: fetch summary data:
-  s <- summary(sccResults)
-  
-  #Test: sql validity test across parameters
-  analysesDetails <- NULL
-  analysisId = 1
-  
-  drugTypeConceptIdList = c(38000182)
-  conditionTypeConceptIdList = c(38000247)
-  genderConceptIdList = c(8507,8532)
-  shrinkage = 0.0001
-  for (firstOccurrenceDrugOnly in c(TRUE,FALSE))
-    for (firstOccurrenceConditionOnly in c(TRUE,FALSE))
-      for (minAge in c("","18")) 
-        for (maxAge in c("", "65"))
-          for (minIndex in c("","2000")) 
-            for (maxIndex in c("","2010")) 
-              for (stratifyGender in c(TRUE,FALSE))
-                for (stratifyAge in c(TRUE,FALSE))
-                  for (stratifyIndex in c(TRUE,FALSE))
-                    for (useLengthOfExposureExposed in c(TRUE,FALSE))
-                      for (timeAtRiskExposedStart in c(0,1))
-                        for (surveillanceExposed in c(30,180,9999))
-                          for (useLengthOfExposureUnexposed in c(TRUE,FALSE))
-                            for (timeAtRiskUnexposedStart in c(-1,0))
-                              for (surveillanceUnexposed in c(-30,-180,-9999))
-                                for (hasFullTimeAtRisk in c(TRUE,FALSE))
-                                  for (washoutPeriodLength in c(0,180))
-                                    for (followupPeriodLength in c(0,180)){
-                                      analysisDetails<- createSccAnalysisDetails(analysisId = analysisId,
-                                                                                 firstOccurrenceDrugOnly = firstOccurrenceDrugOnly,
-                                                                                 firstOccurrenceConditionOnly = firstOccurrenceConditionOnly,
-                                                                                 drugTypeConceptIdList = drugTypeConceptIdList,
-                                                                                 conditionTypeConceptIdList = conditionTypeConceptIdList,
-                                                                                 genderConceptIdList = genderConceptIdList,
-                                                                                 minAge = minAge,
-                                                                                 maxAge = maxAge,
-                                                                                 minIndex = minIndex,
-                                                                                 maxIndex = maxIndex,
-                                                                                 stratifyGender = stratifyGender,
-                                                                                 stratifyAge = stratifyAge,
-                                                                                 stratifyIndex = stratifyIndex,
-                                                                                 useLengthOfExposureExposed = useLengthOfExposureExposed,
-                                                                                 timeAtRiskExposedStart = timeAtRiskExposedStart,
-                                                                                 surveillanceExposed = surveillanceExposed,
-                                                                                 useLengthOfExposureUnexposed = useLengthOfExposureUnexposed,
-                                                                                 timeAtRiskUnexposedStart = timeAtRiskUnexposedStart,
-                                                                                 surveillanceUnexposed = surveillanceUnexposed,
-                                                                                 hasFullTimeAtRisk = hasFullTimeAtRisk,
-                                                                                 washoutPeriodLength = washoutPeriodLength,
-                                                                                 followupPeriodLength = followupPeriodLength,
-                                                                                 shrinkage = shrinkage                        
-                                      )
-                                      analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
-                                      analysisId = analysisId + 1
-                                    }
-  
-  writeSccAnalysesDetailsToFile(analysesDetails,"c:/temp/test.csv")
-  
-  
-  
-}
