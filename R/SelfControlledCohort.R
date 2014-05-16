@@ -40,7 +40,7 @@
 #' @param createResultsTable if true, a new empty table will be created to store the results. If false, results will be inserted into the existing table.
 #' @param sourceName		string name of the database, as recorded in results
 #' @param exposuresOfInterest  list of DRUG_CONCEPT_IDs to study, if NULL, then all DRUG_CONCEPT_IDs will be used
-#' @param outcomesOfInterest	list of CONDITION_CONCET_IDs to study, if NULL, all CONDITIONS considered as potential outcomes
+#' @param outcomesOfInterest	list of CONDITION_CONCEPT_IDs to study, if NULL, all CONDITIONS considered as potential outcomes
 #' @param exposureTable	drugEra or cohort
 #' @param outcomeTable	conditionEra or cohort
 #' @param analysisId  	A unique identifier that can later be used to identify the results of this analysis
@@ -137,10 +137,10 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
     outcomePersonId=  "person_id"
   }
   
-  pathToSql <- system.file(paste("sql/",connectionDetails$dbms,sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")
+  pathToSql <- system.file(paste("sql/",gsub(" ","_",connectionDetails$dbms),sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")
   mustTranslate <- !file.exists(pathToSql)
   if (mustTranslate) # If DBMS-specific code does not exists, load SQL Server code and translate after rendering
-    pathToSql <- system.file(paste("sql/","sql server",sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")      
+    pathToSql <- system.file(paste("sql/","sql_server",sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")      
   parameterizedSql <- readChar(pathToSql,file.info(pathToSql)$size)  
   
   renderedSql <- renderSql(parameterizedSql[1], 
@@ -186,12 +186,12 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
                            shrinkage = shrinkage                        
   )$sql
   
-  write.table(renderedSql,file="c:/temp/preTranslate.sql")
+  #write.table(renderedSql,file="c:/temp/preTranslate.sql")
   
   if (mustTranslate)
     renderedSql <- translateSql(renderedSql, "sql server", connectionDetails$dbms)$sql
   
-  write.table(renderedSql,file="c:/temp/postTranslate.sql")   
+  #write.table(renderedSql,file="c:/temp/postTranslate.sql")   
     
   #Check if connection already open:
   if (is.null(connectionDetails$conn)){
@@ -201,10 +201,10 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
   }
   
   writeLines(paste("Executing analysis (analysisId = ",analysisId,"). This could take a while",sep=""))
-  i <- 1
+  #i <- 1
   for (sqlStatement in splitSql(renderedSql)){
-    write.table(sqlStatement,file=paste("c:/temp/sql_",i,".sql",sep=""))
-    i = i + 1
+    #write.table(sqlStatement,file=paste("c:/temp/sql_",i,".sql",sep=""))
+    #i = i + 1
     dbSendUpdate(conn, sqlStatement)
   }
   writeLines(paste("Finished analysis (analysisId = ",analysisId,"). Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",

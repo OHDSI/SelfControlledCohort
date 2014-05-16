@@ -202,7 +202,7 @@ testSccAcrossPlatforms <- function(){
   sccResultsOracle <- selfControlledCohort(analysesDetails, connectionDetailsOracle, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm4_sim", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
   
   colnames(sccResultsSqlServer$effectEstimates) <- toupper(colnames(sccResultsSqlServer$effectEstimates))
-  str(summary(sccResultsSqlServer))
+  summary(sccResultsSqlServer)
   summary(sccResultsOracle)
   
   #Make sure they are ordered the same way:
