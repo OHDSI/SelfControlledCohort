@@ -66,7 +66,7 @@ sccTestRoutines <- function(){
                                 for (hasFullTimeAtRisk in c(TRUE,FALSE))
                                   for (washoutPeriodLength in c(0,180))
                                     for (followupPeriodLength in c(0,180)){
-                                      analysisDetails<- createSccAnalysisDetails(analysisId = analysisId,
+                                      analysisDetails<- createSccAnalysisDetails(analysisId = aid,
                                                                                  firstOccurrenceDrugOnly = firstOccurrenceDrugOnly,
                                                                                  firstOccurrenceConditionOnly = firstOccurrenceConditionOnly,
                                                                                  drugTypeConceptIdList = drugTypeConceptIdList,
@@ -91,7 +91,7 @@ sccTestRoutines <- function(){
                                                                                  shrinkage = shrinkage                        
                                       )
                                       analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
-                                      analysisId = analysisId + 1
+                                      analysisId = aid + 1
                                     }
   
   writeSccAnalysesDetailsToFile(analysesDetails,"c:/temp/test.csv")
@@ -102,4 +102,115 @@ sccTestRoutines <- function(){
   sql <- translateSql(sql,"sql server","oracle")$sql
   write.table(sql,file="c:/temp/postTranslate.sql")
   
+}
+
+createSomeAnalyses <- function(){
+  analysesDetails <- NULL
+  aid = 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, firstOccurrenceDrugOnly = FALSE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, firstOccurrenceConditionOnly = FALSE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, minAge = "18")
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, maxAge = "65")
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, stratifyGender = TRUE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, stratifyAge = TRUE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, stratifyIndex = TRUE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, useLengthOfExposureExposed = FALSE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, timeAtRiskExposedStart = 0)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, surveillanceExposed = 180)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, hasFullTimeAtRisk = TRUE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, useLengthOfExposureUnexposed = FALSE)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, timeAtRiskUnexposedStart = 0)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, surveillanceUnexposed = -180)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, washoutPeriodLength = 180)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, followupPeriodLength = 180)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1
+  
+  analysisDetails <- createSccAnalysisDetails(analysisId = aid, shrinkage = 0.1)
+  analysesDetails <- appendToSccAnalysesDetails(analysisDetails,analysesDetails)
+  aid = aid + 1  
+  
+  analysesDetails
+}
+
+
+
+testSccAcrossPlatforms <- function(){
+
+  #analysesDetails <- NULL
+  #analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 1,firstOccurrenceDrugOnly=TRUE),analysesDetails)
+  #analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 2,firstOccurrenceDrugOnly=FALSE),analysesDetails)
+  
+  analysesDetails <- createSomeAnalyses ()
+  
+  #Test: create the connectDetails
+  connectionDetailsSqlServer <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
+  connectionDetailsOracle <- createConnectionDetails(dbms="oracle",user="system",password="F1r3starter",server="xe")
+  
+  #Test: run the method in all platforms:
+  sccResultsSqlServer <- selfControlledCohort(analysesDetails, connectionDetailsSqlServer, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm4_sim", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
+  sccResultsOracle <- selfControlledCohort(analysesDetails, connectionDetailsOracle, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm4_sim", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
+  
+  colnames(sccResultsSqlServer$effectEstimates) <- toupper(colnames(sccResultsSqlServer$effectEstimates))
+  str(summary(sccResultsSqlServer))
+  summary(sccResultsOracle)
+  
+  #Make sure they are ordered the same way:
+  estimatesSqlServer <- sccResultsSqlServer$effectEstimates[with(sccResultsSqlServer$effectEstimates,order(EXPOSURECONCEPTID,OUTCOMECONCEPTID,ANALYSISID,GENDERCONCEPTID,AGEGROUPNAME,INDEXYEAR)),]
+  estimatesOracle <- sccResultsOracle$effectEstimates[with(sccResultsOracle$effectEstimates,order(EXPOSURECONCEPTID,OUTCOMECONCEPTID,ANALYSISID,GENDERCONCEPTID,AGEGROUPNAME,INDEXYEAR)),]
+  
+  #Compare IRR, CI:
+  min(signif(estimatesSqlServer$IRR,digits=4) ==  signif(estimatesOracle$IRR,digits=4)) == 1
+  min(signif(estimatesSqlServer$IRRLB95,digits=4) ==  signif(estimatesOracle$IRRLB95,digits=4)) == 1
+  min(signif(estimatesSqlServer$IRRUB95,digits=4) ==  signif(estimatesOracle$IRRUB95,digits=4)) == 1
 }

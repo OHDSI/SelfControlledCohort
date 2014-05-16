@@ -341,7 +341,7 @@ INNER JOIN
 					{@outcomesOfInterest != ''} ? {AND @outcomeConceptId IN (@outcomesOfInterest)}
 					{@conditionTypeConceptIdList & outcome_table != 'cohort'} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
 			) T1
-		{@firstOccurrenceDrugOnly} ? {WHERE rn1 = 1}
+		{@firstOccurrenceConditionOnly} ? {WHERE rn1 = 1}
 	) c1
 ON 
 	p1.person_id = c1.@outcomePersontId

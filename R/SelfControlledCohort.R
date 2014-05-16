@@ -395,7 +395,9 @@ createSccAnalysisDetails <- function (analysisId = 1,
   }
   
   #Next: overwrite defaults with actual values if specified:
-  values <- as.list(match.call())
+  #values <- as.list(match.call())
+  #Note: need this funky code to make sure parameters are stored as values, not symbols:
+  values <- c(list(as.character(match.call()[[1]])),lapply(as.list(match.call())[-1],function(x) eval(x,envir=sys.frame(-3))))
   for (name in names(values)){
     if (name %in% names(analysisDetails))
       analysisDetails[[name]] = values[[name]]
