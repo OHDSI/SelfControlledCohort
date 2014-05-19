@@ -20,6 +20,76 @@
 # @author Martijn Schuemie
 # @author Patrick Ryan
 
+
+executeSql <- function(conn, dbms, sql){
+  sqlStatements = splitSql(sql)
+  progressBar <- txtProgressBar()
+  for (i in 1:length(sqlStatements)){
+    sqlStatement <- sqlStatements[i]
+    tryCatch ({    
+      dbSendUpdate(conn, sqlStatement)
+    } , error = function(err) {
+      writeLines(paste("Error executing SQL:",err))
+      
+      #Write error report:
+      filename <- paste(getwd(),"/errorReport.txt",sep="")
+      sink(filename)
+      error <<- err
+      cat("DBMS:\n")
+      cat(dbms)
+      cat("\n\n")
+      cat("Error:\n")
+      cat(err$message)
+      cat("\n\n")
+      cat("SQL:\n")
+      cat(sqlStatement)
+      sink()
+      
+      writeLines(paste("An error report has been created at ", filename))
+      break
+    })
+    setTxtProgressBar(progressBar, i/length(sqlStatements))
+  }
+  close(progressBar)
+}
+
+renderAndTranslate <- function(sqlFilename, packageName, dbms, ...){
+  pathToSql <- system.file(paste("sql/",gsub(" ","_",dbms),sep=""), sqlFilename, package=packageName)
+  mustTranslate <- !file.exists(pathToSql)
+  if (mustTranslate) # If DBMS-specific code does not exists, load SQL Server code and translate after rendering
+    pathToSql <- system.file(paste("sql/","sql_server",sep=""), sqlFilename, package=packageName)      
+  parameterizedSql <- readChar(pathToSql,file.info(pathToSql)$size)  
+  
+  renderedSql <- renderSql(parameterizedSql[1], ...)$sql
+  
+  if (mustTranslate)
+    renderedSql <- translateSql(renderedSql, "sql server", dbms)$sql
+  
+  renderedSql
+}
+
+# Loads the results from the server and adds them to a results object
+addResults <- function(results) {
+  conn <- connect(results$resultsConnectionDetails)
+  sql <- "SELECT * FROM @table WHERE sourceName = '@sourceName' AND analysisId IN (@analysisIds) AND exposureConceptId IN (@exposureConceptIds) AND outcomeConceptId IN (@outcomeConceptIds)"
+  sql <- renderSql(sql,
+                   table = results$resultsTable, 
+                   sourceName = results$sourceName,
+                   analysisIds = results$analysisIds, 
+                   exposureConceptIds = results$exposuresOfInterest,
+                   outcomeConceptIds = results$outcomesOfInterest
+  )$sql
+  results$effectEstimates <- dbGetQuery(conn,sql)
+  sql <- "SELECT * FROM @table WHERE analysisId IN (@analysisIds)" 
+  sql <- renderSql(sql,
+                   table = results$analysisTable, 
+                   analysisIds = results$analysisIds
+  )$sql
+  results$analyses <- dbGetQuery(conn,sql)
+  dbDisconnect(conn)
+  results
+}
+
 #' @title selfControlledCohort
 #'
 #' @description
@@ -36,7 +106,7 @@
 #' @param connectionDetails  An R object of type ConnectionDetail (details for the function that contains server info, database type, optionally username/password, port)
 #' @param cdmSchema  		string name of databsae schema that contains OMOP CDM and vocabulary
 #' @param resultsSchema		string name of database schema that we can write results to
-#' @param resultsTable  name of the table in the \code{resultsSchema} where the results will be written 
+#' @param resultsTablePrefix  prefix used for the result tables in the \code{resultsSchema}. 
 #' @param createResultsTable if true, a new empty table will be created to store the results. If false, results will be inserted into the existing table.
 #' @param sourceName		string name of the database, as recorded in results
 #' @param exposuresOfInterest  list of DRUG_CONCEPT_IDs to study, if NULL, then all DRUG_CONCEPT_IDs will be used
@@ -137,62 +207,51 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
     outcomePersonId=  "person_id"
   }
   
-  pathToSql <- system.file(paste("sql/",gsub(" ","_",connectionDetails$dbms),sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")
-  mustTranslate <- !file.exists(pathToSql)
-  if (mustTranslate) # If DBMS-specific code does not exists, load SQL Server code and translate after rendering
-    pathToSql <- system.file(paste("sql/","sql_server",sep=""), "SccParameterizedSQL.sql", package="SelfControlledCohort")      
-  parameterizedSql <- readChar(pathToSql,file.info(pathToSql)$size)  
-  
-  renderedSql <- renderSql(parameterizedSql[1], 
-                           cdmSchema = cdmSchema, 
-                           resultsSchema = resultsSchema, 
-                           resultsTablePrefix = resultsTablePrefix, 
-                           createResultsTable = createResultsTable,
-                           sourceName = sourceName,
-                           analysisId = analysisId,
-                           exposuresOfInterest = exposuresOfInterest, 
-                           outcomesOfInterest = outcomesOfInterest, 
-                           exposureTable = exposureTable,
-                           exposureStartDate = exposureStartDate,
-                           exposureEndDate = exposureEndDate,
-                           exposureConceptId = exposureConceptId,
-                           exposurePersonId = exposurePersonId,
-                           outcomeTable = outcomeTable,
-                           outcomeStartDate = outcomeStartDate,
-                           outcomeEndDate = outcomeEndDate,
-                           outcomeConceptId = outcomeConceptId,
-                           outcomePersonId = outcomePersonId,
-                           firstOccurrenceDrugOnly = firstOccurrenceDrugOnly,
-                           firstOccurrenceConditionOnly = firstOccurrenceConditionOnly,
-                           drugTypeConceptIdList = drugTypeConceptIdList,
-                           conditionTypeConceptIdList = conditionTypeConceptIdList,
-                           genderConceptIdList = genderConceptIdList,
-                           minAge = minAge,
-                           maxAge = maxAge,
-                           minIndex = minIndex,
-                           maxIndex = maxIndex,
-                           stratifyGender = stratifyGender,
-                           stratifyAge = stratifyAge,
-                           stratifyIndex = stratifyIndex,
-                           useLengthOfExposureExposed = useLengthOfExposureExposed,
-                           timeAtRiskExposedStart = timeAtRiskExposedStart,
-                           surveillanceExposed = surveillanceExposed,
-                           useLengthOfExposureUnexposed = useLengthOfExposureUnexposed,
-                           timeAtRiskUnexposedStart = timeAtRiskUnexposedStart,
-                           surveillanceUnexposed = surveillanceUnexposed,
-                           hasFullTimeAtRisk = hasFullTimeAtRisk,
-                           washoutPeriodLength = washoutPeriodLength,
-                           followupPeriodLength = followupPeriodLength,
-                           shrinkage = shrinkage                        
-  )$sql
-  
-  #write.table(renderedSql,file="c:/temp/preTranslate.sql")
-  
-  if (mustTranslate)
-    renderedSql <- translateSql(renderedSql, "sql server", connectionDetails$dbms)$sql
-  
-  #write.table(renderedSql,file="c:/temp/postTranslate.sql")   
-    
+  renderedSql <- renderAndTranslate(sqlFilename = "SccParameterizedSQL.sql",
+                                    packageName = "SelfControlledCohort",
+                                    dbms = connectionDetails$dbms,
+                                    cdmSchema = cdmSchema, 
+                                    resultsSchema = resultsSchema, 
+                                    resultsTablePrefix = resultsTablePrefix, 
+                                    createResultsTable = createResultsTable,
+                                    sourceName = sourceName,
+                                    analysisId = analysisId,
+                                    exposuresOfInterest = exposuresOfInterest, 
+                                    outcomesOfInterest = outcomesOfInterest, 
+                                    exposureTable = exposureTable,
+                                    exposureStartDate = exposureStartDate,
+                                    exposureEndDate = exposureEndDate,
+                                    exposureConceptId = exposureConceptId,
+                                    exposurePersonId = exposurePersonId,
+                                    outcomeTable = outcomeTable,
+                                    outcomeStartDate = outcomeStartDate,
+                                    outcomeEndDate = outcomeEndDate,
+                                    outcomeConceptId = outcomeConceptId,
+                                    outcomePersonId = outcomePersonId,
+                                    firstOccurrenceDrugOnly = firstOccurrenceDrugOnly,
+                                    firstOccurrenceConditionOnly = firstOccurrenceConditionOnly,
+                                    drugTypeConceptIdList = drugTypeConceptIdList,
+                                    conditionTypeConceptIdList = conditionTypeConceptIdList,
+                                    genderConceptIdList = genderConceptIdList,
+                                    minAge = minAge,
+                                    maxAge = maxAge,
+                                    minIndex = minIndex,
+                                    maxIndex = maxIndex,
+                                    stratifyGender = stratifyGender,
+                                    stratifyAge = stratifyAge,
+                                    stratifyIndex = stratifyIndex,
+                                    useLengthOfExposureExposed = useLengthOfExposureExposed,
+                                    timeAtRiskExposedStart = timeAtRiskExposedStart,
+                                    surveillanceExposed = surveillanceExposed,
+                                    useLengthOfExposureUnexposed = useLengthOfExposureUnexposed,
+                                    timeAtRiskUnexposedStart = timeAtRiskUnexposedStart,
+                                    surveillanceUnexposed = surveillanceUnexposed,
+                                    hasFullTimeAtRisk = hasFullTimeAtRisk,
+                                    washoutPeriodLength = washoutPeriodLength,
+                                    followupPeriodLength = followupPeriodLength,
+                                    shrinkage = shrinkage                        
+  )
+ 
   #Check if connection already open:
   if (is.null(connectionDetails$conn)){
     conn <- connect(connectionDetails)
@@ -201,19 +260,14 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
   }
   
   writeLines(paste("Executing analysis (analysisId = ",analysisId,"). This could take a while",sep=""))
-  #i <- 1
-  for (sqlStatement in splitSql(renderedSql)){
-    #write.table(sqlStatement,file=paste("c:/temp/sql_",i,".sql",sep=""))
-    #i = i + 1
-    dbSendUpdate(conn, sqlStatement)
-  }
+  executeSql(conn,connectionDetails$dbms,renderedSql)
   writeLines(paste("Finished analysis (analysisId = ",analysisId,"). Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
                    resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))
-    
+  
   resultsConnectionDetails <- connectionDetails
   resultsConnectionDetails$schema = resultsSchema
   resultsConnectionDetails$conn <- NULL
-    
+  
   result <- list(resultsConnectionDetails = resultsConnectionDetails, 
                  resultsTable = paste(resultsTablePrefix,"_results",sep=""),
                  analysisTable = paste(resultsTablePrefix,"_analysis",sep=""),
@@ -226,33 +280,11 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
   
   class(result) <- "sccResults"
   
-  if (is.null(connectionDetails$conn)){
+  if (is.null(connectionDetails$conn)){ #Not part of larger loop: get results from server now
     dbDisconnect(conn)
     result <- addResults(result)
   }
-
   result
-}
-
-addResults <- function(results) {
-  conn <- connect(results$resultsConnectionDetails)
-  sql <- "SELECT * FROM @table WHERE sourceName = '@sourceName' AND analysisId IN (@analysisIds) AND exposureConceptId IN (@exposureConceptIds) AND outcomeConceptId IN (@outcomeConceptIds)"
-  sql <- renderSql(sql,
-                   table = results$resultsTable, 
-                   sourceName = results$sourceName,
-                   analysisIds = results$analysisIds, 
-                   exposureConceptIds = results$exposuresOfInterest,
-                   outcomeConceptIds = results$outcomesOfInterest
-  )$sql
-  results$effectEstimates <- dbGetQuery(conn,sql)
-  sql <- "SELECT * FROM @table WHERE analysisId IN (@analysisIds)" 
-  sql <- renderSql(sql,
-                   table = results$analysisTable, 
-                   analysisIds = results$analysisIds
-  )$sql
-  results$analyses <- dbGetQuery(conn,sql)
-  dbDisconnect(conn)
-  results
 }
 
 #' @export
@@ -511,12 +543,12 @@ summary.sccResults <- function(sccResults){
 #' @export
 plot.sccResults <- function(sccResults){
   colnames(sccResults$effectEstimates) <- toupper(colnames(sccResults$effectEstimates))
-    ggplot(sccResults$effectEstimates, aes(x=as.factor(EXPOSURECONCEPTID), y=IRR,ymin=IRRLB95, ymax=IRRUB95)) + 
-      geom_hline(yintercept=1, colour ="#888888", lty=1, lw=1) +
-      geom_point(size=2,alpha=0.7) +
-      geom_errorbar(width=.1,alpha=0.7) +
-      coord_flip() +  
-      facet_grid(ANALYSISID~OUTCOMECONCEPTID) +
-      scale_y_log10()
+  ggplot(sccResults$effectEstimates, aes(x=as.factor(EXPOSURECONCEPTID), y=IRR,ymin=IRRLB95, ymax=IRRUB95)) + 
+    geom_hline(yintercept=1, colour ="#888888", lty=1, lw=1) +
+    geom_point(size=2,alpha=0.7) +
+    geom_errorbar(width=.1,alpha=0.7) +
+    coord_flip() +  
+    facet_grid(ANALYSISID~OUTCOMECONCEPTID) +
+    scale_y_log10()
 }
 

@@ -18,8 +18,8 @@ selfControlledCohort(sccAnalysesDetails, connectionDetails, cdmSchema, resultsSc
   \item{resultsSchema}{string name of database schema that
   we can write results to}
 
-  \item{resultsTable}{name of the table in the
-  \code{resultsSchema} where the results will be written}
+  \item{resultsTablePrefix}{prefix used for the result
+  tables in the \code{resultsSchema}.}
 
   \item{createResultsTable}{if true, a new empty table will
   be created to store the results. If false, results will
