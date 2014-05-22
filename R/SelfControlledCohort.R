@@ -24,6 +24,7 @@
 executeSql <- function(conn, dbms, sql){
   sqlStatements = splitSql(sql)
   progressBar <- txtProgressBar()
+  start <- Sys.time()
   for (i in 1:length(sqlStatements)){
     sqlStatement <- sqlStatements[i]
     tryCatch ({    
@@ -51,6 +52,8 @@ executeSql <- function(conn, dbms, sql){
     setTxtProgressBar(progressBar, i/length(sqlStatements))
   }
   close(progressBar)
+  delta <- Sys.time() - start
+  writeLines(paste("Analysis took", signif(delta,3), attr(delta,"units")))
 }
 
 renderAndTranslate <- function(sqlFilename, packageName, dbms, ...){
@@ -261,8 +264,6 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
   
   writeLines(paste("Executing analysis (analysisId = ",analysisId,"). This could take a while",sep=""))
   executeSql(conn,connectionDetails$dbms,renderedSql)
-  writeLines(paste("Finished analysis (analysisId = ",analysisId,"). Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
-                   resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))
   
   resultsConnectionDetails <- connectionDetails
   resultsConnectionDetails$schema = resultsSchema
@@ -283,6 +284,9 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
   if (is.null(connectionDetails$conn)){ #Not part of larger loop: get results from server now
     dbDisconnect(conn)
     result <- addResults(result)
+    writeLines(paste("Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
+                     resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))
+    
   }
   result
 }
@@ -353,6 +357,9 @@ selfControlledCohort.sccAnalysesDetails <- function(sccAnalysesDetails,
   sccResults$sql <- sql
   sccResults$analysisIds <- analysisIds
   sccResults <- addResults(sccResults)
+  
+  writeLines(paste("Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
+                   resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))  
   
   sccResults
 }

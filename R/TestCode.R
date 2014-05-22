@@ -20,6 +20,9 @@ sccTestRoutines <- function(){
   
   #Test: run the method:
   sccResults <- selfControlledCohort(analysesDetails, connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
+
+  #Test: run a single analysis:
+  sccResults <- selfControlledCohort(connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
   
   #Test: fetch summary data:
   s <- summary(sccResults)
