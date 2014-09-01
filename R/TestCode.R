@@ -1,5 +1,7 @@
 # Temporary placeholder for testing code until we figure out unit testing with DB and filesys dependencies
 sccTestRoutines <- function(){
+  setwd("c:/temp")
+  
   #Test: create analysesDetails
   analysesDetails <- NULL
   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 1,firstOccurrenceDrugOnly=TRUE),analysesDetails)
@@ -16,11 +18,14 @@ sccTestRoutines <- function(){
   
   #Test: create the connectDetails
   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-  connectionDetails <- createConnectionDetails(dbms="oracle",user="system",password="F1r3starter",server="xe")
+  #connectionDetails <- createConnectionDetails(dbms="oracle",user="system",password="F1r3starter",server="xe")
   
   #Test: run the method:
-  sccResults <- selfControlledCohort(analysesDetails, connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
-
+  exposureOutcomePairs = data.frame(exposureConceptId = c(767410,1314924,907879,767410,1314924,907879,767410,1314924,907879), outcomeConceptId = c(444382, 444382, 444382,79106,79106,79106,138825,138825,138825))
+  sccResults <- selfControlledCohort(analysesDetails, connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposureOutcomePairs = exposureOutcomePairs, outcomeTable = "condition_era") 
+  plot(sccResults)
+  sccResults$effectEstimates
+  
   #Test: run a single analysis:
   sccResults <- selfControlledCohort(connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era") 
   

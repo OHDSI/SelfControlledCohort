@@ -43,19 +43,16 @@ Martijn Schuemie
 {DEFAULT @followupPeriodLength = '0'} --integer to define required time observed after exposure start
 {DEFAULT @shrinkage = '0.0001'} --shrinkage used in IRR calculations, required >0 to deal with 0 case counts, but larger number means more shrinkage
 
---Delete these :
---drop table #age_group;
---drop table #scc_exposure_summary;
---drop table #scc_outcome_summary;
+USE @resultsSchema;
 
 {@createResultsTable} ? {
-IF OBJECT_ID('@resultsSchema.dbo.@resultsTablePrefix_results', 'U') IS NOT NULL 
-  DROP TABLE @resultsSchema.dbo.@resultsTablePrefix_results;
+IF OBJECT_ID('@resultsTablePrefix_results', 'U') IS NOT NULL 
+  DROP TABLE @resultsTablePrefix_results;
 
-IF OBJECT_ID('@resultsSchema.dbo.@resultsTablePrefix_analysis', 'U') IS NOT NULL 
-	DROP TABLE @resultsSchema.dbo.@resultsTablePrefix_analysis;
+IF OBJECT_ID('@resultsTablePrefix_analysis', 'U') IS NOT NULL 
+	DROP TABLE @resultsTablePrefix_analysis;
 
-CREATE TABLE @resultsSchema.dbo.@resultsTablePrefix_analysis (
+CREATE TABLE @resultsTablePrefix_analysis (
   analysisId INT NOT NULL,
 	firstOccurrenceDrugOnly VARCHAR(5),
 	firstOccurrenceConditionOnly VARCHAR(5),
@@ -81,9 +78,21 @@ CREATE TABLE @resultsSchema.dbo.@resultsTablePrefix_analysis (
 	shrinkage FLOAT
 );
 
-} 
+} : { 
+  DELETE FROM 
+    @resultsTablePrefix_analysis 
+  WHERE analysisId = @analysisId;
+
+  DELETE FROM 
+    @resultsTablePrefix_results 
+  WHERE analysisId = @analysisId
+  AND sourceName =  '@sourceName'
+  AND	exposureConceptId IN(@exposuresOfInterest)
+	AND outcomeConceptId IN (@outcomesOfInterest);
+}
+
 INSERT INTO
-	@resultsSchema.dbo.@resultsTablePrefix_analysis
+	@resultsTablePrefix_analysis
 SELECT
 	@analysisId AS analysisId,
 	'@firstOccurrenceDrugOnly' AS firstOccurrenceDrugOnly,
@@ -113,14 +122,11 @@ WHERE
     SELECT 
       *
     FROM
-      @resultsSchema.dbo.@resultsTablePrefix_analysis
+      @resultsTablePrefix_analysis
     WHERE
       analysisId = @analysisId
   )
 ;
-
-
-USE @cdmSchema; 
 
 CREATE TABLE #age_group (
 	age_group_name VARCHAR(255),
@@ -208,7 +214,7 @@ FROM
 					@exposureEndDate
 					{@firstOccurrenceDrugOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @exposurePersonId, @exposureConceptId, drug_type_concept_id ORDER BY @exposureStartDate) AS rn1} 
 				FROM 
-					@exposureTable 
+					@cdmSchema.dbo.@exposureTable 
 				WHERE 
 					1=1
 					{@exposuresOfInterest != ''} ? {AND @exposureConceptId IN (@exposuresOfInterest)}
@@ -217,11 +223,11 @@ FROM
 		{@firstOccurrenceDrugOnly} ? {WHERE rn1 = 1}
 	) d1
 	INNER JOIN
-		@personTable p1
+		@cdmSchema.dbo.@personTable p1
 	ON 
 		d1.@exposurePersonId = p1.person_id
 	INNER JOIN
-		@observationPeriodTable op1
+		@cdmSchema.dbo.@observationPeriodTable op1
 	ON 
 		d1.@exposurePersonId = op1.person_id,
 	#age_group ag1
@@ -306,7 +312,7 @@ FROM
 					@exposureEndDate
 					{@firstOccurrenceDrugOnly}?{,ROW_NUMBER() OVER (PARTITION BY @exposurePersonId, @exposureConceptId, drug_type_concept_id ORDER BY @exposureStartDate) AS rn1}
 				FROM 
-					@exposureTable 
+					@cdmSchema.dbo.@exposureTable 
 				WHERE 
 						1=1
 					{@exposuresOfInterest != ''} ? {AND @exposureConceptId IN (@exposuresOfInterest)}
@@ -316,7 +322,7 @@ FROM
 		{@firstOccurrenceDrugOnly} ? {WHERE rn1 = 1}
 	) D1
 INNER JOIN
-	@personTable p1
+	@cdmSchema.dbo.@personTable p1
 ON 
 	d1.@exposurePersonId = p1.person_id
 INNER JOIN
@@ -335,7 +341,7 @@ INNER JOIN
 					@outcomeEndDate
 					{@firstOccurrenceConditionOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @outcomePersontId, @outcomeConceptId, condition_type_concept_id ORDER BY @outcomeStartDate) AS rn1}
 				FROM 
-					@outcomeTable 
+					@cdmSchema.dbo.@outcomeTable 
 				WHERE 
 						1=1
 					{@outcomesOfInterest != ''} ? {AND @outcomeConceptId IN (@outcomesOfInterest)}
@@ -346,7 +352,7 @@ INNER JOIN
 ON 
 	p1.person_id = c1.@outcomePersontId
 INNER JOIN
-	@observationPeriodTable op1
+	@cdmSchema.dbo.@observationPeriodTable op1
 ON 
 	d1.@exposurePersonId = op1.person_id,
 	#age_group ag1
@@ -388,7 +394,7 @@ GROUP BY
 --now create final summary table
 {!@createResultsTable} ? {
 INSERT INTO 
-	@resultsSchema.dbo.@resultsTablePrefix_results
+	@resultsTablePrefix_results
 }
 SELECT 
   '@sourceName' AS sourceName,
@@ -457,7 +463,7 @@ SELECT
 	SQRT( (1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) AS seLogIrr
 {@createResultsTable} ? {	
 INTO 
-	@resultsSchema.dbo.@resultsTablePrefix_results
+	@resultsTablePrefix_results
 }
 FROM
 	(
