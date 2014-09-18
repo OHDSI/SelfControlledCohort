@@ -223,7 +223,7 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
     )
     
     writeLines(paste("Executing analysis (analysisId = ",analysisId,") for outcome ",outcomesOfInterest,". This could take a while",sep=""))
-    executeSql(conn,connectionDetails$dbms,renderedSql)
+    executeSql(conn,renderedSql)
     sql <- c(sql,renderedSql)
     createResultsTable = FALSE # no point in overwriting results of previous analysis in same run
   }

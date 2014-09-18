@@ -345,7 +345,7 @@ INNER JOIN
 				WHERE 
 						1=1
 					{@outcomesOfInterest != ''} ? {AND @outcomeConceptId IN (@outcomesOfInterest)}
-					{(@conditionTypeConceptIdList) & (@outcomeTable != 'cohort')} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
+					{@conditionTypeConceptIdList & @outcomeTable != 'cohort'} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
 			) T1
 		{@firstOccurrenceConditionOnly} ? {WHERE rn1 = 1}
 	) c1
