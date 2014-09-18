@@ -15,7 +15,7 @@ Martijn Schuemie
 {DEFAULT @outcomeStartDate = 'condition_era_start_date'} 
 {DEFAULT @outcomeEndDate = 'condition_era_end_date'} 
 {DEFAULT @outcomeConceptId = 'condition_concept_id'} 
-{DEFAULT @outcomePersontId = 'person_id'} 
+{DEFAULT @outcomePersonId = 'person_id'} 
 {DEFAULT @personTable = 'person'} --name of table where contains in format of PERSON live (could be temp table if pre-processing was necessary)
 {DEFAULT @observationPeriodTable = 'observation_period'} --name of table where contains in format of OBSERVATION_PERIOD live (could be temp table if pre-processing was necessary)
 {DEFAULT @firstOccurrenceDrugOnly = '1'} --if 1, only use first occurrence of each drug concept id for each person in DRUG_ERA table
@@ -50,7 +50,7 @@ IF OBJECT_ID('@resultsTablePrefix_results', 'U') IS NOT NULL
   DROP TABLE @resultsTablePrefix_results;
 
 IF OBJECT_ID('@resultsTablePrefix_analysis', 'U') IS NOT NULL 
-	DROP TABLE @resultsTablePrefix_analysis;
+  DROP TABLE @resultsTablePrefix_analysis;
 
 CREATE TABLE @resultsTablePrefix_analysis (
   analysisId INT NOT NULL,
@@ -147,9 +147,9 @@ INSERT INTO #age_group (age_group_name, age_group_min, age_group_max) VALUES ('9
 
 SELECT
 	d1.@exposureConceptId AS exposure_concept_id,
-	{@stratifyGender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
-	{@stratifyAge} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
-	{@stratifyIndex} ? {YEAR(d1.@exposureStartDate) AS index_year,} : {'ALL' AS index_year,}
+	{@stratifyGender} ? {CAST(gender_concept_id AS VARCHAR),} : {CAST('ALL' AS VARCHAR) AS gender_concept_id,}
+	{@stratifyAge} ? {ag1.age_group_name,} : {CAST('ALL' AS VARCHAR) AS age_group_name,}
+	{@stratifyIndex} ? {CAST(YEAR(d1.@exposureStartDate) AS VARCHAR) AS index_year,} : {CAST('ALL' AS VARCHAR) AS index_year,}
 	COUNT(DISTINCT d1.@exposurePersonId) AS num_persons,
 	COUNT(d1.@exposurePersonId) AS num_exposures,
 	SUM(
@@ -264,9 +264,9 @@ GROUP BY
 SELECT 
 	d1.@exposureConceptId AS exposure_concept_id,
 	c1.@outcomeConceptId AS outcome_concept_id,
-	{@stratifyGender} ? {gender_concept_id,} : {'ALL' AS gender_concept_id,}
-	{@stratifyAge} ? {ag1.age_group_name,} : {'ALL' AS age_group_name,}
-	{@stratifyIndex} ? {YEAR(d1.@exposureStartDate) AS index_year,} : {'ALL' AS index_year,}
+	{@stratifyGender} ? {CAST(gender_concept_id AS VARCHAR),} : {CAST('ALL' AS VARCHAR) AS gender_concept_id,}
+	{@stratifyAge} ? {ag1.age_group_name,} : {CAST('ALL' AS VARCHAR) AS age_group_name,}
+	{@stratifyIndex} ? {CAST(YEAR(d1.@exposureStartDate) AS VARCHAR) AS index_year,} : {CAST('ALL' AS VARCHAR) AS index_year,}
 	SUM(
 		CASE WHEN 
 				c1.@outcomeStartDate >= DATEADD(dd,@timeAtRiskExposedStart,@exposureStartDate)
@@ -328,29 +328,29 @@ ON
 INNER JOIN
 	(
 		SELECT 
-			@outcomePersontId, 
+			@outcomePersonId, 
 			@outcomeConceptId, 
 			@outcomeStartDate, 
 			@outcomeEndDate
 		FROM
 			(
 				SELECT 
-					@outcomePersontId, 
+					@outcomePersonId, 
 					@outcomeConceptId, 
 					@outcomeStartDate, 
 					@outcomeEndDate
-					{@firstOccurrenceConditionOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @outcomePersontId, @outcomeConceptId, condition_type_concept_id ORDER BY @outcomeStartDate) AS rn1}
+					{@firstOccurrenceConditionOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @outcomePersonId, @outcomeConceptId {@outcomeTable != 'cohort'} ? {, condition_type_concept_id} ORDER BY @outcomeStartDate) AS rn1}
 				FROM 
 					@cdmSchema.dbo.@outcomeTable 
 				WHERE 
 						1=1
 					{@outcomesOfInterest != ''} ? {AND @outcomeConceptId IN (@outcomesOfInterest)}
-					{@conditionTypeConceptIdList & outcome_table != 'cohort'} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
+					{(@conditionTypeConceptIdList) & (@outcomeTable != 'cohort')} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
 			) T1
 		{@firstOccurrenceConditionOnly} ? {WHERE rn1 = 1}
 	) c1
 ON 
-	p1.person_id = c1.@outcomePersontId
+	p1.person_id = c1.@outcomePersonId
 INNER JOIN
 	@cdmSchema.dbo.@observationPeriodTable op1
 ON 
@@ -397,7 +397,7 @@ INSERT INTO
 	@resultsTablePrefix_results
 }
 SELECT 
-  '@sourceName' AS sourceName,
+  CAST('@sourceName' AS VARCHAR) AS sourceName,
 	@analysisId AS analysisId,
 	exposure_concept_id AS exposureConceptId,
 	outcome_concept_id AS outcomeConceptId,

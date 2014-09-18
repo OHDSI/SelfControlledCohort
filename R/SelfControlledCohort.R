@@ -446,14 +446,14 @@ appendToSccAnalysesDetails <- function(sccAnalysisDetails,sccAnalysesDetails = N
 writeSccAnalysesDetailsToFile <- function(sccAnalysesDetails, file){
   stopifnot(class(sccAnalysesDetails) == "sccAnalysesDetails")
   
-  #Convert sccAnalysesDetails to a data.frame, converting any nested vectors into pipe-delimited strings:
+  #Convert sccAnalysesDetails to a data.frame, converting any nested vectors into semicolon-delimited strings:
   f <- sccAnalysesDetails
   d <- data.frame()
   for (row in 1:length(f)){
     class(f[[row]]) <- "list"
     for (column in 1:length(f[[row]])){
       if ((class(f[[row]][[column]]) == "numeric") && (length(f[[row]][[column]]) > 1))
-        f[[row]][[column]] = paste(f[[row]][[column]],collapse=",")
+        f[[row]][[column]] = paste(f[[row]][[column]],collapse=";")
     }
     d <- rbind(d,as.data.frame(f[[row]]))
   }
@@ -483,7 +483,7 @@ readSccAnalysesDetailsFromFile <- function(file){
   for (row in 1:nrow(d)){
     sccAnalysisDetails <- as.list(d[row,])
     for (column in c("drugTypeConceptIdList","conditionTypeConceptIdList","conditionTypeConceptIdList","genderConceptIdList")){
-      sccAnalysisDetails[[column]] <- as.numeric(unlist(strsplit(as.character(d[row,column]),",")))
+      sccAnalysisDetails[[column]] <- as.numeric(unlist(strsplit(as.character(d[row,column]),";")))
     }
     class(sccAnalysisDetails) = "sccAnalysisDetails"
     sccAnalysesDetails[[length(sccAnalysesDetails)+1]] <- sccAnalysisDetails

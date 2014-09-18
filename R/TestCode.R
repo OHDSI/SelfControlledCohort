@@ -19,10 +19,15 @@ sccTestRoutines <- function(){
   #Test: create the connectDetails
   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
   #connectionDetails <- createConnectionDetails(dbms="oracle",user="system",password="F1r3starter",server="xe")
+  #connectionDetails <- createConnectionDetails(dbms="postgresql",user="postgres",password="F1r3starter",server="localhost/ohdsi")
   
   #Test: run the method:
   exposureOutcomePairs = data.frame(exposureConceptId = c(767410,1314924,907879,767410,1314924,907879,767410,1314924,907879), outcomeConceptId = c(444382, 444382, 444382,79106,79106,79106,138825,138825,138825))
   sccResults <- selfControlledCohort(analysesDetails, connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposureOutcomePairs = exposureOutcomePairs, outcomeTable = "condition_era") 
+  
+  #exposureOutcomePairs = data.frame(exposureConceptId = c(767410,1314924), outcomeConceptId = c(500000401,500000401))
+  #sccResults <- selfControlledCohort(analysesDetails, connectionDetails, cdmSchema="cdm4_sim", resultsSchema="scratch", createResultsTable = TRUE, sourceName = "cdm_truven_mdcr", exposureOutcomePairs = exposureOutcomePairs, outcomeTable = "cohort") 
+  
   plot(sccResults)
   sccResults$effectEstimates
   
