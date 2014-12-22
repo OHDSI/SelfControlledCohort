@@ -15,15 +15,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# @author Observational Health Data Sciences and Informatics
-# @author Martijn Schuemie
-# @author Patrick Ryan
-
 
 # Loads the results from the server and adds them to a results object
 addResults <- function(results,conn) {
-  sql <- "SELECT * FROM @table WHERE sourceName = '@sourceName' AND analysisId IN (@analysisIds) AND exposureConceptId IN (@exposureConceptIds) AND outcomeConceptId IN (@outcomeConceptIds)"
+  sql <- "SELECT * FROM @table WHERE sourceName = '@sourceName' AND analysisId IN (@analysisIds) AND exposureConceptId IN (@exposureConceptIds) AND outcomeConceptId IN 
+(@outcomeConceptIds)"
   sql <- renderSql(sql,
                    table = results$resultsTable, 
                    sourceName = results$sourceName,
@@ -45,11 +41,6 @@ addResults <- function(results,conn) {
 #'
 #' @description
 #' \code{selfControlledCohort} generates population-level estimation from OMOP CDMv4 instance by comparing exposed and unexposed time among exposed cohort.
-#'
-#' @usage 
-#' selfControlledCohort(connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "scc", createResultsTable = TRUE, sourceName = "", exposureOutcomePairs, exposureTable = "drug_era", outcomeTable = "condition_era", analysisId = 1, firstOccurrenceDrugOnly = TRUE, firstOccurrenceConditionOnly = TRUE, drugTypeConceptIdList = c(38000182), conditionTypeConceptIdList = c(38000247), genderConceptIdList = c(8507,8532), minAge = "", maxAge = "", minIndex = "", maxIndex = "", stratifyGender = FALSE, stratifyAge = FALSE, stratifyIndex = FALSE, useLengthOfExposureExposed = TRUE, timeAtRiskExposedStart = 1, surveillanceExposed = 30, useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1, surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE, washoutPeriodLength = 0, followupPeriodLength = 0, shrinkage = 0.0001)
-#' selfControlledCohort(sccAnalysisDetails, connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "scc", createResultsTable = TRUE, sourceName = "", exposureOutcomePairs, exposureTable = "drug_era", outcomeTable = "condition_era")
-#' selfControlledCohort(sccAnalysesDetails, connectionDetails, cdmSchema, resultsSchema, resultsTablePrefix = "scc", createResultsTable = TRUE, sourceName = "", exposureOutcomePairs, exposureTable = "drug_era", outcomeTable = "condition_era")
 #'
 #' @details
 #' Population-level estimation method that estimates incidence rate comparison of exposed/unexposed time within an exposed cohort.
@@ -117,7 +108,9 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
                                                     createResultsTable = TRUE, 
                                                     sourceName = "", 
                                                     exposureOutcomePairs, 
+													                          exposureSchema = cdmSchema,
                                                     exposureTable = "drug_era",
+													                          outcomeSchema = cdmSchema,
                                                     outcomeTable = "condition_era",
                                                     analysisId = 1,
                                                     firstOccurrenceDrugOnly = TRUE,
@@ -142,27 +135,40 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
                                                     washoutPeriodLength = 0,
                                                     followupPeriodLength = 0,
                                                     shrinkage = 0.0001){
-  if (exposureTable == "cohort"){
-    exposureStartDate = "cohort_start_date";
-    exposureEndDate = "cohort_end_date";
-    exposureConceptId = "cohort_concept_id";
-    exposurePersonId=  "subject_id"
-  } else if (exposureTable == "drug_era"){
+	exposureTable <- tolower(exposureTable)
+	outcomeTable <- tolower(outcomeTable)
+  if (exposureTable == "drug_era"){
     exposureStartDate = "drug_era_start_date";
     exposureEndDate = "drug_era_end_date";
     exposureConceptId = "drug_concept_id";
     exposurePersonId=  "person_id"
-  }
-  if (outcomeTable == "cohort"){
-    outcomeStartDate = "cohort_start_date";
-    outcomeEndDate = "cohort_end_date";
-    outcomeConceptId = "cohort_concept_id";
-    outcomePersonId=  "subject_id"
-  } else if (outcomeTable == "condition_era"){
+  } else if (exposureTable == "drug_exposure"){
+    exposureStartDate = "drug_exposure_start_date";
+    exposureEndDate = "drug_exposure_end_date";
+    exposureConceptId = "drug_concept_id";
+    exposurePersonId=  "person_id"
+  } else {
+    exposureStartDate = "cohort_start_date";
+    exposureEndDate = "cohort_end_date";
+    exposureConceptId = "cohort_concept_id";
+    exposurePersonId=  "subject_id"
+	}
+  
+  if (outcomeTable == "condition_era"){
     outcomeStartDate = "condition_era_start_date";
     outcomeEndDate = "condition_era_end_date";
     outcomeConceptId = "condition_concept_id";
     outcomePersonId=  "person_id"
+  } else if (outcomeTable == "condition_occurrence"){
+    outcomeStartDate = "condition_start_date";
+    outcomeEndDate = "condition_end_date";
+    outcomeConceptId = "condition_concept_id";
+    outcomePersonId=  "person_id"
+  } else {
+    outcomeStartDate = "cohort_start_date";
+    outcomeEndDate = "cohort_end_date";
+    outcomeConceptId = "cohort_concept_id";
+    outcomePersonId=  "subject_id"
   }
   
   #Check if connection already open:
@@ -188,11 +194,13 @@ selfControlledCohort.connectionDetails <- function (connectionDetails,
                                           analysisId = analysisId,
                                           exposuresOfInterest = exposuresOfInterest, 
                                           outcomesOfInterest = outcomesOfInterest, 
+								                    		  exposureSchema = exposureSchema,
                                           exposureTable = exposureTable,
                                           exposureStartDate = exposureStartDate,
                                           exposureEndDate = exposureEndDate,
                                           exposureConceptId = exposureConceptId,
                                           exposurePersonId = exposurePersonId,
+							                    			  outcomeSchema = outcomeSchema,
                                           outcomeTable = outcomeTable,
                                           outcomeStartDate = outcomeStartDate,
                                           outcomeEndDate = outcomeEndDate,
@@ -260,7 +268,9 @@ selfControlledCohort.sccAnalysisDetails <- function(sccAnalysisDetails,
                                                     createResultsTable = TRUE, 
                                                     sourceName = "", 
                                                     exposureOutcomePairs,
+                                                    exposureSchema = cdmSchema,
                                                     exposureTable = "drug_era",
+                                                    outcomeSchema = cdmSchema,
                                                     outcomeTable = "cohort"){
   arguments = sccAnalysisDetails
   arguments$connectionDetails = connectionDetails
@@ -270,6 +280,8 @@ selfControlledCohort.sccAnalysisDetails <- function(sccAnalysisDetails,
   arguments$createResultsTable = createResultsTable
   arguments$sourceName = sourceName
   arguments$exposureOutcomePairs = exposureOutcomePairs
+  arguments$exposureSchema = exposureSchema
+  arguments$outcomeSchema = outcomeSchema  
   arguments$exposureTable = exposureTable
   arguments$outcomeTable = outcomeTable												
   
@@ -285,9 +297,10 @@ selfControlledCohort.sccAnalysesDetails <- function(sccAnalysesDetails,
                                                     createResultsTable = TRUE, 
                                                     sourceName = "", 
                                                     exposureOutcomePairs,
+                                                    exposureSchema = cdmSchema,
                                                     exposureTable = "drug_era",
-                                                    outcomeTable = "condition_era"
-){
+                                                    outcomeSchema = cdmSchema,
+                                                    outcomeTable = "cohort"){
   connectionDetails$conn <- connect(connectionDetails)
   
   sql <- c()  
@@ -301,6 +314,8 @@ selfControlledCohort.sccAnalysesDetails <- function(sccAnalysesDetails,
                                                           createResultsTable = createResultsTable, 
                                                           sourceName = sourceName, 
                                                           exposureOutcomePairs = exposureOutcomePairs, 
+                                                          exposureSchema = exposureSchema,
+                                                          outcomeSchema = outcomeSchema,  
                                                           exposureTable = exposureTable,
                                                           outcomeTable = outcomeTable)
     sql <- c(sql,sccResults$sql)

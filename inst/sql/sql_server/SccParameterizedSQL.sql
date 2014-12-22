@@ -5,19 +5,23 @@ Patrick Ryan
 Martijn Schuemie
 ******************/
 {DEFAULT @analysisId = 1}
-{DEFAULT @sourceName = ""}
-{DEFAULT @exposureTable = 'drug_era'} --name of table where contains in format of DRUG_ERA live (could be temp table if pre-processing was necessary)
+{DEFAULT @sourceName = ''}
+{DEFAULT @resultsSchema = 'scratch'}
+{DEFAULT @cdmSchema = 'cdm4_sim'}
+{DEFAULT @exposureSchema = 'cdm4_sim'} --name of schema where contains in format of DRUG_ERA live 
+{DEFAULT @exposureTable = 'drug_era'} --name of table where contains in format of DRUG_ERA live 
 {DEFAULT @exposureStartDate = 'drug_era_start_date'} 
 {DEFAULT @exposureEndDate = 'drug_era_end_date'} 
 {DEFAULT @exposureConceptId = 'drug_concept_id'} 
 {DEFAULT @exposurePersonId = 'person_id'} 
-{DEFAULT @outcomeTable = 'condition_era'} --name of table where contains in format of CONDITION_ERA live (could be temp table if pre-processing was necessary)
+{DEFAULT @outcomeSchema = 'cdm4_sim'} --name of schema where contains in format of DRUG_ERA live 
+{DEFAULT @outcomeTable = 'condition_era'} --name of table where contains in format of CONDITION_ERA live 
 {DEFAULT @outcomeStartDate = 'condition_era_start_date'} 
 {DEFAULT @outcomeEndDate = 'condition_era_end_date'} 
 {DEFAULT @outcomeConceptId = 'condition_concept_id'} 
 {DEFAULT @outcomePersonId = 'person_id'} 
-{DEFAULT @personTable = 'person'} --name of table where contains in format of PERSON live (could be temp table if pre-processing was necessary)
-{DEFAULT @observationPeriodTable = 'observation_period'} --name of table where contains in format of OBSERVATION_PERIOD live (could be temp table if pre-processing was necessary)
+{DEFAULT @personTable = 'person'} --name of table where contains in format of PERSON live 
+{DEFAULT @observationPeriodTable = 'observation_period'} --name of table where contains in format of OBSERVATION_PERIOD live 
 {DEFAULT @firstOccurrenceDrugOnly = '1'} --if 1, only use first occurrence of each drug concept id for each person in DRUG_ERA table
 {DEFAULT @firstOccurrenceConditionOnly = '1'} --if 1, only use first occurrence of each condition concept id for each person in CONDITION_ERA table
 {DEFAULT @drugTypeConceptIdList = '38000182'} --which DRUG_TYPE to use:  generally only use 1 value (ex:  30d era)
@@ -214,7 +218,7 @@ FROM
 					@exposureEndDate
 					{@firstOccurrenceDrugOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @exposurePersonId, @exposureConceptId, drug_type_concept_id ORDER BY @exposureStartDate) AS rn1} 
 				FROM 
-					@cdmSchema.dbo.@exposureTable 
+					@exposureSchema.dbo.@exposureTable 
 				WHERE 
 					1=1
 					{@exposuresOfInterest != ''} ? {AND @exposureConceptId IN (@exposuresOfInterest)}
@@ -312,7 +316,7 @@ FROM
 					@exposureEndDate
 					{@firstOccurrenceDrugOnly}?{,ROW_NUMBER() OVER (PARTITION BY @exposurePersonId, @exposureConceptId, drug_type_concept_id ORDER BY @exposureStartDate) AS rn1}
 				FROM 
-					@cdmSchema.dbo.@exposureTable 
+					@exposureSchema.dbo.@exposureTable 
 				WHERE 
 						1=1
 					{@exposuresOfInterest != ''} ? {AND @exposureConceptId IN (@exposuresOfInterest)}
@@ -341,11 +345,11 @@ INNER JOIN
 					@outcomeEndDate
 					{@firstOccurrenceConditionOnly} ? {,ROW_NUMBER() OVER (PARTITION BY @outcomePersonId, @outcomeConceptId {@outcomeTable != 'cohort'} ? {, condition_type_concept_id} ORDER BY @outcomeStartDate) AS rn1}
 				FROM 
-					@cdmSchema.dbo.@outcomeTable 
+					@outcomeSchema.dbo.@outcomeTable 
 				WHERE 
 						1=1
 					{@outcomesOfInterest != ''} ? {AND @outcomeConceptId IN (@outcomesOfInterest)}
-					{@conditionTypeConceptIdList & @outcomeTable != 'cohort'} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
+					{@conditionTypeConceptIdList & @outcomeTable == 'condition_era'} ? {AND condition_type_concept_id IN (@conditionTypeConceptIdList)}
 			) T1
 		{@firstOccurrenceConditionOnly} ? {WHERE rn1 = 1}
 	) c1
