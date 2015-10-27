@@ -1,532 +1,296 @@
 # @file SelfControlledCohort.R
 #
-# Copyright 2014 Observational Health Data Sciences and Informatics
+# Copyright 2015 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Loads the results from the server and adds them to a results object
-addResults <- function(results,conn) {
-  sql <- "SELECT * FROM @table WHERE sourceName = '@sourceName' AND analysisId IN (@analysisIds) AND exposureConceptId IN (@exposureConceptIds) AND outcomeConceptId IN 
-(@outcomeConceptIds)"
-  sql <- renderSql(sql,
-                   table = results$resultsTable, 
-                   sourceName = results$sourceName,
-                   analysisIds = results$analysisIds, 
-                   exposureConceptIds = results$exposureOutcomePairs$exposureConceptId,
-                   outcomeConceptIds = results$exposureOutcomePairs$outcomeConceptId
-  )$sql
-  results$effectEstimates <- dbGetQuery(conn,sql)
-  sql <- "SELECT * FROM @table WHERE analysisId IN (@analysisIds)" 
-  sql <- renderSql(sql,
-                   table = results$analysisTable, 
-                   analysisIds = results$analysisIds
-  )$sql
-  results$analyses <- dbGetQuery(conn,sql)
-  results
-}
-
-#' @title selfControlledCohort
+#' @title
+#' Run self-controlled cohort
 #'
 #' @description
-#' \code{selfControlledCohort} generates population-level estimation from OMOP CDMv4 instance by comparing exposed and unexposed time among exposed cohort.
+#' \code{runSelfControlledCohort} generates population-level estimation by comparing exposed and unexposed time among
+#' exposed cohort.
 #'
 #' @details
-#' Population-level estimation method that estimates incidence rate comparison of exposed/unexposed time within an exposed cohort.
-#'  
+#' Population-level estimation method that estimates incidence rate comparison of exposed/unexposed
+#' time within an exposed cohort.
+#'
 #' @references
-#' Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons for developing a risk 
-#' identification and analysis system. Drug Safety 36 Suppl1:S95-106, 2013
-#'  
-#' @param connectionDetails  An R object of type \code{ConnectionDetails} created using the function \code{createConnectionDetails} in the \code{DatabaseConnector} package.
-#' @param cdmSchema  		Name of database schema that contains OMOP CDM and vocabulary.
-#' @param resultsSchema		Name of database schema that we can write results to.
-#' @param resultsTablePrefix  Prefix used for the result tables in the \code{resultsSchema}. 
-#' @param createResultsTable If true, a new empty table will be created to store the results. If false, results will be inserted into the existing table.
-#' @param sourceName		Name of the database, as recorded in results.
-#' @param exposureOutcomePairs  A data frame with at least two columns:
-#' \itemize{
-#'   \item{"exposureConceptId" containing the drug_concept_ID or cohort_concept_id of the exposure variable}
-#'   \item{"outcomeConceptId" containing the condition_concept_ID or cohort_concept_id of the outcome variable}
-#' }
-#' @param exposureTable	\code{exposureTable="drugEra"} or \code{exposureTable="cohort"}.
-#' @param outcomeTable	\code{outcomeTable="cohortconditionEra"} or \code{outcomeTable="cohort"}.
-#' @param analysisId  	A unique identifier that can later be used to identify the results of this analysis.
-#' @param firstOccurrenceDrugOnly	If TRUE, only use first occurrence of each drug concept id for each person
-#' @param firstOccurrenceConditionOnly	If TRUE, only use first occurrence of each condition concept id for each person.
-#' @param drugTypeConceptIdList	Which drug_type to use:  generally only use 1 value (ex:  30d era).
-#' @param conditionTypeConceptIdList	Which condition_type to use:  generally only use 1 value (ex:  30d era).
-#' @param genderConceptIdList	List of gender_concept_id, generally use MALE (8507) and FEMALE (8532).
-#' @param minAge	Integer for minimum allowable age.
-#' @param maxAge	Integer for maximum allowable age.
-#' @param minIndex	Date for minimum allowable data for index exposure.
-#' @param maxIndex	Date for maximum allowable data for index exposure.
-#' @param stratifyGender	If TRUE, analysis will be calculated overall, and stratified across all gender groups.
-#' @param stratifyAge	If TRUE, analysis will be calculated overall, and stratified across all age groups  (using AGE_GROUP table below).
-#' @param stratifyIndex	If TRUE, analysis will be calculated overall, and stratified across all years of the index dates.
-#' @param useLengthOfExposureExposed	If TRUE, use the duration from drugEraStart -> drugEraEnd as part of timeAtRisk.
-#' @param timeAtRiskExposedStart	Integer of days to add to drugEraStart for start of timeAtRisk (0 to include index date, 1 to start the day after).
-#' @param surveillanceExposed	Additional window to add to end of exposure period (if useLengthOfExposureExposed = TRUE, then add to exposure end date, else add to exposure start date).
-#' @param useLengthOfExposureUnexposed	if TRUE, use the duration from exposure start -> exposure end as part of timeAtRisk looking back before exposure start.
-#' @param timeAtRiskUnexposedStart	integer of days to add to exposure start for start of timeAtRisk (0 to include index date, -1 to start the day before).
-#' @param surveillanceUnexposed	additional window to add to end of exposure period (if useLengthOfExposureUnexposed = TRUE, then add to exposure end date, else add to exposure start date).
-#' @param hasFullTimeAtRisk	if TRUE, restrict to people who have full time-at-risk exposed and unexposed.
-#' @param washoutPeriodLength	integer to define required time observed before exposure start.
-#' @param followupPeriodLength	integer to define required time observed after exposure start.
-#' @param shrinkage	shrinkage used in IRR calculations, required >0 to deal with 0 case counts, but larger number means more shrinkage.
-#' @param sccAnalysisDetails  object specifyng a set of analysis choices.
-#' @param sccAnalysesDetails  object specifyng one or several sets of analysis choices.
-#' 
-#' @return An object of type \code{sccResults} containing details for connecting to the database containing the results 
-#' @examples \dontrun{
-#'   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-#'   exposureOutcomePairs = data.frame(exposureConceptId = c(767410,1314924,907879), outcomeConceptId = c(444382, 79106, 138825))
-#'   sccResult <- selfControlledCohort(connectionDetails, "cdm_truven_mdcr", "scratch", sourceName = "cdm_truven_mdcr", exposureOutcomePairs, outcomeTable = "condition_era")
-#'   plot(sccResult)
+#' Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
+#' for developing a risk identification and analysis system. Drug Safety 36 Suppl1:S95-106, 2013
+#'
+#' @param connectionDetails                An R object of type \code{connectionDetails} created using
+#'                                         the function \code{createConnectionDetails} in the
+#'                                         \code{DatabaseConnector} package.
+#' @param cdmDatabaseSchema                Name of database schema that contains the OMOP CDM and
+#'                                         vocabulary.
+#' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
+#'                                         "5".
+#' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
+#'                                         want all temporary tables to be managed. Requires
+#'                                         create/insert permissions to this database.
+#' @param exposureIds                      A vector containing the drug_concept_ids or
+#'                                         cohort_definition_ids of the exposures of interest
+#' @param outcomeId                        The condition_concept_id or cohort_definition_id of the
+#'                                         outcome of interest
+#' @param exposureDatabaseSchema           The name of the database schema that is the location where
+#'                                         the exposure data used to define the exposure cohorts is
+#'                                         available. If exposureTable = DRUG_ERA,
+#'                                         exposureDatabaseSchema is not used by assumed to be
+#'                                         cdmSchema.  Requires read permissions to this database.
+#'
+#' @param exposureTable                    The tablename that contains the exposure cohorts.  If
+#'                                         exposureTable <> DRUG_ERA, then expectation is exposureTable
+#'                                         has format of COHORT table: cohort_concept_id, SUBJECT_ID,
+#'                                         COHORT_START_DATE, COHORT_END_DATE.
+#' @param outcomeDatabaseSchema            The name of the database schema that is the location where
+#'                                         the data used to define the outcome cohorts is available. If
+#'                                         exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
+#'                                         used by assumed to be cdmSchema.  Requires read permissions
+#'                                         to this database.
+#' @param outcomeTable                     The tablename that contains the outcome cohorts.  If
+#'                                         outcomeTable <> CONDITION_OCCURRENCE, then expectation is
+#'                                         outcomeTable has format of COHORT table:
+#'                                         COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
+#'                                         COHORT_END_DATE.
+#' @param firstOccurrenceDrugOnly          If TRUE, only use first occurrence of each drug concept id
+#'                                         for each person
+#' @param firstOccurrenceConditionOnly     If TRUE, only use first occurrence of each condition concept
+#'                                         id for each person.
+#' @param outcomeConditionTypeConceptIds   A list of TYPE_CONCEPT_ID values that will restrict
+#'                                         condition occurrences.  Only applicable if outcomeTable =
+#'                                         CONDITION_OCCURRENCE.
+#' @param genderConceptIds                 of gender_concept_id, generally use MALE (8507) and FEMALE
+#'                                         (8532).
+#' @param minAge                           Integer for minimum allowable age.
+#' @param maxAge                           Integer for maximum allowable age.
+#' @param studyStartDate                   Date for minimum allowable data for index exposure.
+#' @param studyEndDate                     Date for maximum allowable data for index exposure.
+#' @param stratifyByGender                 If TRUE, analysis will be calculated overall, and stratified
+#'                                         across all gender groups.
+#' @param stratifyByAge                    If TRUE, analysis will be calculated overall, and stratified
+#'                                         across all age groups (using AGE_GROUP table below).
+#' @param stratifyByYear                   If TRUE, analysis will be calculated overall, and stratified
+#'                                         across all years of the index dates.
+#' @param useLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd as
+#'                                         part of timeAtRisk.
+#' @param timeAtRiskExposedStart           Integer of days to add to drugEraStart for start of
+#'                                         timeAtRisk (0 to include index date, 1 to start the day
+#'                                         after).
+#' @param surveillanceExposed              Additional window to add to end of exposure period (if
+#'                                         useLengthOfExposureExposed = TRUE, then add to exposure end
+#'                                         date, else add to exposure start date).
+#' @param useLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposure
+#'                                         end as part of timeAtRisk looking back before exposure
+#'                                         start.
+#' @param timeAtRiskUnexposedStart         Integer of days to add to exposure start for start of
+#'                                         timeAtRisk (0 to include index date, -1 to start the day
+#'                                         before).
+#' @param surveillanceUnexposed            Additional window to add to end of exposure period (if
+#'                                         useLengthOfExposureUnexposed = TRUE, then add to exposure
+#'                                         end date, else add to exposure start date).
+#' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
+#'                                         exposed and unexposed.
+#' @param washoutWindow                    Integer to define required time observed before exposure
+#'                                         start.
+#' @param followupWindow                   Integer to define required time observed after exposure
+#'                                         start.
+#' @param shrinkage                        Shrinkage used in IRR calculations, required >0 to deal with
+#'                                         0 case counts, but larger number means more shrinkage.
+#'
+#' @return
+#' An object of type \code{sccResults} containing the results of the analysis.
+#' @examples
+#' \dontrun{
+#' connectionDetails <- createConnectionDetails(dbms = "sql server",
+#'                                              server = "RNDUSRDHIT07.jnj.com")
+#' sccResult <- runSelfControlledCohort(connectionDetails,
+#'                     cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+#'                     exposureIds = c(767410, 1314924, 907879),
+#'                     outcomeId = 444382,
+#'                     outcomeTable = "condition_era")
 #' }
 #' @export
-selfControlledCohort <- function(...){
-  UseMethod("selfControlledCohort") 
-}
-
-#' @export
-selfControlledCohort.connectionDetails <- function (connectionDetails, 
-                                                    cdmSchema, 
-                                                    resultsSchema, 
-                                                    resultsTablePrefix = "scc", 
-                                                    createResultsTable = TRUE, 
-                                                    sourceName = "", 
-                                                    exposureOutcomePairs, 
-													                          exposureSchema = cdmSchema,
-                                                    exposureTable = "drug_era",
-													                          outcomeSchema = cdmSchema,
-                                                    outcomeTable = "condition_era",
-                                                    analysisId = 1,
-                                                    firstOccurrenceDrugOnly = TRUE,
-                                                    firstOccurrenceConditionOnly = TRUE,
-                                                    drugTypeConceptIdList = c(38000182),
-                                                    conditionTypeConceptIdList = c(38000247),
-                                                    genderConceptIdList = c(8507,8532),
-                                                    minAge = "",
-                                                    maxAge = "",
-                                                    minIndex = "",
-                                                    maxIndex = "",
-                                                    stratifyGender = FALSE,
-                                                    stratifyAge = FALSE,
-                                                    stratifyIndex = FALSE,
-                                                    useLengthOfExposureExposed = TRUE,
-                                                    timeAtRiskExposedStart = 1,
-                                                    surveillanceExposed = 30,
-                                                    useLengthOfExposureUnexposed = TRUE,
-                                                    timeAtRiskUnexposedStart = -1,
-                                                    surveillanceUnexposed = -30,
-                                                    hasFullTimeAtRisk = FALSE,
-                                                    washoutPeriodLength = 0,
-                                                    followupPeriodLength = 0,
-                                                    shrinkage = 0.0001){
-	exposureTable <- tolower(exposureTable)
-	outcomeTable <- tolower(outcomeTable)
-  if (exposureTable == "drug_era"){
-    exposureStartDate = "drug_era_start_date";
-    exposureEndDate = "drug_era_end_date";
-    exposureConceptId = "drug_concept_id";
-    exposurePersonId=  "person_id"
-  } else if (exposureTable == "drug_exposure"){
-    exposureStartDate = "drug_exposure_start_date";
-    exposureEndDate = "drug_exposure_end_date";
-    exposureConceptId = "drug_concept_id";
-    exposurePersonId=  "person_id"
+runSelfControlledCohort <- function(connectionDetails,
+                   cdmDatabaseSchema,
+                   cdmVersion = 5,
+                   oracleTempSchema,
+                   exposureIds,
+                   outcomeId,
+                   exposureDatabaseSchema = cdmDatabaseSchema,
+                   exposureTable = "drug_era",
+                   outcomeDatabaseSchema = cdmDatabaseSchema,
+                   outcomeTable = "condition_era",
+                   firstOccurrenceDrugOnly = TRUE,
+                   firstOccurrenceConditionOnly = TRUE,
+                   outcomeConditionTypeConceptIds = c(38000247),
+                   genderConceptIds = c(8507, 8532),
+                   minAge = "",
+                   maxAge = "",
+                   studyStartDate = "",
+                   studyEndDate = "",
+                   stratifyByGender = FALSE,
+                   stratifyByAge = FALSE,
+                   stratifyByYear = FALSE,
+                   useLengthOfExposureExposed = TRUE,
+                   timeAtRiskExposedStart = 1,
+                   surveillanceExposed = 30,
+                   useLengthOfExposureUnexposed = TRUE,
+                   timeAtRiskUnexposedStart = -1,
+                   surveillanceUnexposed = -30,
+                   hasFullTimeAtRisk = FALSE,
+                   washoutWindow = 0,
+                   followupWindow = 0,
+                   shrinkage = 1e-04) {
+  cdmDatabase <- strsplit(cdmDatabaseSchema, "\\.")[[1]][1]
+  exposureTable <- tolower(exposureTable)
+  outcomeTable <- tolower(outcomeTable)
+  if (exposureTable == "drug_era") {
+    exposureStartDate <- "drug_era_start_date"
+    exposureEndDate <- "drug_era_end_date"
+    exposureConceptId <- "drug_concept_id"
+    exposurePersonId <- "person_id"
+  } else if (exposureTable == "drug_exposure") {
+    exposureStartDate <- "drug_exposure_start_date"
+    exposureEndDate <- "drug_exposure_end_date"
+    exposureConceptId <- "drug_concept_id"
+    exposurePersonId <- "person_id"
   } else {
-    exposureStartDate = "cohort_start_date";
-    exposureEndDate = "cohort_end_date";
-    exposureConceptId = "cohort_concept_id";
-    exposurePersonId=  "subject_id"
-	}
-  
-  if (outcomeTable == "condition_era"){
-    outcomeStartDate = "condition_era_start_date";
-    outcomeEndDate = "condition_era_end_date";
-    outcomeConceptId = "condition_concept_id";
-    outcomePersonId=  "person_id"
-  } else if (outcomeTable == "condition_occurrence"){
-    outcomeStartDate = "condition_start_date";
-    outcomeEndDate = "condition_end_date";
-    outcomeConceptId = "condition_concept_id";
-    outcomePersonId=  "person_id"
-  } else {
-    outcomeStartDate = "cohort_start_date";
-    outcomeEndDate = "cohort_end_date";
-    outcomeConceptId = "cohort_concept_id";
-    outcomePersonId=  "subject_id"
+    exposureStartDate <- "cohort_start_date"
+    exposureEndDate <- "cohort_end_date"
+    if (cdmVersion == "4") {
+      exposureConceptId <- "cohort_concept_id"
+    } else {
+      exposureConceptId <- "cohort_definition_id"
+    }
+    exposurePersonId <- "subject_id"
   }
-  
-  #Check if connection already open:
-  if (is.null(connectionDetails$conn)){
-    conn <- connect(connectionDetails)
+
+  if (outcomeTable == "condition_era") {
+    outcomeStartDate <- "condition_era_start_date"
+    outcomeEndDate <- "condition_era_end_date"
+    outcomeConceptId <- "condition_concept_id"
+    outcomePersonId <- "person_id"
+  } else if (outcomeTable == "condition_occurrence") {
+    outcomeStartDate <- "condition_start_date"
+    outcomeEndDate <- "condition_end_date"
+    outcomeConceptId <- "condition_concept_id"
+    outcomePersonId <- "person_id"
+  } else {
+    outcomeStartDate <- "cohort_start_date"
+    outcomeEndDate <- "cohort_end_date"
+    if (cdmVersion == "4") {
+      outcomeConceptId <- "cohort_concept_id"
+    } else {
+      outcomeConceptId <- "cohort_definition_id"
+    }
+    outcomePersonId <- "subject_id"
+  }
+
+  # Check if connection already open:
+  if (is.null(connectionDetails$conn)) {
+    conn <- DatabaseConnector::connect(connectionDetails)
   } else {
     conn <- connectionDetails$conn
   }
-  
-  sql <- c()
-  for (outcomesOfInterest in unique(exposureOutcomePairs$outcomeConceptId)){
-    exposuresOfInterest <- exposureOutcomePairs$exposureConceptId[exposureOutcomePairs$outcomeConceptId == outcomesOfInterest]
-    
-    
-    renderedSql <- loadRenderTranslateSql(sqlFilename = "SccParameterizedSQL.sql",
-                                          packageName = "SelfControlledCohort",
-                                          dbms = connectionDetails$dbms,
-                                          cdmSchema = cdmSchema, 
-                                          resultsSchema = resultsSchema, 
-                                          resultsTablePrefix = resultsTablePrefix, 
-                                          createResultsTable = createResultsTable,
-                                          sourceName = sourceName,
-                                          analysisId = analysisId,
-                                          exposuresOfInterest = exposuresOfInterest, 
-                                          outcomesOfInterest = outcomesOfInterest, 
-								                    		  exposureSchema = exposureSchema,
-                                          exposureTable = exposureTable,
-                                          exposureStartDate = exposureStartDate,
-                                          exposureEndDate = exposureEndDate,
-                                          exposureConceptId = exposureConceptId,
-                                          exposurePersonId = exposurePersonId,
-							                    			  outcomeSchema = outcomeSchema,
-                                          outcomeTable = outcomeTable,
-                                          outcomeStartDate = outcomeStartDate,
-                                          outcomeEndDate = outcomeEndDate,
-                                          outcomeConceptId = outcomeConceptId,
-                                          outcomePersonId = outcomePersonId,
-                                          firstOccurrenceDrugOnly = firstOccurrenceDrugOnly,
-                                          firstOccurrenceConditionOnly = firstOccurrenceConditionOnly,
-                                          drugTypeConceptIdList = drugTypeConceptIdList,
-                                          conditionTypeConceptIdList = conditionTypeConceptIdList,
-                                          genderConceptIdList = genderConceptIdList,
-                                          minAge = minAge,
-                                          maxAge = maxAge,
-                                          minIndex = minIndex,
-                                          maxIndex = maxIndex,
-                                          stratifyGender = stratifyGender,
-                                          stratifyAge = stratifyAge,
-                                          stratifyIndex = stratifyIndex,
-                                          useLengthOfExposureExposed = useLengthOfExposureExposed,
-                                          timeAtRiskExposedStart = timeAtRiskExposedStart,
-                                          surveillanceExposed = surveillanceExposed,
-                                          useLengthOfExposureUnexposed = useLengthOfExposureUnexposed,
-                                          timeAtRiskUnexposedStart = timeAtRiskUnexposedStart,
-                                          surveillanceUnexposed = surveillanceUnexposed,
-                                          hasFullTimeAtRisk = hasFullTimeAtRisk,
-                                          washoutPeriodLength = washoutPeriodLength,
-                                          followupPeriodLength = followupPeriodLength,
-                                          shrinkage = shrinkage                        
-    )
-    
-    writeLines(paste("Executing analysis (analysisId = ",analysisId,") for outcome ",outcomesOfInterest,". This could take a while",sep=""))
-    executeSql(conn,renderedSql)
-    sql <- c(sql,renderedSql)
-    createResultsTable = FALSE # no point in overwriting results of previous analysis in same run
+
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccParameterizedSQL.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connectionDetails$dbms,
+                                                   oracleTempSchema = oracleTempSchema,
+                                                   cdm_database = cdmDatabase,
+                                                   exposure_ids = exposureIds,
+                                                   outcome_id = outcomeId,
+                                                   exposure_database_schema = exposureDatabaseSchema,
+                                                   exposure_table = exposureTable,
+                                                   exposure_start_date = exposureStartDate,
+                                                   exposure_end_date = exposureEndDate,
+                                                   exposure_concept_id = exposureConceptId,
+                                                   exposure_person_id = exposurePersonId,
+                                                   outcome_database_schema = outcomeDatabaseSchema,
+                                                   outcome_table = outcomeTable,
+                                                   outcome_start_date = outcomeStartDate,
+                                                   outcome_end_date = outcomeEndDate,
+                                                   outcome_concept_id = outcomeConceptId,
+                                                   outcome_person_id = outcomePersonId,
+                                                   first_occurrence_drug_only = firstOccurrenceDrugOnly,
+                                                   first_occurrence_condition_only = firstOccurrenceConditionOnly,
+                                                   outcome_condition_type_concept_ids = outcomeConditionTypeConceptIds,
+                                                   gender_concept_ids = genderConceptIds,
+                                                   min_age = minAge,
+                                                   max_age = maxAge,
+                                                   study_start_date = studyStartDate,
+                                                   study_end_date = studyEndDate,
+                                                   stratify_by_gender = stratifyByGender,
+                                                   stratify_by_age = stratifyByAge,
+                                                   stratify_by_year = stratifyByYear,
+                                                   use_length_of_exposure_exposed = useLengthOfExposureExposed,
+                                                   time_at_risk_exposed_start = timeAtRiskExposedStart,
+                                                   surveillance_exposed = surveillanceExposed,
+                                                   use_length_of_exposure_unexposed = useLengthOfExposureUnexposed,
+                                                   time_at_risk_unexposed_start = timeAtRiskUnexposedStart,
+                                                   surveillance_unexposed = surveillanceUnexposed,
+                                                   has_full_time_at_risk = hasFullTimeAtRisk,
+                                                   washout_window = washoutWindow,
+                                                   followup_window = followupWindow,
+                                                   shrinkage = shrinkage)
+  writeLines("Executing analysis")
+  DatabaseConnector::executeSql(conn, renderedSql)
+
+  # Fetch results from server:
+  sql <- "SELECT * FROM #results"
+  sql <- SqlRender::translateSql(sql,
+                                 targetDialect = connectionDetails$dbms,
+                                 oracleTempSchema = oracleTempSchema)$sql
+  estimates <- DatabaseConnector::querySql(conn, sql)
+  colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
+
+  estimates$logRr <- log(estimates$incidenceRateRatio)
+
+  # Drop temp table:
+  sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
+  sql <- SqlRender::translateSql(sql,
+                                 targetDialect = connectionDetails$dbms,
+                                 oracleTempSchema = oracleTempSchema)$sql
+  DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
+
+  if (is.null(connectionDetails$conn)) {
+    RJDBC::dbDisconnect(conn)
   }
-  resultsConnectionDetails <- connectionDetails
-  resultsConnectionDetails$schema = resultsSchema
-  resultsConnectionDetails$conn <- NULL
-  
-  result <- list(resultsConnectionDetails = resultsConnectionDetails, 
-                 resultsTable = paste(resultsTablePrefix,"_results",sep=""),
-                 analysisTable = paste(resultsTablePrefix,"_analysis",sep=""),
-                 sourceName = sourceName,
-                 analysisIds = analysisId,
-                 exposureOutcomePairs = exposureOutcomePairs,
-                 sql = sql,
-                 call = match.call())
-  
+
+  result <- list(estimates = estimates,
+                 exposureIds = exposureIds,
+                 outcomeId = outcomeId,
+                 call = match.call(),
+                 sql = renderedSql)
+
   class(result) <- "sccResults"
-  
-  if (is.null(connectionDetails$conn)){ #Not part of larger loop: get results from server now
-    result <- addResults(result,conn)
-    dbDisconnect(conn)
-    writeLines(paste("Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
-                     resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))
-  }
-  result
-}
 
-#' @export
-selfControlledCohort.sccAnalysisDetails <- function(sccAnalysisDetails, 
-                                                    connectionDetails, 
-                                                    cdmSchema, 
-                                                    resultsSchema, 
-                                                    resultsTablePrefix = "scc", 
-                                                    createResultsTable = TRUE, 
-                                                    sourceName = "", 
-                                                    exposureOutcomePairs,
-                                                    exposureSchema = cdmSchema,
-                                                    exposureTable = "drug_era",
-                                                    outcomeSchema = cdmSchema,
-                                                    outcomeTable = "cohort"){
-  arguments = sccAnalysisDetails
-  arguments$connectionDetails = connectionDetails
-  arguments$cdmSchema = cdmSchema
-  arguments$resultsSchema = resultsSchema
-  arguments$resultsTablePrefix = resultsTablePrefix
-  arguments$createResultsTable = createResultsTable
-  arguments$sourceName = sourceName
-  arguments$exposureOutcomePairs = exposureOutcomePairs
-  arguments$exposureSchema = exposureSchema
-  arguments$outcomeSchema = outcomeSchema  
-  arguments$exposureTable = exposureTable
-  arguments$outcomeTable = outcomeTable												
-  
-  do.call("selfControlledCohort.connectionDetails",arguments)										
-}
-
-#' @export
-selfControlledCohort.sccAnalysesDetails <- function(sccAnalysesDetails, 
-                                                    connectionDetails, 
-                                                    cdmSchema, 
-                                                    resultsSchema, 
-                                                    resultsTablePrefix = "scc", 
-                                                    createResultsTable = TRUE, 
-                                                    sourceName = "", 
-                                                    exposureOutcomePairs,
-                                                    exposureSchema = cdmSchema,
-                                                    exposureTable = "drug_era",
-                                                    outcomeSchema = cdmSchema,
-                                                    outcomeTable = "cohort"){
-  connectionDetails$conn <- connect(connectionDetails)
-  
-  sql <- c()  
-  analysisIds <- c()
-  for (i in 1:length(sccAnalysesDetails)) {
-    sccResults <- selfControlledCohort.sccAnalysisDetails(sccAnalysesDetails[[i]], 
-                                                          connectionDetails = connectionDetails, 
-                                                          cdmSchema = cdmSchema, 
-                                                          resultsSchema = resultsSchema, 
-                                                          resultsTablePrefix = resultsTablePrefix, 
-                                                          createResultsTable = createResultsTable, 
-                                                          sourceName = sourceName, 
-                                                          exposureOutcomePairs = exposureOutcomePairs, 
-                                                          exposureSchema = exposureSchema,
-                                                          outcomeSchema = outcomeSchema,  
-                                                          exposureTable = exposureTable,
-                                                          outcomeTable = outcomeTable)
-    sql <- c(sql,sccResults$sql)
-    analysisIds <- c(analysisIds,sccResults$analysisIds)
-    createResultsTable = FALSE # no point in overwriting results of previous analysis in same run
-  }
-
-  
-  sccResults$sql <- sql
-  sccResults$analysisIds <- analysisIds
-  sccResults <- addResults(sccResults,connectionDetails$conn)
-  dbDisconnect(connectionDetails$conn)
-  connectionDetails$conn <- NULL
-  writeLines(paste("Results can now be found in ",resultsSchema,".",resultsTablePrefix,"_results, analyses documented in ",
-                   resultsSchema,".",resultsTablePrefix,"_analysis",sep=""))  
-  
-  sccResults
-}
-
-#' @title createSccAnalysisDetails
-#'
-#' @description
-#' \code{createSccAnalysisDetails} generates an object specifying one set of analysis choices
-#' for the self-controlled cohort method.
-#'  
-#' @param analysisId		A unique identifier that can later be used to identify the results of this analysis
-#' @param firstOccurrenceDrugOnly	if TRUE, only use first occurrence of each drug concept id for each person
-#' @param firstOccurrenceConditionOnly	if TRUE, only use first occurrence of each condition concept id for each person
-#' @param drugTypeConceptIdList	which drug_type to use:  generally only use 1 value (ex:  30d era)
-#' @param conditionTypeConceptIdList	which condition_type to use:  generally only use 1 value (ex:  30d era)
-#' @param genderConceptIdList	list of gender_concept_id, generally use MALE (8507) and FEMALE (8532)
-#' @param minAge	integer for minimum allowable age
-#' @param maxAge	integer for maximum allowable age
-#' @param minIndex	date for minimum allowable data for index exposure
-#' @param maxIndex	date for maximum allowable data for index exposure
-#' @param stratifyGender	if TRUE, analysis will be calculated overall, and stratified across all gender groups
-#' @param stratifyAge	if TRUE, analysis will be calculated overall, and stratified across all age groups  (using AGE_GROUP table below)
-#' @param stratifyIndex	if TRUE, analysis will be calculated overall, and stratified across all years of the index dates
-#' @param useLengthOfExposureExposed	if TRUE, use the duration from drugEraStart -> drugEraEnd as part of timeAtRisk
-#' @param timeAtRiskExposedStart	integer of days to add to drugEraStart for start of timeAtRisk (0 to include index date, 1 to start the day after)
-#' @param surveillanceExposed	additional window to add to end of exposure period (if useLengthOfExposureExposed = TRUE, then add to exposure end date, else add to exposure start date)
-#' @param useLengthOfExposureUnexposed	if TRUE, use the duration from exposure start -> exposure end as part of timeAtRisk looking back before exposure start
-#' @param timeAtRiskUnexposedStart	integer of days to add to exposure start for start of timeAtRisk (0 to include index date, -1 to start the day before)
-#' @param surveillanceUnexposed	additional window to add to end of exposure period (if useLengthOfExposureUnexposed = TRUE, then add to exposure end date, else add to exposure start date)
-#' @param hasFullTimeAtRisk	if TRUE, restrict to people who have full time-at-risk exposed and unexposed
-#' @param washoutPeriodLength	integer to define required time observed before exposure start
-#' @param followupPeriodLength	integer to define required time observed after exposure start
-#' @param shrinkage	shrinkage used in IRR calculations, required >0 to deal with 0 case counts, but larger number means more shrinkage
-#' 
-#' @return An object of type \code{sccAnalysisDetails} containing the details of the analysis to be run
-#' @examples \dontrun{
-#'   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-#'   analysesDetails <- NULL
-#'   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 1,firstOccurrenceDrugOnly=TRUE),analysesDetails)
-#'   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 2,firstOccurrenceDrugOnly=FALSE),analysesDetails)
-#'   sccResult <- selfControlledCohort(analysesDetails, connectionDetails, "cdm_truven_mdcr", "scratch", sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era")
-#'   plot(sccResult)
-#' }
-#' @export
-createSccAnalysisDetails <- function (analysisId = 1,
-                                      firstOccurrenceDrugOnly = TRUE,
-                                      firstOccurrenceConditionOnly = TRUE,
-                                      drugTypeConceptIdList = c(38000182),
-                                      conditionTypeConceptIdList = c(38000247),
-                                      genderConceptIdList = c(8507,8532),
-                                      minAge = "",
-                                      maxAge = "",
-                                      minIndex = "",
-                                      maxIndex = "",
-                                      stratifyGender = FALSE,
-                                      stratifyAge = FALSE,
-                                      stratifyIndex = FALSE,
-                                      useLengthOfExposureExposed = TRUE,
-                                      timeAtRiskExposedStart = 1,
-                                      surveillanceExposed = 30,
-                                      useLengthOfExposureUnexposed = TRUE,
-                                      timeAtRiskUnexposedStart = -1,
-                                      surveillanceUnexposed = -30,
-                                      hasFullTimeAtRisk = FALSE,
-                                      washoutPeriodLength = 0,
-                                      followupPeriodLength = 0,
-                                      shrinkage = 0.0001){
-  #First: get the default values:
-  analysisDetails <- list()
-  for (name in names(formals(createSccAnalysisDetails))){
-    analysisDetails[[name]] = get(name)
-  }
-  
-  #Next: overwrite defaults with actual values if specified:
-  #values <- as.list(match.call())
-  #Note: need this funky code to make sure parameters are stored as values, not symbols:
-  values <- c(list(as.character(match.call()[[1]])),lapply(as.list(match.call())[-1],function(x) eval(x,envir=sys.frame(-3))))
-  for (name in names(values)){
-    if (name %in% names(analysisDetails))
-      analysisDetails[[name]] = values[[name]]
-  }
-  
-  class(analysisDetails) <- "sccAnalysisDetails"
-  analysisDetails
-}
-
-#' @title appendToSccAnalysesDetails
-#'
-#' @description
-#' \code{appendToSccAnalysesDetails} adds an object of type \code{analysisDetails} to an object of type \code{analysesDetails}. 
-#'  
-#' @param sccAnalysisDetails  	the \code{sccAnalysisDetails} to be added to the \code{sccAnalysesDetails} object
-#' @param sccAnalysesDetails    object to append the \code{sccAnalysisDetails} to. If not specified, an new \code{sccAnalysesDetails} will be created
-#' @return An object of type \code{sccAnalysesDetails} containing the details of one or several analyses to be run
-#' @examples \dontrun{
-#'   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-#'   analysesDetails <- NULL
-#'   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 1,firstOccurrenceDrugOnly=TRUE),analysesDetails)
-#'   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 2,firstOccurrenceDrugOnly=FALSE),analysesDetails)
-#'   sccResult <- selfControlledCohort(analysesDetails, connectionDetails, "cdm_truven_mdcr", "scratch", sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era")
-#'   plot(sccResult)
-#' }
-#' @export
-appendToSccAnalysesDetails <- function(sccAnalysisDetails,sccAnalysesDetails = NULL){
-  stopifnot(class(sccAnalysisDetails) == "sccAnalysisDetails")
-  if (is.null(sccAnalysesDetails)){
-    sccAnalysesDetails = list()
-    class(sccAnalysesDetails) <- "sccAnalysesDetails"
-  }
-  sccAnalysesDetails[[length(sccAnalysesDetails)+1]] <- sccAnalysisDetails
-  sccAnalysesDetails
-}
-
-#' @title writeSccAnalysesDetailsToFile
-#'
-#' @description
-#' \code{writeSccAnalysesDetailsToFile} writes an object of type \code{analysesDetails} to a CSV file
-#'  
-#' @param sccAnalysesDetails    the \code{sccAnalysesDetails} to be written to file
-#' @param file                  the name of the file where the results will be written
-#' @examples \dontrun{
-#'   analysesDetails <- NULL
-#'   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 1,firstOccurrenceDrugOnly=TRUE),analysesDetails)
-#'   analysesDetails <- appendToSccAnalysesDetails(createSccAnalysisDetails(analysisId = 2,firstOccurrenceDrugOnly=FALSE),analysesDetails)
-#'   writeSccAnalysesDetailsToFile(analysesDetails,"c:/temp/test.csv")
-#' }
-#' @export
-writeSccAnalysesDetailsToFile <- function(sccAnalysesDetails, file){
-  stopifnot(class(sccAnalysesDetails) == "sccAnalysesDetails")
-  
-  #Convert sccAnalysesDetails to a data.frame, converting any nested vectors into semicolon-delimited strings:
-  f <- sccAnalysesDetails
-  d <- data.frame()
-  for (row in 1:length(f)){
-    class(f[[row]]) <- "list"
-    for (column in 1:length(f[[row]])){
-      if ((class(f[[row]][[column]]) == "numeric") && (length(f[[row]][[column]]) > 1))
-        f[[row]][[column]] = paste(f[[row]][[column]],collapse=";")
-    }
-    d <- rbind(d,as.data.frame(f[[row]]))
-  }
-  
-  write.csv(d,file=file, row.names=FALSE)
-}
-
-
-#' @title readSccAnalysesDetailsFromFile
-#'
-#' @description
-#' \code{readSccAnalysesDetailsFromFile} reads an object of type \code{analysesDetails} from a CSV file
-#'  
-#' @param file                  the name of the file to be loaded
-#' @return An object of type \code{analysesDetails}
-#' @examples \dontrun{
-#'   connectionDetails <- createConnectionDetails(dbms="sql server", server="RNDUSRDHIT07.jnj.com")
-#'   analysesDetails <- readSccAnalysesDetailsFromFile("c:/temp/test.csv")
-#'   sccResult <- selfControlledCohort(analysesDetails, connectionDetails, "cdm_truven_mdcr", "scratch", sourceName = "cdm_truven_mdcr", exposuresOfInterest = c(767410,1314924,907879), outcomesOfInterest = c(444382, 79106, 138825), outcomeTable = "condition_era")
-#'   plot(sccResult)
-#' }
-#' @export
-readSccAnalysesDetailsFromFile <- function(file){
-  d <- read.csv(file)
-  d[is.na(d)] <- ""
-  sccAnalysesDetails <- list()
-  for (row in 1:nrow(d)){
-    sccAnalysisDetails <- as.list(d[row,])
-    for (column in c("drugTypeConceptIdList","conditionTypeConceptIdList","conditionTypeConceptIdList","genderConceptIdList")){
-      sccAnalysisDetails[[column]] <- as.numeric(unlist(strsplit(as.character(d[row,column]),";")))
-    }
-    class(sccAnalysisDetails) = "sccAnalysisDetails"
-    sccAnalysesDetails[[length(sccAnalysesDetails)+1]] <- sccAnalysisDetails
-  }
-  class(sccAnalysesDetails) <- "sccAnalysesDetails"
-  sccAnalysesDetails
-}
-
-#' @export
-print.sccResults <- function(sccResults){
-  sccResults$effectEstimates
-}
-
-#' @export
-summary.sccResults <- function(sccResults){
-  sccResults$effectEstimates
+  return(result)
 }
 
 
 #' @export
-plot.sccResults <- function(sccResults){
-  colnames(sccResults$effectEstimates) <- toupper(colnames(sccResults$effectEstimates))
-  ggplot(sccResults$effectEstimates, aes(x=as.factor(EXPOSURECONCEPTID), y=IRR,ymin=IRRLB95, ymax=IRRUB95)) + 
-    geom_hline(yintercept=1, colour ="#888888", lty=1, lw=1) +
-    geom_point(size=2,alpha=0.7) +
-    geom_errorbar(width=.1,alpha=0.7) +
-    coord_flip() +  
-    facet_grid(ANALYSISID~OUTCOMECONCEPTID) +
-    scale_y_log10()
+print.sccResults <- function(x, ...) {
+  writeLines("sccResults object")
+  writeLines("")
+  writeLines(paste("Exposure ID(s):", paste(x$exposureIds, collapse = ",")))
+  writeLines(paste("Outcome ID:", x$outcomeId))
 }
 
+#' @export
+summary.sccResults <- function(object, ...) {
+  object$estimates
+}
