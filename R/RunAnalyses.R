@@ -132,7 +132,7 @@ runSccAnalyses <- function(connectionDetails,
                    outcomeTable = outcomeTable,
                    cdmVersion = cdmVersion,
                    exposureIds = exposureIds,
-                   outcomeId = outcomeId)
+                   outcomeIds = outcomeId)
       args <- append(args, getrunSelfControlledCohortArgs)
       objectsToCreate[[length(objectsToCreate) + 1]] <- list(args = args,
                                                              sccResultsFile = sccResultsFile)

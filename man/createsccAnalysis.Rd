@@ -8,19 +8,21 @@ createSccAnalysis(analysisId = 1, description = "", exposureType = NULL,
   outcomeType = NULL, runSelfControlledCohortArgs)
 }
 \arguments{
-\item{analysisId}{An integer that will be used later to refer to this specific set of analysis
-choices.}
+\item{analysisId}{An integer that will be used later to refer to this specific
+set of analysis choices.}
 
 \item{description}{A short description of the analysis.}
 
-\item{exposureType}{If more than one exposure is provided for each exposureOutcome, this field
-should be used to select the specific exposure to use in this analysis.}
+\item{exposureType}{If more than one exposure is provided for each exposureOutcome,
+this field should be used to select the specific exposure to
+use in this analysis.}
 
-\item{outcomeType}{If more than one outcome is provided for each exposureOutcome, this field
-should be used to select the specific outcome to use in this analysis.}
+\item{outcomeType}{If more than one outcome is provided for each exposureOutcome,
+this field should be used to select the specific outcome to use
+in this analysis.}
 
-\item{runSelfControlledCohortArgs}{An object representing the arguments to be used when calling the
-                      \code{\link{runSelfControlledCohort}} function.}
+\item{runSelfControlledCohortArgs}{An object representing the arguments to be used when calling
+                                     the \code{\link{runSelfControlledCohort}} function.}
 }
 \description{
 Create a SelfControlledCohort analysis specification

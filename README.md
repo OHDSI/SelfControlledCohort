@@ -10,9 +10,24 @@ Features
 - Extracts the necessary data from a database in OMOP Common Data Model format.
 - Supports stratification by age, gender, and index year.
 
-Examples
+Example
 ========
-To do
+```r
+library(SelfControlledCohort)
+
+connectionDetails <- createConnectionDetails(dbms = "postgresql",
+                                             user = "joe",
+                                             password = "secret",
+                                             server = "myserver")
+                                             
+sccResults <- runSelfControlledCohort(connectionDetails,
+                                     cdmDatabaseSchema = "cdm_data",
+                                     exposureIds = c(767410, 1314924, 907879),
+                                     outcomeIds = 444382,
+                                     outcomeTable = "condition_era")
+
+summary(sccResults)
+```
 
 Technology
 ============
@@ -61,5 +76,4 @@ SelfControlledCohort is being developed in R Studio.
 [![Build Status](https://travis-ci.org/OHDSI/SelfControlledCohort.svg?branch=master)](https://travis-ci.org/OHDSI/SelfControlledCohort)
 [![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
 
-
-Under development
+Beta

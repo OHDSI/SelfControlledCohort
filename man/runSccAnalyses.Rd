@@ -47,8 +47,7 @@ CONDITION_OCCURRENCE, then expectation is outcomeTable has format of
 COHORT table: COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 COHORT_END_DATE.}
 
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
+\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and "5".}
 
 \item{outputFolder}{Name of the folder where all the outputs will written to.}
 

@@ -38,7 +38,7 @@
                                                           "outcomeTable",
                                                           "cdmVersion",
                                                           "exposureIds",
-                                                          "outcomeId"),
+                                                          "outcomeIds"),
                                           rCode = rCode)
   writeLines(rCode, "r/CreateArgFunctions.R")
   OhdsiRTools::formatRFile("r/CreateArgFunctions.R")

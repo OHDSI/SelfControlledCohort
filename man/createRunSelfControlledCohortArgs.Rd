@@ -33,9 +33,11 @@ FEMALE(8532).}
 
 \item{maxAge}{Integer for maximum allowable age.}
 
-\item{studyStartDate}{Date for minimum allowable data for index exposure.}
+\item{studyStartDate}{Date for minimum allowable data for index exposure.
+Dateformat is 'yyyymmdd'.}
 
-\item{studyEndDate}{Date for maximum allowable data for index exposure.}
+\item{studyEndDate}{Date for maximum allowable data for index exposure.
+Dateformat is 'yyyymmdd'.}
 
 \item{stratifyByGender}{If TRUE, analysis will be calculated overall, and
 stratifiedacross all gender groups.}

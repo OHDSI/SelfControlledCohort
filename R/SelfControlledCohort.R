@@ -36,6 +36,9 @@ NULL
 #' Population-level estimation method that estimates incidence rate comparison of exposed/unexposed
 #' time within an exposed cohort.
 #'
+#' If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
+#' combination of exposure and outcome.
+#'
 #' @references
 #' Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
 #' for developing a risk identification and analysis system. Drug Safety 36 Suppl1:S95-106, 2013
@@ -52,8 +55,8 @@ NULL
 #'                                         create/insert permissions to this database.
 #' @param exposureIds                      A vector containing the drug_concept_ids or
 #'                                         cohort_definition_ids of the exposures of interest
-#' @param outcomeId                        The condition_concept_id or cohort_definition_id of the
-#'                                         outcome of interest
+#' @param outcomeIds                       The condition_concept_ids or cohort_definition_ids of the
+#'                                         outcomes of interest
 #' @param exposureDatabaseSchema           The name of the database schema that is the location where
 #'                                         the exposure data used to define the exposure cohorts is
 #'                                         available. If exposureTable = DRUG_ERA,
@@ -130,7 +133,7 @@ NULL
 #' sccResult <- runSelfControlledCohort(connectionDetails,
 #'                                      cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
 #'                                      exposureIds = c(767410, 1314924, 907879),
-#'                                      outcomeId = 444382,
+#'                                      outcomeIds = 444382,
 #'                                      outcomeTable = "condition_era")
 #' }
 #' @export
@@ -139,7 +142,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                     cdmVersion = 5,
                                     oracleTempSchema,
                                     exposureIds,
-                                    outcomeId,
+                                    outcomeIds,
                                     exposureDatabaseSchema = cdmDatabaseSchema,
                                     exposureTable = "drug_era",
                                     outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -223,7 +226,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    oracleTempSchema = oracleTempSchema,
                                                    cdm_database = cdmDatabase,
                                                    exposure_ids = exposureIds,
-                                                   outcome_id = outcomeId,
+                                                   outcome_ids = outcomeIds,
                                                    exposure_database_schema = exposureDatabaseSchema,
                                                    exposure_table = exposureTable,
                                                    exposure_start_date = exposureStartDate,
@@ -283,7 +286,7 @@ runSelfControlledCohort <- function(connectionDetails,
 
   result <- list(estimates = estimates,
                  exposureIds = exposureIds,
-                 outcomeId = outcomeId,
+                 outcomeIds = outcomeIds,
                  call = match.call(),
                  sql = renderedSql)
 
@@ -298,7 +301,7 @@ print.sccResults <- function(x, ...) {
   writeLines("sccResults object")
   writeLines("")
   writeLines(paste("Exposure ID(s):", paste(x$exposureIds, collapse = ",")))
-  writeLines(paste("Outcome ID:", x$outcomeId))
+  writeLines(paste("Outcome ID(s):", x$outcomeIds))
 }
 
 #' @export

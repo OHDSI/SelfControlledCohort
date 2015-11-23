@@ -17,7 +17,9 @@
 #' @param minAge                           Integer for minimum allowable age.
 #' @param maxAge                           Integer for maximum allowable age.
 #' @param studyStartDate                   Date for minimum allowable data for index exposure.
+#'                                         Dateformat is 'yyyymmdd'.
 #' @param studyEndDate                     Date for maximum allowable data for index exposure.
+#'                                         Dateformat is 'yyyymmdd'.
 #' @param stratifyByGender                 If TRUE, analysis will be calculated overall, and
 #'                                         stratifiedacross all gender groups.
 #' @param stratifyByAge                    If TRUE, analysis will be calculated overall, and

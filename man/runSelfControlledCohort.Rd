@@ -5,7 +5,7 @@
 \title{Run self-controlled cohort}
 \usage{
 runSelfControlledCohort(connectionDetails, cdmDatabaseSchema, cdmVersion = 5,
-  oracleTempSchema, exposureIds, outcomeId,
+  oracleTempSchema, exposureIds, outcomeIds,
   exposureDatabaseSchema = cdmDatabaseSchema, exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema, outcomeTable = "condition_era",
   firstOccurrenceDrugOnly = TRUE, firstOccurrenceConditionOnly = TRUE,
@@ -36,8 +36,8 @@ create/insert permissions to this database.}
 \item{exposureIds}{A vector containing the drug_concept_ids or
 cohort_definition_ids of the exposures of interest}
 
-\item{outcomeId}{The condition_concept_id or cohort_definition_id of the
-outcome of interest}
+\item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
+outcomes of interest}
 
 \item{exposureDatabaseSchema}{The name of the database schema that is the location where
                                         the exposure data used to define the exposure cohorts is
@@ -79,9 +79,11 @@ CONDITION_OCCURRENCE.}
 
 \item{maxAge}{Integer for maximum allowable age.}
 
-\item{studyStartDate}{Date for minimum allowable data for index exposure. Date format is 'yyyymmdd'.}
+\item{studyStartDate}{Date for minimum allowable data for index exposure. Date
+format is 'yyyymmdd'.}
 
-\item{studyEndDate}{Date for maximum allowable data for index exposure. Date format is 'yyyymmdd'.}
+\item{studyEndDate}{Date for maximum allowable data for index exposure. Date
+format is 'yyyymmdd'.}
 
 \item{stratifyByGender}{If TRUE, analysis will be calculated overall, and stratified
 across all gender groups.}
@@ -131,22 +133,25 @@ start.}
 An object of type \code{sccResults} containing the results of the analysis.
 }
 \description{
-\code{runSelfControlledCohort} generates population-level estimation by comparing exposed and unexposed time among
-exposed cohort.
+\code{runSelfControlledCohort} generates population-level estimation by comparing exposed and
+unexposed time among exposed cohort.
 }
 \details{
 Population-level estimation method that estimates incidence rate comparison of exposed/unexposed
 time within an exposed cohort.
+
+If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
+combination of exposure and outcome.
 }
 \examples{
 \dontrun{
 connectionDetails <- createConnectionDetails(dbms = "sql server",
                                              server = "RNDUSRDHIT07.jnj.com")
 sccResult <- runSelfControlledCohort(connectionDetails,
-                    cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-                    exposureIds = c(767410, 1314924, 907879),
-                    outcomeId = 444382,
-                    outcomeTable = "condition_era")
+                                     cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+                                     exposureIds = c(767410, 1314924, 907879),
+                                     outcomeIds = 444382,
+                                     outcomeTable = "condition_era")
 }
 }
 \references{

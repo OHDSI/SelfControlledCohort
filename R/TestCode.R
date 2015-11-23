@@ -37,7 +37,7 @@ sccTestRoutines <- function() {
                                        cdmDatabaseSchema = cdmDatabaseSchema,
                                        cdmVersion = cdmVersion,
                                        exposureIds = c(767410, 1314924, 907879),
-                                       outcomeId = 444382,
+                                       outcomeIds = c(444382, 192671),
                                        outcomeTable = "condition_era")
 
   sccResult
@@ -52,7 +52,7 @@ sccTestRoutines <- function() {
   exposureOutcome2 <- createExposureOutcome(1314924, 444382)
   exposureOutcome3 <- createExposureOutcome(907879, 444382)
   exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
-  saveExposureOutcomeList(exposureOutcomeList, "s:/temp/exposureOutcomeList.txt")
+  #saveExposureOutcomeList(exposureOutcomeList, "s:/temp/exposureOutcomeList.txt")
 
 
   runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = FALSE)
@@ -62,7 +62,7 @@ sccTestRoutines <- function() {
   sccAnalysis2 <- createSccAnalysis(analysisId = 2,
                                     runSelfControlledCohortArgs = runSelfControlledCohortArgs2)
   sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
-  saveSccAnalysisList(sccAnalysisList, "s:/temp/sccAnalysisList.txt")
+  #saveSccAnalysisList(sccAnalysisList, "s:/temp/sccAnalysisList.txt")
 
   outputFolder <- "s:/temp/Scc"
 
@@ -73,6 +73,7 @@ sccTestRoutines <- function() {
   cdmDatabaseSchema <- "cdm_truven_mdcd.dbo"
   resultsDatabaseSchema <- "scratch.dbo"
   port <- NULL
+  cdmVersion <- 4
 
   dbms <- "postgresql"
   user <- "postgres"
@@ -89,6 +90,7 @@ sccTestRoutines <- function() {
   cdmDatabaseSchema <- "cdm_truven_mdcd.dbo"
   resultsDatabaseSchema <- "scratch.dbo"
   port <- 17001
+  cdmVersion <- 4
 
   connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = dbms,
                                                                   server = server,
