@@ -58,5 +58,8 @@ Development
 SelfControlledCohort is being developed in R Studio.
 
 ###Development status
+[![Build Status](https://travis-ci.org/OHDSI/SelfControlledCohort.svg?branch=master)](https://travis-ci.org/OHDSI/SelfControlledCohort)
+[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
+
 
 Under development
