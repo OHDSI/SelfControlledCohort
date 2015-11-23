@@ -19,7 +19,6 @@
 .formatAndCheckCode <- function() {
   OhdsiRTools::formatRFolder()
   OhdsiRTools::checkUsagePackage("SelfControlledCohort")
-  OhdsiRTools::ohdsiLintrFolder()
 }
 
 .createManualAndVignettes <- function() {

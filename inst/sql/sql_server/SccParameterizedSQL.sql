@@ -79,7 +79,7 @@ INSERT INTO #age_group (age_group_name, age_group_min, age_group_max) VALUES ('9
 
 SELECT
 	d1.@exposure_concept_id AS exposure_concept_id,
-	{@stratify_by_gender} ? {CAST(gender_concept_id AS VARCHAR),} : {CAST('ALL' AS VARCHAR) AS gender_concept_id,}
+	{@stratify_by_gender} ? {CAST(gender_concept_id AS VARCHAR) AS gender_concept_id,} : {CAST('ALL' AS VARCHAR) AS gender_concept_id,}
 	{@stratify_by_age} ? {ag1.age_group_name,} : {CAST('ALL' AS VARCHAR) AS age_group_name,}
 	{@stratify_by_year} ? {CAST(YEAR(d1.@exposure_start_date) AS VARCHAR) AS index_year,} : {CAST('ALL' AS VARCHAR) AS index_year,}
 	COUNT(DISTINCT d1.@exposure_person_id) AS num_persons,
@@ -195,7 +195,7 @@ GROUP BY
 SELECT 
 	d1.@exposure_concept_id AS exposure_concept_id,
 	c1.@outcome_concept_id AS outcome_concept_id,
-	{@stratify_by_gender} ? {CAST(gender_concept_id AS VARCHAR),} : {CAST('ALL' AS VARCHAR) AS gender_concept_id,}
+	{@stratify_by_gender} ? {CAST(gender_concept_id AS VARCHAR) AS gender_concept_id,} : {CAST('ALL' AS VARCHAR) AS gender_concept_id,}
 	{@stratify_by_age} ? {ag1.age_group_name,} : {CAST('ALL' AS VARCHAR) AS age_group_name,}
 	{@stratify_by_year} ? {CAST(YEAR(d1.@exposure_start_date) AS VARCHAR) AS index_year,} : {CAST('ALL' AS VARCHAR) AS index_year,}
 	SUM(

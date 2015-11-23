@@ -60,7 +60,9 @@
 #'                                 \code{\link{createSccAnalysis}} function.
 #' @param exposureOutcomeList      A list of objects of type \code{exposureOutcome} as created using
 #'                                 the \code{\link{createExposureOutcome}} function.
-#'
+#' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
+#'                                         "5".
+#' @param analysisTreads      The number of parallel threads to use to execute the analyses.
 #'
 #' @export
 runSccAnalyses <- function(connectionDetails,

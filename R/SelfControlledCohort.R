@@ -16,6 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#' SelfControlledCohort
+#'
+#' @docType package
+#' @name SelfControlledCohort
+#' @importFrom RJDBC dbDisconnect
+#' @import DatabaseConnector
+NULL
+
+
 #' @title
 #' Run self-controlled cohort
 #'
@@ -76,8 +85,8 @@
 #'                                         (8532).
 #' @param minAge                           Integer for minimum allowable age.
 #' @param maxAge                           Integer for maximum allowable age.
-#' @param studyStartDate                   Date for minimum allowable data for index exposure.
-#' @param studyEndDate                     Date for maximum allowable data for index exposure.
+#' @param studyStartDate                   Date for minimum allowable data for index exposure. Date format is 'yyyymmdd'.
+#' @param studyEndDate                     Date for maximum allowable data for index exposure. Date format is 'yyyymmdd'.
 #' @param stratifyByGender                 If TRUE, analysis will be calculated overall, and stratified
 #'                                         across all gender groups.
 #' @param stratifyByAge                    If TRUE, analysis will be calculated overall, and stratified

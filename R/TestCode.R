@@ -57,8 +57,8 @@ sccTestRoutines <- function() {
 
   runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = FALSE)
   runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = TRUE)
-  sccAnalysis1 <- createsccAnalysis(analysisId = 1, runSelfControlledCohortArgs = runSelfControlledCohortArgs1)
-  sccAnalysis2 <- createsccAnalysis(analysisId = 2, runSelfControlledCohortArgs = runSelfControlledCohortArgs2)
+  sccAnalysis1 <- createSccAnalysis(analysisId = 1, runSelfControlledCohortArgs = runSelfControlledCohortArgs1)
+  sccAnalysis2 <- createSccAnalysis(analysisId = 2, runSelfControlledCohortArgs = runSelfControlledCohortArgs2)
   sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
   saveSccAnalysisList(sccAnalysisList, "s:/temp/sccAnalysisList.txt")
 

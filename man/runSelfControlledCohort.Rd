@@ -79,9 +79,9 @@ CONDITION_OCCURRENCE.}
 
 \item{maxAge}{Integer for maximum allowable age.}
 
-\item{studyStartDate}{Date for minimum allowable data for index exposure.}
+\item{studyStartDate}{Date for minimum allowable data for index exposure. Date format is 'yyyymmdd'.}
 
-\item{studyEndDate}{Date for maximum allowable data for index exposure.}
+\item{studyEndDate}{Date for maximum allowable data for index exposure. Date format is 'yyyymmdd'.}
 
 \item{stratifyByGender}{If TRUE, analysis will be calculated overall, and stratified
 across all gender groups.}

@@ -19,7 +19,7 @@
 #' Create a SelfControlledCohort analysis specification
 #'
 #' @details
-#' Create a set of analysis choices, to be used with the \code{\link{runSelfControlledCohortAnalyses}} function.
+#' Create a set of analysis choices, to be used with the \code{\link{runSccAnalyses}} function.
 #'
 #' @param analysisId     An integer that will be used later to refer to this specific set of analysis
 #'                       choices.
@@ -28,11 +28,11 @@
 #'                       should be used to select the specific exposure to use in this analysis.
 #' @param outcomeType    If more than one outcome is provided for each exposureOutcome, this field
 #'                       should be used to select the specific outcome to use in this analysis.
-#' @param runSelfControlledCohortArgs     An object representing the arguments to be used when calling the \code{\link{
-#'                       runSelfControlledCohort}} function.
+#' @param runSelfControlledCohortArgs     An object representing the arguments to be used when calling the
+#'                       \code{\link{runSelfControlledCohort}} function.
 #'
 #' @export
-createsccAnalysis <- function(analysisId = 1,
+createSccAnalysis <- function(analysisId = 1,
                               description = "",
                               exposureType = NULL,
                               outcomeType = NULL,
@@ -86,18 +86,18 @@ loadsccAnalysisList <- function(file) {
 #' Create exposure-outcome combinations.
 #'
 #' @details
-#' Create a hypothesis of interest, to be used with the \code{\link{runSelfControlledCohortAnalyses}} function.
+#' Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
 #'
 #' @param exposureId   A concept ID indentifying the drug of interest in the exposure table. If
 #'                     multiple strategies for picking the exposure will be tested in the analysis, a
 #'                     named list of numbers can be provided instead. In the analysis, the name of the
 #'                     number to be used can be specified using the \code{exposureType} parameter in
-#'                     the \code{\link{createsccAnalysis}} function.
+#'                     the \code{\link{createSccAnalysis}} function.
 #' @param outcomeId    A concept ID indentifying the outcome of interest in the outcome table. If
 #'                     multiple strategies for picking the outcome will be tested in the analysis, a
 #'                     named list of numbers can be provided instead. In the analysis, the name of the
 #'                     number to be used can be specified using the #' \code{outcomeType} parameter in
-#'                     the \code{\link{createsccAnalysis}} function.
+#'                     the \code{\link{createSccAnalysis}} function.
 #'
 #' @export
 createExposureOutcome <- function(exposureId, outcomeId) {

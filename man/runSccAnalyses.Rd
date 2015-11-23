@@ -47,13 +47,18 @@ CONDITION_OCCURRENCE, then expectation is outcomeTable has format of
 COHORT table: COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 COHORT_END_DATE.}
 
+\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
+"5".}
+
 \item{outputFolder}{Name of the folder where all the outputs will written to.}
 
 \item{sccAnalysisList}{A list of objects of type \code{sccAnalysis} as created using the
 \code{\link{createSccAnalysis}} function.}
 
 \item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
-                                the \code{\link{createExposureOutcome}} function.}
+the \code{\link{createExposureOutcome}} function.}
+
+\item{analysisTreads}{The number of parallel threads to use to execute the analyses.}
 }
 \description{
 Run a list of analyses

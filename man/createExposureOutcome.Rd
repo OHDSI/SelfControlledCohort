@@ -11,18 +11,18 @@ createExposureOutcome(exposureId, outcomeId)
 multiple strategies for picking the exposure will be tested in the analysis, a
 named list of numbers can be provided instead. In the analysis, the name of the
 number to be used can be specified using the \code{exposureType} parameter in
-the \code{\link{createsccAnalysis}} function.}
+the \code{\link{createSccAnalysis}} function.}
 
 \item{outcomeId}{A concept ID indentifying the outcome of interest in the outcome table. If
                     multiple strategies for picking the outcome will be tested in the analysis, a
                     named list of numbers can be provided instead. In the analysis, the name of the
                     number to be used can be specified using the #' \code{outcomeType} parameter in
-                    the \code{\link{createsccAnalysis}} function.}
+                    the \code{\link{createSccAnalysis}} function.}
 }
 \description{
 Create exposure-outcome combinations.
 }
 \details{
-Create a hypothesis of interest, to be used with the \code{\link{runSelfControlledCohortAnalyses}} function.
+Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
 }
 
