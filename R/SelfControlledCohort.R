@@ -29,8 +29,8 @@ NULL
 #' Run self-controlled cohort
 #'
 #' @description
-#' \code{runSelfControlledCohort} generates population-level estimation by comparing exposed and unexposed time among
-#' exposed cohort.
+#' \code{runSelfControlledCohort} generates population-level estimation by comparing exposed and
+#' unexposed time among exposed cohort.
 #'
 #' @details
 #' Population-level estimation method that estimates incidence rate comparison of exposed/unexposed
@@ -85,8 +85,10 @@ NULL
 #'                                         (8532).
 #' @param minAge                           Integer for minimum allowable age.
 #' @param maxAge                           Integer for maximum allowable age.
-#' @param studyStartDate                   Date for minimum allowable data for index exposure. Date format is 'yyyymmdd'.
-#' @param studyEndDate                     Date for maximum allowable data for index exposure. Date format is 'yyyymmdd'.
+#' @param studyStartDate                   Date for minimum allowable data for index exposure. Date
+#'                                         format is 'yyyymmdd'.
+#' @param studyEndDate                     Date for maximum allowable data for index exposure. Date
+#'                                         format is 'yyyymmdd'.
 #' @param stratifyByGender                 If TRUE, analysis will be calculated overall, and stratified
 #'                                         across all gender groups.
 #' @param stratifyByAge                    If TRUE, analysis will be calculated overall, and stratified
@@ -126,43 +128,43 @@ NULL
 #' connectionDetails <- createConnectionDetails(dbms = "sql server",
 #'                                              server = "RNDUSRDHIT07.jnj.com")
 #' sccResult <- runSelfControlledCohort(connectionDetails,
-#'                     cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-#'                     exposureIds = c(767410, 1314924, 907879),
-#'                     outcomeId = 444382,
-#'                     outcomeTable = "condition_era")
+#'                                      cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+#'                                      exposureIds = c(767410, 1314924, 907879),
+#'                                      outcomeId = 444382,
+#'                                      outcomeTable = "condition_era")
 #' }
 #' @export
 runSelfControlledCohort <- function(connectionDetails,
-                   cdmDatabaseSchema,
-                   cdmVersion = 5,
-                   oracleTempSchema,
-                   exposureIds,
-                   outcomeId,
-                   exposureDatabaseSchema = cdmDatabaseSchema,
-                   exposureTable = "drug_era",
-                   outcomeDatabaseSchema = cdmDatabaseSchema,
-                   outcomeTable = "condition_era",
-                   firstOccurrenceDrugOnly = TRUE,
-                   firstOccurrenceConditionOnly = TRUE,
-                   outcomeConditionTypeConceptIds = c(38000247),
-                   genderConceptIds = c(8507, 8532),
-                   minAge = "",
-                   maxAge = "",
-                   studyStartDate = "",
-                   studyEndDate = "",
-                   stratifyByGender = FALSE,
-                   stratifyByAge = FALSE,
-                   stratifyByYear = FALSE,
-                   useLengthOfExposureExposed = TRUE,
-                   timeAtRiskExposedStart = 1,
-                   surveillanceExposed = 30,
-                   useLengthOfExposureUnexposed = TRUE,
-                   timeAtRiskUnexposedStart = -1,
-                   surveillanceUnexposed = -30,
-                   hasFullTimeAtRisk = FALSE,
-                   washoutWindow = 0,
-                   followupWindow = 0,
-                   shrinkage = 1e-04) {
+                                    cdmDatabaseSchema,
+                                    cdmVersion = 5,
+                                    oracleTempSchema,
+                                    exposureIds,
+                                    outcomeId,
+                                    exposureDatabaseSchema = cdmDatabaseSchema,
+                                    exposureTable = "drug_era",
+                                    outcomeDatabaseSchema = cdmDatabaseSchema,
+                                    outcomeTable = "condition_era",
+                                    firstOccurrenceDrugOnly = TRUE,
+                                    firstOccurrenceConditionOnly = TRUE,
+                                    outcomeConditionTypeConceptIds = c(38000247),
+                                    genderConceptIds = c(8507, 8532),
+                                    minAge = "",
+                                    maxAge = "",
+                                    studyStartDate = "",
+                                    studyEndDate = "",
+                                    stratifyByGender = FALSE,
+                                    stratifyByAge = FALSE,
+                                    stratifyByYear = FALSE,
+                                    useLengthOfExposureExposed = TRUE,
+                                    timeAtRiskExposedStart = 1,
+                                    surveillanceExposed = 30,
+                                    useLengthOfExposureUnexposed = TRUE,
+                                    timeAtRiskUnexposedStart = -1,
+                                    surveillanceUnexposed = -30,
+                                    hasFullTimeAtRisk = FALSE,
+                                    washoutWindow = 0,
+                                    followupWindow = 0,
+                                    shrinkage = 1e-04) {
   cdmDatabase <- strsplit(cdmDatabaseSchema, "\\.")[[1]][1]
   exposureTable <- tolower(exposureTable)
   outcomeTable <- tolower(outcomeTable)

@@ -21,15 +21,17 @@
 #' @details
 #' Create a set of analysis choices, to be used with the \code{\link{runSccAnalyses}} function.
 #'
-#' @param analysisId     An integer that will be used later to refer to this specific set of analysis
-#'                       choices.
-#' @param description    A short description of the analysis.
-#' @param exposureType   If more than one exposure is provided for each exposureOutcome, this field
-#'                       should be used to select the specific exposure to use in this analysis.
-#' @param outcomeType    If more than one outcome is provided for each exposureOutcome, this field
-#'                       should be used to select the specific outcome to use in this analysis.
-#' @param runSelfControlledCohortArgs     An object representing the arguments to be used when calling the
-#'                       \code{\link{runSelfControlledCohort}} function.
+#' @param analysisId                    An integer that will be used later to refer to this specific
+#'                                      set of analysis choices.
+#' @param description                   A short description of the analysis.
+#' @param exposureType                  If more than one exposure is provided for each exposureOutcome,
+#'                                      this field should be used to select the specific exposure to
+#'                                      use in this analysis.
+#' @param outcomeType                   If more than one outcome is provided for each exposureOutcome,
+#'                                      this field should be used to select the specific outcome to use
+#'                                      in this analysis.
+#' @param runSelfControlledCohortArgs   An object representing the arguments to be used when calling
+#'                                      the \code{\link{runSelfControlledCohort}} function.
 #'
 #' @export
 createSccAnalysis <- function(analysisId = 1,
