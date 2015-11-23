@@ -269,13 +269,13 @@ INNER JOIN
 					@outcome_concept_id, 
 					@outcome_start_date, 
 					@outcome_end_date
-					{@first_occurrence_condition_only} ? {,ROW_NUMBER() OVER (PARTITION BY @outcome_person_id, @outcome_concept_id {@outcome_table != 'cohort'} ? {, condition_type_concept_id} ORDER BY @outcome_start_date) AS rn1}
+					{@first_occurrence_condition_only} ? {,ROW_NUMBER() OVER (PARTITION BY @outcome_person_id, @outcome_concept_id {@outcome_condition_type_concept_ids != '' & @outcome_table == 'condition_occurrence'} ? {, condition_type_concept_id} ORDER BY @outcome_start_date) AS rn1}
 				FROM 
 					@outcome_database_schema.@outcome_table 
 				WHERE 
 						1=1
 					{@outcome_id != ''} ? {AND @outcome_concept_id IN (@outcome_id)}
-					{@outcome_condition_type_concept_ids & @outcome_table == 'condition_era'} ? {AND condition_type_concept_id IN (@outcome_condition_type_concept_ids)}
+					{@outcome_condition_type_concept_ids != '' & @outcome_table == 'condition_occurrence'} ? {AND condition_type_concept_id IN (@outcome_condition_type_concept_ids)}
 			) T1
 		{@first_occurrence_condition_only} ? {WHERE rn1 = 1}
 	) c1
