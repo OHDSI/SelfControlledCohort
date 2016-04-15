@@ -1,6 +1,6 @@
 # @file Analyses.R
 #
-# Copyright 2015 Observational Health Data Sciences and Informatics
+# Copyright 2016 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -39,8 +39,22 @@ createSccAnalysis <- function(analysisId = 1,
                               exposureType = NULL,
                               outcomeType = NULL,
                               runSelfControlledCohortArgs) {
-  sccAnalysis <- OhdsiRTools::convertArgsToList(match.call(), "sccAnalysis")
-  return(sccAnalysis)
+  # First: get the default values:
+  analysis <- list()
+  for (name in names(formals(createSccAnalysis))) {
+    analysis[[name]] <- get(name)
+  }
+
+  # Next: overwrite defaults with actual values if specified:
+  values <- lapply(as.list(match.call())[-1], function(x) eval(x, envir = sys.frame(-3)))
+  for (name in names(values)) {
+    if (name %in% names(analysis)) {
+      analysis[[name]] <- values[[name]]
+    }
+  }
+
+  class(analysis) <- "sccAnalysis"
+  return(analysis)
 }
 
 #' Save a list of sccAnalysis to file
@@ -58,7 +72,7 @@ saveSccAnalysisList <- function(sccAnalysisList, file) {
   for (i in 1:length(sccAnalysisList)) {
     stopifnot(class(sccAnalysisList[[i]]) == "sccAnalysis")
   }
-  write(rjson::toJSON(sccAnalysisList), file)
+  write(toJsonWithAttr(sccAnalysisList), file)
 }
 
 #' Load a list of sccAnalysis from file
@@ -73,7 +87,7 @@ saveSccAnalysisList <- function(sccAnalysisList, file) {
 #'
 #' @export
 loadsccAnalysisList <- function(file) {
-  sccAnalysisList <- rjson::fromJSON(file = file)
+  sccAnalysisList <- fromJsonWithAttr(file)
   for (i in 1:length(sccAnalysisList)) {
     class(sccAnalysisList[[i]]) <- "sccAnalysis"
     for (j in 1:length(sccAnalysisList[[i]])) {
@@ -103,7 +117,9 @@ loadsccAnalysisList <- function(file) {
 #'
 #' @export
 createExposureOutcome <- function(exposureId, outcomeId) {
-  exposureOutcome <- OhdsiRTools::convertArgsToList(match.call(), "exposureOutcome")
+  exposureOutcome <- list(exposureId = exposureId,
+                          outcomeId = outcomeId)
+  class(exposureOutcome) <- "exposureOutcome"
   return(exposureOutcome)
 }
 
@@ -122,7 +138,7 @@ saveExposureOutcomeList <- function(exposureOutcomeList, file) {
   for (i in 1:length(exposureOutcomeList)) {
     stopifnot(class(exposureOutcomeList[[i]]) == "exposureOutcome")
   }
-  write(rjson::toJSON(exposureOutcomeList), file)
+  write(toJsonWithAttr(exposureOutcomeList), file)
 }
 
 #' Load a list of exposureOutcome from file
@@ -137,9 +153,62 @@ saveExposureOutcomeList <- function(exposureOutcomeList, file) {
 #'
 #' @export
 loadExposureOutcomeList <- function(file) {
-  exposureOutcomeList <- rjson::fromJSON(file = file)
+  exposureOutcomeList <- fromJsonWithAttr(file)
   for (i in 1:length(exposureOutcomeList)) {
     class(exposureOutcomeList[[i]]) <- "exposureOutcome"
   }
   return(exposureOutcomeList)
+}
+
+
+convertAttrToMember <- function(object){
+  if (is.list(object)){
+    if (length(object) > 0) {
+      for (i in 1:length(object)) {
+        if (!is.null(object[[i]])){
+          object[[i]] <- convertAttrToMember(object[[i]])
+        }
+      }
+    }
+    a <- names(attributes(object))
+    a <- a[a != "names"]
+    if (length(a) > 0) {
+      object[paste("attr",a, sep = "_")] <- attributes(object)[a]
+    }
+  }
+  return(object)
+}
+
+toJsonWithAttr <- function(object){
+  object <- convertAttrToMember(object)
+  return (jsonlite::toJSON(object, pretty = TRUE, force = TRUE, null = "null", auto_unbox = TRUE))
+}
+
+convertMemberToAttr <-  function(object){
+  if (is.list(object)){
+    if (length(object) > 0) {
+      for (i in 1:length(object)) {
+        if (!is.null(object[[i]])){
+          object[[i]] <- convertMemberToAttr(object[[i]])
+        }
+      }
+      attrNames <- names(object)[grep("^attr_", names(object))]
+      cleanNames <- gsub("^attr_", "", attrNames)
+      if (any(cleanNames == "class")){
+        class(object) <- object$attr_class
+        object$attr_class <- NULL
+        attrNames <- attrNames[attrNames != "attr_class"]
+        cleanNames <- cleanNames[cleanNames != "class"]
+      }
+      attributes(object)[cleanNames] <- object[attrNames]
+      object[attrNames] <- NULL
+    }
+  }
+  return(object)
+}
+
+fromJsonWithAttr <- function(file) {
+  object <- jsonlite::fromJSON(file, simplifyVector = TRUE, simplifyDataFrame = FALSE)
+  object <- convertMemberToAttr(object)
+  return(object)
 }

@@ -1,6 +1,6 @@
 # @file RunAnalyses.R
 #
-# Copyright 2015 Observational Health Data Sciences and Informatics
+# Copyright 2016 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -21,12 +21,7 @@
 #' @details
 #' Run a list of analyses for the drug-comparator-outcomes of interest. This function will run all
 #' specified analyses against all hypotheses of interest, meaning that the total number of outcome
-#' models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)` (if all analyses specify an
-#' outcome model should be fitted). When you provide several analyses it will determine whether any of
-#' the analyses have anything in common, and will take advantage of this fact. For example, if we
-#' specify several analyses that only differ in the way the outcome model is fitted, then this
-#' function will extract the data and fit the propensity model only once, and re-use this in all the
-#' analysis.
+#' models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
 #'
 #' @param connectionDetails        An R object of type \code{connectionDetails} created using the
 #'                                 function \code{createConnectionDetails} in the

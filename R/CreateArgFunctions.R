@@ -74,6 +74,17 @@ createRunSelfControlledCohortArgs <- function(firstOccurrenceDrugOnly = TRUE,
                                               washoutWindow = 0,
                                               followupWindow = 0,
                                               shrinkage = 1e-04) {
-  analysis <- OhdsiRTools::convertArgsToList(match.call(), "args")
+  # First: get default values:
+  analysis <- list()
+  for (name in names(formals(createRunSelfControlledCohortArgs))) {
+    analysis[[name]] <- get(name)
+  }
+  # Second: overwrite defaults with actual values:
+  values <- lapply(as.list(match.call())[-1], function(x) eval(x, envir = sys.frame(-3)))
+  for (name in names(values)) {
+    if (name %in% names(analysis))
+      analysis[[name]] <- values[[name]]
+  }
+  class(analysis) <- "args"
   return(analysis)
 }
