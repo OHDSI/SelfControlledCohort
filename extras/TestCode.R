@@ -105,3 +105,66 @@ rr <- readRDS(file.path(outputFolder, "resultsReference.rds"))
 
 res <- summarizeAnalyses(rr)
 
+
+
+
+
+
+
+
+#### PRoblem
+
+
+setwd('s:/temp')
+options('fftempdir' = 's:/fftemp')
+
+pw <- NULL
+dbms <- "pdw"
+user <- NULL
+server <- "JRDUSAPSCTL01"
+cdmDatabaseSchema <- "CDM_Truven_MDCD_V5.dbo"
+oracleTempSchema <- NULL
+outcomeDatabaseSchema <- "scratch.dbo"
+outcomeTable <- "mschuemie_outcomes"
+port <- 17001
+cdmVersion <- "5"
+
+connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = dbms,
+                                                                server = server,
+                                                                user = user,
+                                                                password = pw,
+                                                                port = port)
+
+exposureId <- 1124300
+outcomeId <- 1000
+
+
+x <- SelfControlledCohort::runSelfControlledCohort(connectionDetails = connectionDetails,
+                                                   cdmDatabaseSchema = cdmDatabaseSchema,
+                                                   oracleTempSchema = oracleTempSchema,
+                                                   exposureTable = "drug_era",
+                                                   outcomeDatabaseSchema = outcomeDatabaseSchema,
+                                                   outcomeTable = outcomeTable,
+                                                   cdmVersion = cdmVersion,
+                                                   exposureIds = exposureId,
+                                                   outcomeIds = outcomeId,
+                                                   firstOccurrenceDrugOnly = FALSE,
+                                                   firstOccurrenceConditionOnly = FALSE,
+                                                   useLengthOfExposureExposed = TRUE,
+                                                   timeAtRiskExposedStart = 1,
+                                                   surveillanceExposed = 0,
+                                                   hasFullTimeAtRisk = FALSE,
+                                                   timeAtRiskUnexposedStart = -1,
+                                                   useLengthOfExposureUnexposed = TRUE,
+                                                   surveillanceUnexposed = 0,
+                                                   washoutWindow = 183,
+                                                   followupWindow = 183)
+
+
+summary(x)
+x$sql
+SqlRender::writeSql(x$sql, "s:/temp/sql.sql")
+
+
+
+
