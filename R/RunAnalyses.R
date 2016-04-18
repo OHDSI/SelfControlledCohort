@@ -56,7 +56,7 @@
 #' @param exposureOutcomeList      A list of objects of type \code{exposureOutcome} as created using
 #'                                 the \code{\link{createExposureOutcome}} function.
 #' @param cdmVersion               Define the OMOP CDM version used: currently support "4" and "5".
-#' @param analysisTreads           The number of parallel threads to use to execute the analyses.
+#' @param analysisThreads           The number of parallel threads to use to execute the analyses.
 #'
 #' @export
 runSccAnalyses <- function(connectionDetails,
@@ -70,7 +70,7 @@ runSccAnalyses <- function(connectionDetails,
                            outputFolder = "./SelfControlledCohortOutput",
                            sccAnalysisList,
                            exposureOutcomeList,
-                           analysisTreads = 1) {
+                           analysisThreads = 1) {
   for (exposureOutcome in exposureOutcomeList) {
     stopifnot(class(exposureOutcome) == "exposureOutcome")
   }
@@ -138,7 +138,7 @@ runSccAnalyses <- function(connectionDetails,
     saveRDS(sccResults, params$sccResultsFile)
   }
   if (length(objectsToCreate) != 0) {
-    cluster <- OhdsiRTools::makeCluster(analysisTreads)
+    cluster <- OhdsiRTools::makeCluster(analysisThreads)
     OhdsiRTools::clusterRequire(cluster, "SelfControlledCohort")
     dummy <- OhdsiRTools::clusterApply(cluster, objectsToCreate, createSccResultsObject)
     OhdsiRTools::stopCluster(cluster)

@@ -10,7 +10,7 @@ runSccAnalyses(connectionDetails, cdmDatabaseSchema,
   outcomeDatabaseSchema = cdmDatabaseSchema,
   outcomeTable = "condition_occurrence", cdmVersion = 4,
   outputFolder = "./SelfControlledCohortOutput", sccAnalysisList,
-  exposureOutcomeList, analysisTreads = 1)
+  exposureOutcomeList, analysisThreads = 1)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using the
@@ -57,7 +57,7 @@ COHORT_END_DATE.}
 \item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
 the \code{\link{createExposureOutcome}} function.}
 
-\item{analysisTreads}{The number of parallel threads to use to execute the analyses.}
+\item{analysisThreads}{The number of parallel threads to use to execute the analyses.}
 }
 \description{
 Run a list of analyses
