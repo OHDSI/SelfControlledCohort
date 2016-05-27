@@ -86,7 +86,7 @@ saveSccAnalysisList <- function(sccAnalysisList, file) {
 #' A list of objects of type \code{sccAnalysis}.
 #'
 #' @export
-loadsccAnalysisList <- function(file) {
+loadSccAnalysisList <- function(file) {
   return(OhdsiRTools::loadSettingsFromJson(file))
 }
 
