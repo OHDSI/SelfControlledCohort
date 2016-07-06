@@ -198,9 +198,9 @@ SELECT
 	{@stratify_by_year} ? {CAST(YEAR(d1.@exposure_start_date) AS VARCHAR) AS index_year,} : {CAST('ALL' AS VARCHAR) AS index_year,}
 	SUM(
 		CASE WHEN 
-				c1.@outcome_start_date >= DATEADD(DAY,@time_at_risk_exposed_start,@exposure_start_date)
+				c1.@outcome_start_date >= DATEADD(DAY, @time_at_risk_exposed_start, d1.@exposure_start_date)
 			AND 
-				c1.@outcome_start_date <= DATEADD(DAY, {@use_length_of_exposure_exposed}?{DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)}:{0} + @surveillance_exposed ,@exposure_start_date)
+				c1.@outcome_start_date <= DATEADD(DAY, {@use_length_of_exposure_exposed}?{DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)}:{0} + @surveillance_exposed ,d1.@exposure_start_date)
 			AND 
 				c1.@outcome_start_date <= op1.observation_period_end_date
 		THEN 
@@ -211,9 +211,9 @@ SELECT
 	) AS num_outcomes_exposed,
 	SUM(
 		CASE WHEN 
-			c1.@outcome_start_date <= DATEADD(DAY,@time_at_risk_unexposed_start, @exposure_start_date)
+			c1.@outcome_start_date <= DATEADD(DAY,@time_at_risk_unexposed_start, d1.@exposure_start_date)
 		AND 
-			c1.@outcome_start_date >= DATEADD(DAY,{@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed ,@exposure_start_date)	
+			c1.@outcome_start_date >= DATEADD(DAY,{@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed ,d1.@exposure_start_date)	
 		AND 
 			c1.@outcome_start_date >= op1.observation_period_start_date
 		THEN 
@@ -292,8 +292,8 @@ WHERE
 		YEAR(d1.@exposure_start_date) - year_of_birth >= ag1.age_group_min
 	AND 
 		YEAR(d1.@exposure_start_date) - year_of_birth <= ag1.age_group_max
-	{@study_start_date != ''} ? {AND @exposure_start_date >= '@study_start_date'}
-	{@study_end_date != ''} ? {AND @exposure_start_date <= '@study_end_date'}
+	{@study_start_date != ''} ? {AND d1.@exposure_start_date >= '@study_start_date'}
+	{@study_end_date != ''} ? {AND d1.@exposure_start_date <= '@study_end_date'}
 	{@min_age != ''} ? {AND YEAR(d1.@exposure_start_date) - p1.year_of_birth >= @min_age}
 	{@max_age != ''} ? {AND YEAR(d1.@exposure_start_date) - p1.year_of_birth <= @max_age}
 	{@gender_concept_ids != ''} ? {AND p1.gender_concept_id IN (@gender_concept_ids)}
@@ -302,12 +302,12 @@ WHERE
 			op1.observation_period_end_date >= DATEADD(
 				dd, 
 				{@use_length_of_exposure_exposed = 1} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
-				@exposure_start_date)		
+				d1.@exposure_start_date)		
 		AND 
 			op1.observation_period_start_date <= DATEADD(
 				dd,
 				{@use_length_of_exposure_exposed} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed,
-				@exposure_start_date)	
+				d1.@exposure_start_date)	
 	}
 	{@washout_window != 0} ? {AND DATEDIFF(DAY,op1.observation_period_start_date,d1.@exposure_start_date) >= @washout_window}
 	{@followup_window != 0} ? {AND DATEDIFF(DAY,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_window}
