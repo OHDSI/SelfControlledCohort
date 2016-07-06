@@ -21,7 +21,7 @@ pw <- NULL
 dbms <- "pdw"
 user <- NULL
 server <- "JRDUSAPSCTL01"
-cdmDatabaseSchema <- "cdm_truven_mdcd.dbo"
+cdmDatabaseSchema <- "CDM_Truven_MDCD_V432.dbo"
 resultsDatabaseSchema <- "scratch.dbo"
 port <- 17001
 

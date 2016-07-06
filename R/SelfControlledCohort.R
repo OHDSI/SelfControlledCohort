@@ -168,7 +168,6 @@ runSelfControlledCohort <- function(connectionDetails,
                                     washoutWindow = 0,
                                     followupWindow = 0,
                                     shrinkage = 1e-04) {
-  cdmDatabase <- strsplit(cdmDatabaseSchema, "\\.")[[1]][1]
   exposureTable <- tolower(exposureTable)
   outcomeTable <- tolower(outcomeTable)
   if (exposureTable == "drug_era") {
@@ -224,7 +223,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connectionDetails$dbms,
                                                    oracleTempSchema = oracleTempSchema,
-                                                   cdm_database = cdmDatabase,
+                                                   cdm_database_schema = cdmDatabaseSchema,
                                                    exposure_ids = exposureIds,
                                                    outcome_id = outcomeIds,
                                                    exposure_database_schema = exposureDatabaseSchema,

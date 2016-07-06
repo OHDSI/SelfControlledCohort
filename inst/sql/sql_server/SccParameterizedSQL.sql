@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ************************************************************************/
-{DEFAULT @cdm_database = 'cdm4_sim'}
+{DEFAULT @cdm_database_schema = 'cdm4_sim'}
 {DEFAULT @exposure_database_schema = 'cdm4_sim'} 
 {DEFAULT @exposure_table = 'drug_era'} 
 {DEFAULT @exposure_start_date = 'drug_era_start_date'} 
@@ -51,8 +51,6 @@ limitations under the License.
 {DEFAULT @washout_window = 183} 
 {DEFAULT @followup_window = 183} 
 {DEFAULT @shrinkage = '0.0001'} 
-
-USE @cdm_database;
 
 IF OBJECT_ID('tempdb..#results', 'U') IS NOT NULL
 	DROP TABLE #results;
@@ -154,11 +152,11 @@ FROM
 		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
 	) d1
 	INNER JOIN
-		person p1
+		@cdm_database_schema.person p1
 	ON 
 		d1.@exposure_person_id = p1.person_id
 	INNER JOIN
-		observation_period op1
+		@cdm_database_schema.observation_period op1
 	ON 
 		d1.@exposure_person_id = op1.person_id,
 	#age_group ag1
@@ -184,7 +182,7 @@ WHERE
 	{@washout_window != ''} ? {AND DATEDIFF(DAY, op1.observation_period_start_date, d1.@exposure_start_date) >= @washout_window}
 	{@followup_window != ''} ? {AND DATEDIFF(DAY,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_window}
 GROUP BY 
-	@exposure_concept_id
+	d1.@exposure_concept_id
 	{@stratify_by_gender} ? {, gender_concept_id}
 	{@stratify_by_age} ? {, ag1.age_group_name}
 	{@stratify_by_year} ? {, YEAR(d1.@exposure_start_date)}
@@ -252,7 +250,7 @@ FROM
 		{@first_occurrence_drug_only} ? {WHERE rn1 = 1}
 	) D1
 INNER JOIN
-	person p1
+	@cdm_database_schema.person p1
 ON 
 	d1.@exposure_person_id = p1.person_id
 INNER JOIN
@@ -282,7 +280,7 @@ INNER JOIN
 ON 
 	p1.person_id = c1.@outcome_person_id
 INNER JOIN
-	observation_period op1
+	@cdm_database_schema.observation_period op1
 ON 
 	d1.@exposure_person_id = op1.person_id,
 	#age_group ag1
@@ -314,8 +312,8 @@ WHERE
 	{@washout_window != 0} ? {AND DATEDIFF(DAY,op1.observation_period_start_date,d1.@exposure_start_date) >= @washout_window}
 	{@followup_window != 0} ? {AND DATEDIFF(DAY,d1.@exposure_start_date, op1.observation_period_end_date) >= @followup_window}
 GROUP BY 
-	@exposure_concept_id, 
-	@outcome_concept_id
+	d1.@exposure_concept_id, 
+	c1.@outcome_concept_id
 	{@stratify_by_gender} ? {, gender_concept_id}
 	{@stratify_by_age} ? {, ag1.age_group_name}
 	{@stratify_by_year} ? {, YEAR(d1.@exposure_start_date)}
