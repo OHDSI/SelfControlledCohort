@@ -3,8 +3,8 @@ Type: Package
 Title: Population-level estimation method  that estimates
     incidence rate comparison of exposed/unexposed time within an exposed
     cohort
-Version: 1.1.1
-Date: 2016-4-15
+Version: 1.2.0
+Date: 2016-7-25
 Author: Patrick Ryan, Martijn Schuemie
 Maintainer: Patrick Ryan <ryan@ohdsi.org>
 Description: This package provides a method to estimate risk by comparing time
@@ -14,7 +14,8 @@ Depends:
 Imports:
     SqlRender (>= 1.1.1),
     RJDBC,
-    OhdsiRTools (>= 1.1.1)
+    OhdsiRTools (>= 1.1.1),
+    rateratio.test
 Suggests:
     testthat
 License: Apache License 2.0

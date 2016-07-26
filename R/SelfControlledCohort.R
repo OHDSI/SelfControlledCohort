@@ -121,8 +121,6 @@ NULL
 #'                                         start.
 #' @param followupWindow                   Integer to define required time observed after exposure
 #'                                         start.
-#' @param shrinkage                        Shrinkage used in IRR calculations, required >0 to deal with
-#'                                         0 case counts, but larger number means more shrinkage.
 #'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
@@ -166,8 +164,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                     surveillanceUnexposed = -30,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutWindow = 0,
-                                    followupWindow = 0,
-                                    shrinkage = 1e-04) {
+                                    followupWindow = 0) {
   exposureTable <- tolower(exposureTable)
   outcomeTable <- tolower(outcomeTable)
   if (exposureTable == "drug_era") {
@@ -257,8 +254,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    surveillance_unexposed = surveillanceUnexposed,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutWindow,
-                                                   followup_window = followupWindow,
-                                                   shrinkage = shrinkage)
+                                                   followup_window = followupWindow)
   writeLines("Executing analysis")
   DatabaseConnector::executeSql(conn, renderedSql)
 
@@ -269,9 +265,17 @@ runSelfControlledCohort <- function(connectionDetails,
                                  oracleTempSchema = oracleTempSchema)$sql
   estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
-
-  estimates$logRr <- log(estimates$incidenceRateRatio)
-
+  if (nrow(estimates) > 0) {
+    for (i in 1:nrow(estimates)) {
+      test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i], estimates$numOutcomesUnexposed[i]),
+                                             n = c(estimates$timeAtRiskExposed[i], estimates$timeAtRiskUnexposed[i]))
+      estimates$incidenceRateRatio[i] <- test$estimate[1]
+      estimates$irrLb95[i] <- test$conf.int[1]
+      estimates$irrUb95[i] <- test$conf.int[2]
+    }
+    estimates$logRr <- log(estimates$incidenceRateRatio)
+    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
+  }
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
   sql <- SqlRender::translateSql(sql,

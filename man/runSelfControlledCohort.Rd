@@ -16,7 +16,7 @@ runSelfControlledCohort(connectionDetails, cdmDatabaseSchema, cdmVersion = 5,
   timeAtRiskExposedStart = 1, surveillanceExposed = 30,
   useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1,
   surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE,
-  washoutWindow = 0, followupWindow = 0, shrinkage = 1e-04)
+  washoutWindow = 0, followupWindow = 0)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using
@@ -125,9 +125,6 @@ start.}
 
 \item{followupWindow}{Integer to define required time observed after exposure
 start.}
-
-\item{shrinkage}{Shrinkage used in IRR calculations, required >0 to deal with
-0 case counts, but larger number means more shrinkage.}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.

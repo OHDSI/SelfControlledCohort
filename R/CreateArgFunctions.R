@@ -49,8 +49,6 @@
 #'                                         exposurestart.
 #' @param followupWindow                   Integer to define required time observed after
 #'                                         exposurestart.
-#' @param shrinkage                        Shrinkage used in IRR calculations, required >0 to deal
-#'                                         with0 case counts, but larger number means more shrinkage.
 #'
 #' @export
 createRunSelfControlledCohortArgs <- function(firstOccurrenceDrugOnly = TRUE,
@@ -72,8 +70,7 @@ createRunSelfControlledCohortArgs <- function(firstOccurrenceDrugOnly = TRUE,
                                               surveillanceUnexposed = -30,
                                               hasFullTimeAtRisk = FALSE,
                                               washoutWindow = 0,
-                                              followupWindow = 0,
-                                              shrinkage = 1e-04) {
+                                              followupWindow = 0) {
   # First: get default values:
   analysis <- list()
   for (name in names(formals(createRunSelfControlledCohortArgs))) {

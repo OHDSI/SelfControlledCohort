@@ -50,7 +50,6 @@ limitations under the License.
 {DEFAULT @has_full_time_at_risk = TRUE} 
 {DEFAULT @washout_window = 183} 
 {DEFAULT @followup_window = 183} 
-{DEFAULT @shrinkage = '0.0001'} 
 
 IF OBJECT_ID('tempdb..#results', 'U') IS NOT NULL
 	DROP TABLE #results;
@@ -331,58 +330,7 @@ SELECT
 	num_outcomes_exposed,
 	num_outcomes_unexposed,
 	time_at_risk_exposed,
-	time_at_risk_unexposed,
-	--error handling, cant have 0 time at risk, or else division is undefined, set IRR = 1
-	CASE WHEN 
-			t1.time_at_risk_exposed = 0 
-		OR 
-			t1.time_at_risk_unexposed = 0 
-	THEN 
-		1
-	--if youve got time-at-risk but no unexposed events, you also have a problem
-	--to correct for that, do shrinkage to numerator and denominator of rate
-	ELSE 
-		(@shrinkage + (t1.num_outcomes_exposed/t1.time_at_risk_exposed)) / (@shrinkage + (t1.num_outcomes_unexposed/ t1.time_at_risk_unexposed))
-	END AS incidence_rate_ratio,
-	
-	--calculating IRRLB95  : LOG( IRR - 1.96*SElogRR)
-	EXP(
-		LOG( 
-			CASE WHEN 
-					t1.time_at_risk_exposed = 0 
-				OR 
-					t1.time_at_risk_unexposed = 0 
-			THEN 
-				1
-			--if youve got time-at-risk but no unexposed events, you also have a problem
-			--to correct for that, do shrinkage to numerator and denominator of rate
-			ELSE 
-				(@shrinkage + (t1.num_outcomes_exposed/t1.time_at_risk_exposed)) / (@shrinkage + (t1.num_outcomes_unexposed/ t1.time_at_risk_unexposed))
-			END
-		)
-		- 1.96 * SQRT((1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) 
-	) AS irr_lb_95,
-
-	--calculating IRRUB95 : LOG ( IRR + 1.96*SElogRR)
-	EXP(
-		LOG( 
-			CASE WHEN 
-					t1.time_at_risk_exposed = 0 
-				OR 
-					t1.time_at_risk_unexposed = 0 
-			THEN 
-				1
-			--if youve got time-at-risk but no unexposed events, you also have a problem
-			--to correct for that, do shrinkage to numerator and denominator of rate
-			ELSE 
-				(@shrinkage + (t1.num_outcomes_exposed/t1.time_at_risk_exposed)) / (@shrinkage + (t1.num_outcomes_unexposed/ t1.time_at_risk_unexposed))
-			END
-		)
-		+ 1.96 * SQRT((1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) 
-	) AS irr_ub_95,	
-	
-	--calcuating SElogIRR
-	SQRT( (1.0/ CASE WHEN t1.num_outcomes_exposed = 0 THEN 0.5 ELSE t1.num_outcomes_exposed END) + (1.0/ CASE WHEN t1.num_outcomes_unexposed = 0 THEN 0.5 ELSE t1.num_outcomes_unexposed END) ) AS se_log_rr
+	time_at_risk_unexposed
 INTO 
 	#results
 FROM

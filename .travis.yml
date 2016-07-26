@@ -34,6 +34,7 @@ install:
   - Rscript -e 'if(!"rmarkdown" %in% rownames(installed.packages())) { install.packages("rmarkdown", dependencies = TRUE) }'
   - Rscript -e 'if(!"RJDBC" %in% rownames(installed.packages())) { install.packages("RJDBC", dependencies = TRUE) }'
   - Rscript -e 'if(!"jsonlite" %in% rownames(installed.packages())) { install.packages("jsonlite", dependencies = TRUE) }'
+  - Rscript -e 'if(!"rateratio.test" %in% rownames(installed.packages())) { install.packages("rateratio.test", dependencies = TRUE) }'
 
   # Install OHDSI dependencies
   - Rscript -e 'devtools::install_github("OHDSI/SqlRender")'

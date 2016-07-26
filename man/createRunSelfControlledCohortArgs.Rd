@@ -13,7 +13,7 @@ createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = TRUE,
   timeAtRiskExposedStart = 1, surveillanceExposed = 30,
   useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1,
   surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE,
-  washoutWindow = 0, followupWindow = 0, shrinkage = 1e-04)
+  washoutWindow = 0, followupWindow = 0)
 }
 \arguments{
 \item{firstOccurrenceDrugOnly}{If TRUE, only use first occurrence of each drug concept
@@ -79,9 +79,6 @@ exposurestart.}
 
 \item{followupWindow}{Integer to define required time observed after
 exposurestart.}
-
-\item{shrinkage}{Shrinkage used in IRR calculations, required >0 to deal
-with0 case counts, but larger number means more shrinkage.}
 }
 \description{
 Create a parameter object for the function runSelfControlledCohort
