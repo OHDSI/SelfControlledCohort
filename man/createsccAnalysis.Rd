@@ -30,4 +30,3 @@ Create a SelfControlledCohort analysis specification
 \details{
 Create a set of analysis choices, to be used with the \code{\link{runSccAnalyses}} function.
 }
-

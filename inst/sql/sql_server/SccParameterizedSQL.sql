@@ -300,7 +300,7 @@ WHERE
 		AND 
 			op1.observation_period_end_date >= DATEADD(
 				dd, 
-				{@use_length_of_exposure_exposed = 1} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
+				{@use_length_of_exposure_exposed} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
 				d1.@exposure_start_date)		
 		AND 
 			op1.observation_period_start_date <= DATEADD(

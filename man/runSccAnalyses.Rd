@@ -67,4 +67,3 @@ Run a list of analyses for the drug-comparator-outcomes of interest. This functi
 specified analyses against all hypotheses of interest, meaning that the total number of outcome
 models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
 }
-

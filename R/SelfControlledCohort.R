@@ -21,6 +21,7 @@
 #' @docType package
 #' @name SelfControlledCohort
 #' @importFrom RJDBC dbDisconnect
+#' @importFrom stats qnorm
 #' @import DatabaseConnector
 NULL
 

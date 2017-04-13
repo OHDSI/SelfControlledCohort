@@ -25,4 +25,3 @@ Create exposure-outcome combinations.
 \details{
 Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
 }
-

@@ -12,4 +12,3 @@ summarizeAnalyses(resultsReference)
 \description{
 Create a summary report of the analyses
 }
-

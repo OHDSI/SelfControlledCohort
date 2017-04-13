@@ -155,4 +155,3 @@ sccResult <- runSelfControlledCohort(connectionDetails,
 Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
 for developing a risk identification and analysis system. Drug Safety 36 Suppl1:S95-106, 2013
 }
-
