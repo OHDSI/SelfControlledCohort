@@ -78,9 +78,9 @@ NULL
 #'                                         outcomeTable has format of COHORT table:
 #'                                         COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 #'                                         COHORT_END_DATE.
-#' @param firstOccurrenceDrugOnly          If TRUE, only use first occurrence of each drug concept id
+#' @param firstExposureOnly          If TRUE, only use first occurrence of each drug concept id
 #'                                         for each person
-#' @param firstOccurrenceConditionOnly     If TRUE, only use first occurrence of each condition concept
+#' @param firstOutcomeOnly     If TRUE, only use first occurrence of each condition concept
 #'                                         id for each person.
 #' @param outcomeConditionTypeConceptIds   A list of TYPE_CONCEPT_ID values that will restrict
 #'                                         condition occurrences.  Only applicable if outcomeTable =
@@ -99,28 +99,28 @@ NULL
 #'                                         across all age groups (using AGE_GROUP table below).
 #' @param stratifyByYear                   If TRUE, analysis will be calculated overall, and stratified
 #'                                         across all years of the index dates.
-#' @param useLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd as
+#' @param addLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd as
 #'                                         part of timeAtRisk.
-#' @param timeAtRiskExposedStart           Integer of days to add to drugEraStart for start of
+#' @param riskWindowStartExposed           Integer of days to add to drugEraStart for start of
 #'                                         timeAtRisk (0 to include index date, 1 to start the day
 #'                                         after).
-#' @param surveillanceExposed              Additional window to add to end of exposure period (if
-#'                                         useLengthOfExposureExposed = TRUE, then add to exposure end
+#' @param riskWindowEndExposed              Additional window to add to end of exposure period (if
+#'                                         addLengthOfExposureExposed = TRUE, then add to exposure end
 #'                                         date, else add to exposure start date).
-#' @param useLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposure
+#' @param addLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposure
 #'                                         end as part of timeAtRisk looking back before exposure
 #'                                         start.
-#' @param timeAtRiskUnexposedStart         Integer of days to add to exposure start for start of
-#'                                         timeAtRisk (0 to include index date, -1 to start the day
+#' @param riskWindowEndUnexposed         Integer of days to add to exposure start for end of
+#'                                         timeAtRisk (0 to include index date, -1 to end the day
 #'                                         before).
-#' @param surveillanceUnexposed            Additional window to add to end of exposure period (if
-#'                                         useLengthOfExposureUnexposed = TRUE, then add to exposure
+#' @param riskWindowStartUnexposed            Additional window to add to start of exposure period (if
+#'                                         addLengthOfExposureUnexposed = TRUE, then add to exposure
 #'                                         end date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
 #'                                         exposed and unexposed.
-#' @param washoutWindow                    Integer to define required time observed before exposure
+#' @param washoutPeriod                    Integer to define required time observed before exposure
 #'                                         start.
-#' @param followupWindow                   Integer to define required time observed after exposure
+#' @param followupPeriod                   Integer to define required time observed after exposure
 #'                                         start.
 #'
 #' @return
@@ -146,8 +146,8 @@ runSelfControlledCohort <- function(connectionDetails,
                                     exposureTable = "drug_era",
                                     outcomeDatabaseSchema = cdmDatabaseSchema,
                                     outcomeTable = "condition_era",
-                                    firstOccurrenceDrugOnly = TRUE,
-                                    firstOccurrenceConditionOnly = TRUE,
+                                    firstExposureOnly = TRUE,
+                                    firstOutcomeOnly = TRUE,
                                     outcomeConditionTypeConceptIds = c(38000247),
                                     genderConceptIds = c(8507, 8532),
                                     minAge = "",
@@ -157,15 +157,19 @@ runSelfControlledCohort <- function(connectionDetails,
                                     stratifyByGender = FALSE,
                                     stratifyByAge = FALSE,
                                     stratifyByYear = FALSE,
-                                    useLengthOfExposureExposed = TRUE,
-                                    timeAtRiskExposedStart = 1,
-                                    surveillanceExposed = 30,
-                                    useLengthOfExposureUnexposed = TRUE,
-                                    timeAtRiskUnexposedStart = -1,
-                                    surveillanceUnexposed = -30,
+                                    addLengthOfExposureExposed = TRUE,
+                                    riskWindowStartExposed = 1,
+                                    riskWindowEndExposed = 30,
+                                    addLengthOfExposureUnexposed = TRUE,
+                                    riskWindowEndUnexposed = -1,
+                                    riskWindowStartUnexposed = -30,
                                     hasFullTimeAtRisk = FALSE,
-                                    washoutWindow = 0,
-                                    followupWindow = 0) {
+                                    washoutPeriod = 0,
+                                    followupPeriod = 0) {
+  if (riskWindowEndExposed < riskWindowStartExposed)
+    stop("Risk window end (exposed) should be on or after risk window start")
+  if (riskWindowEndUnexposed < riskWindowStartUnexposed)
+    stop("Risk window end (unexposed) should be on or after risk window start")
   exposureTable <- tolower(exposureTable)
   outcomeTable <- tolower(outcomeTable)
   if (exposureTable == "drug_era") {
@@ -236,8 +240,8 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    outcome_end_date = outcomeEndDate,
                                                    outcome_concept_id = outcomeConceptId,
                                                    outcome_person_id = outcomePersonId,
-                                                   first_occurrence_drug_only = firstOccurrenceDrugOnly,
-                                                   first_occurrence_condition_only = firstOccurrenceConditionOnly,
+                                                   first_occurrence_drug_only = firstExposureOnly,
+                                                   first_occurrence_condition_only = firstOutcomeOnly,
                                                    outcome_condition_type_concept_ids = outcomeConditionTypeConceptIds,
                                                    gender_concept_ids = genderConceptIds,
                                                    min_age = minAge,
@@ -247,15 +251,15 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    stratify_by_gender = stratifyByGender,
                                                    stratify_by_age = stratifyByAge,
                                                    stratify_by_year = stratifyByYear,
-                                                   use_length_of_exposure_exposed = useLengthOfExposureExposed,
-                                                   time_at_risk_exposed_start = timeAtRiskExposedStart,
-                                                   surveillance_exposed = surveillanceExposed,
-                                                   use_length_of_exposure_unexposed = useLengthOfExposureUnexposed,
-                                                   time_at_risk_unexposed_start = timeAtRiskUnexposedStart,
-                                                   surveillance_unexposed = surveillanceUnexposed,
+                                                   use_length_of_exposure_exposed = addLengthOfExposureExposed,
+                                                   time_at_risk_exposed_start = riskWindowStartExposed,
+                                                   surveillance_exposed = riskWindowEndExposed,
+                                                   use_length_of_exposure_unexposed = addLengthOfExposureUnexposed,
+                                                   time_at_risk_unexposed_start = riskWindowEndUnexposed,
+                                                   surveillance_unexposed = riskWindowStartUnexposed,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
-                                                   washout_window = washoutWindow,
-                                                   followup_window = followupWindow)
+                                                   washout_window = washoutPeriod,
+                                                   followup_window = followupPeriod)
   writeLines("Executing analysis")
   DatabaseConnector::executeSql(conn, renderedSql)
 

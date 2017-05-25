@@ -85,20 +85,20 @@ SELECT
 		--need to account for potential censoring due to observation period length	
 		CASE WHEN 
 			DATEADD(
-				dd,
+				DAY,
 				{@use_length_of_exposure_exposed} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
 				@exposure_start_date
 			) <= op1.observation_period_end_date
 		THEN 
 			DATEDIFF(
-				dd,
+				DAY,
 				DATEADD(DAY, @time_at_risk_exposed_start, @exposure_start_date),	
 				DATEADD(DAY, {@use_length_of_exposure_exposed} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
 				@exposure_start_date)
 			)
 		ELSE
 			DATEDIFF(
-				dd, 
+				DAY, 
 				DATEADD(DAY, @time_at_risk_exposed_start, @exposure_start_date), 
 				op1.observation_period_end_date
 			)
@@ -107,19 +107,19 @@ SELECT
 	SUM(
 		CASE WHEN 
 			DATEADD(
-				dd,
+				DAY,
 				{@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed,
 				@exposure_start_date
 			) >= op1.observation_period_start_date
 		THEN 		
 			DATEDIFF(
-				dd,
+				DAY,
 				DATEADD(DAY, {@use_length_of_exposure_unexposed} ? {-1*DATEDIFF(DAY, d1.@exposure_start_date, d1.@exposure_end_date)} : {0} + @surveillance_unexposed, @exposure_start_date), 
 				DATEADD(DAY, @time_at_risk_unexposed_start, @exposure_start_date)
 			)
 		ELSE  
 			DATEDIFF(
-				dd, 
+				DAY, 
 				op1.observation_period_start_date, 
 				DATEADD(DAY, @time_at_risk_unexposed_start, @exposure_start_date)
 			)
@@ -299,12 +299,12 @@ WHERE
 	{@has_full_time_at_risk} ? {
 		AND 
 			op1.observation_period_end_date >= DATEADD(
-				dd, 
+				DAY, 
 				{@use_length_of_exposure_exposed} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_exposed,
 				d1.@exposure_start_date)		
 		AND 
 			op1.observation_period_start_date <= DATEADD(
-				dd,
+				DAY,
 				{@use_length_of_exposure_exposed} ? {DATEDIFF(DAY,d1.@exposure_start_date,d1.@exposure_end_date)} : {0} + @surveillance_unexposed,
 				d1.@exposure_start_date)	
 	}

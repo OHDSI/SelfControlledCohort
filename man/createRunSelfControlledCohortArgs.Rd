@@ -4,22 +4,21 @@
 \alias{createRunSelfControlledCohortArgs}
 \title{Create a parameter object for the function runSelfControlledCohort}
 \usage{
-createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = TRUE,
-  firstOccurrenceConditionOnly = TRUE,
-  outcomeConditionTypeConceptIds = c(38000247), genderConceptIds = c(8507,
-  8532), minAge = "", maxAge = "", studyStartDate = "",
-  studyEndDate = "", stratifyByGender = FALSE, stratifyByAge = FALSE,
-  stratifyByYear = FALSE, useLengthOfExposureExposed = TRUE,
-  timeAtRiskExposedStart = 1, surveillanceExposed = 30,
-  useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1,
-  surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE,
-  washoutWindow = 0, followupWindow = 0)
+createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
+  firstOutcomeOnly = TRUE, outcomeConditionTypeConceptIds = c(38000247),
+  genderConceptIds = c(8507, 8532), minAge = "", maxAge = "",
+  studyStartDate = "", studyEndDate = "", stratifyByGender = FALSE,
+  stratifyByAge = FALSE, stratifyByYear = FALSE,
+  addLengthOfExposureExposed = TRUE, riskWindowStartExposed = 1,
+  riskWindowEndExposed = 30, addLengthOfExposureUnexposed = TRUE,
+  riskWindowEndUnexposed = -1, riskWindowStartUnexposed = -30,
+  hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0)
 }
 \arguments{
-\item{firstOccurrenceDrugOnly}{If TRUE, only use first occurrence of each drug concept
+\item{firstExposureOnly}{If TRUE, only use first occurrence of each drug concept
 idfor each person}
 
-\item{firstOccurrenceConditionOnly}{If TRUE, only use first occurrence of each condition
+\item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition
 conceptid for each person.}
 
 \item{outcomeConditionTypeConceptIds}{A list of TYPE_CONCEPT_ID values that will restrictcondition
@@ -49,35 +48,35 @@ below).}
 \item{stratifyByYear}{If TRUE, analysis will be calculated overall, and
 stratifiedacross all years of the index dates.}
 
-\item{useLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd
+\item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd
 aspart of timeAtRisk.}
 
-\item{timeAtRiskExposedStart}{Integer of days to add to drugEraStart for start
+\item{riskWindowStartExposed}{Integer of days to add to drugEraStart for start
 oftimeAtRisk (0 to include index date, 1 to start the
 dayafter).}
 
-\item{surveillanceExposed}{Additional window to add to end of exposure period
-(ifuseLengthOfExposureExposed = TRUE, then add to exposure
+\item{riskWindowEndExposed}{Additional window to add to end of exposure period
+(ifaddLengthOfExposureExposed = TRUE, then add to exposure
 enddate, else add to exposure start date).}
 
-\item{useLengthOfExposureUnexposed}{If TRUE, use the duration from exposure start -> exposureend
+\item{addLengthOfExposureUnexposed}{If TRUE, use the duration from exposure start -> exposureend
 as part of timeAtRisk looking back before exposurestart.}
 
-\item{timeAtRiskUnexposedStart}{Integer of days to add to exposure start for start
-oftimeAtRisk (0 to include index date, -1 to start the
+\item{riskWindowEndUnexposed}{Integer of days to add to exposure start for end
+oftimeAtRisk (0 to include index date, -1 to end the
 daybefore).}
 
-\item{surveillanceUnexposed}{Additional window to add to end of exposure period
-(ifuseLengthOfExposureUnexposed = TRUE, then add to
+\item{riskWindowStartUnexposed}{Additional window to add to start of exposure period
+(ifaddLengthOfExposureUnexposed = TRUE, then add to
 exposureend date, else add to exposure start date).}
 
 \item{hasFullTimeAtRisk}{If TRUE, restrict to people who have full
 time-at-riskexposed and unexposed.}
 
-\item{washoutWindow}{Integer to define required time observed before
+\item{washoutPeriod}{Integer to define required time observed before
 exposurestart.}
 
-\item{followupWindow}{Integer to define required time observed after
+\item{followupPeriod}{Integer to define required time observed after
 exposurestart.}
 }
 \description{

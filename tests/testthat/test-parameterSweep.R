@@ -7,6 +7,9 @@ testAllParams <- function(connectionDetails,
                           cdmDatabaseSchema,
                           cdmVersion,
                           oracleTempSchema = NULL) {
+  # Open connection once, so it will be reused:
+  connectionDetails$conn <- DatabaseConnector::connect(connectionDetails)
+
   for (outcomeTable in c("condition_era", "cohort")) {
     for (exposureTable in c("drug_era", "cohort")) {
       for (restrictAgeAndYear in c(TRUE, FALSE)) {
@@ -39,8 +42,8 @@ testAllParams <- function(connectionDetails,
                                                    stratifyByGender = stratify,
                                                    stratifyByAge = stratify,
                                                    stratifyByYear = stratify,
-                                                   useLengthOfExposureExposed = useLengthOfExposure,
-                                                   useLengthOfExposureUnexposed = useLengthOfExposure,
+                                                   addLengthOfExposureExposed = useLengthOfExposure,
+                                                   addLengthOfExposureUnexposed = useLengthOfExposure,
                                                    hasFullTimeAtRisk = hasFullTimeAtRisk)
               expect_equal(class(sccResult), "sccResults")
               expect_equal(class(summary(sccResult)), "data.frame")
@@ -90,5 +93,4 @@ test_that("SCC on Oracle", {
   cdmVersion <- 5
 
   testAllParams(connectionDetails, cdmDatabaseSchema, cdmVersion, oracleTempSchema)
-
 })

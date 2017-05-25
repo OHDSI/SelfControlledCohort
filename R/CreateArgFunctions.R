@@ -5,9 +5,9 @@
 #' @details
 #' Create an object defining the parameter values.
 #'
-#' @param firstOccurrenceDrugOnly          If TRUE, only use first occurrence of each drug concept
+#' @param firstExposureOnly                If TRUE, only use first occurrence of each drug concept
 #'                                         idfor each person
-#' @param firstOccurrenceConditionOnly     If TRUE, only use first occurrence of each condition
+#' @param firstOutcomeOnly                 If TRUE, only use first occurrence of each condition
 #'                                         conceptid for each person.
 #' @param outcomeConditionTypeConceptIds   A list of TYPE_CONCEPT_ID values that will restrictcondition
 #'                                         occurrences.  Only applicable if outcomeTable
@@ -27,32 +27,32 @@
 #'                                         below).
 #' @param stratifyByYear                   If TRUE, analysis will be calculated overall, and
 #'                                         stratifiedacross all years of the index dates.
-#' @param useLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd
+#' @param addLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd
 #'                                         aspart of timeAtRisk.
-#' @param timeAtRiskExposedStart           Integer of days to add to drugEraStart for start
+#' @param riskWindowStartExposed           Integer of days to add to drugEraStart for start
 #'                                         oftimeAtRisk (0 to include index date, 1 to start the
 #'                                         dayafter).
-#' @param surveillanceExposed              Additional window to add to end of exposure period
-#'                                         (ifuseLengthOfExposureExposed = TRUE, then add to exposure
+#' @param riskWindowEndExposed             Additional window to add to end of exposure period
+#'                                         (ifaddLengthOfExposureExposed = TRUE, then add to exposure
 #'                                         enddate, else add to exposure start date).
-#' @param useLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposureend
+#' @param addLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposureend
 #'                                         as part of timeAtRisk looking back before exposurestart.
-#' @param timeAtRiskUnexposedStart         Integer of days to add to exposure start for start
-#'                                         oftimeAtRisk (0 to include index date, -1 to start the
+#' @param riskWindowEndUnexposed           Integer of days to add to exposure start for end
+#'                                         oftimeAtRisk (0 to include index date, -1 to end the
 #'                                         daybefore).
-#' @param surveillanceUnexposed            Additional window to add to end of exposure period
-#'                                         (ifuseLengthOfExposureUnexposed = TRUE, then add to
+#' @param riskWindowStartUnexposed         Additional window to add to start of exposure period
+#'                                         (ifaddLengthOfExposureUnexposed = TRUE, then add to
 #'                                         exposureend date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full
 #'                                         time-at-riskexposed and unexposed.
-#' @param washoutWindow                    Integer to define required time observed before
+#' @param washoutPeriod                    Integer to define required time observed before
 #'                                         exposurestart.
-#' @param followupWindow                   Integer to define required time observed after
+#' @param followupPeriod                   Integer to define required time observed after
 #'                                         exposurestart.
 #'
 #' @export
-createRunSelfControlledCohortArgs <- function(firstOccurrenceDrugOnly = TRUE,
-                                              firstOccurrenceConditionOnly = TRUE,
+createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
+                                              firstOutcomeOnly = TRUE,
                                               outcomeConditionTypeConceptIds = c(38000247),
                                               genderConceptIds = c(8507, 8532),
                                               minAge = "",
@@ -62,15 +62,15 @@ createRunSelfControlledCohortArgs <- function(firstOccurrenceDrugOnly = TRUE,
                                               stratifyByGender = FALSE,
                                               stratifyByAge = FALSE,
                                               stratifyByYear = FALSE,
-                                              useLengthOfExposureExposed = TRUE,
-                                              timeAtRiskExposedStart = 1,
-                                              surveillanceExposed = 30,
-                                              useLengthOfExposureUnexposed = TRUE,
-                                              timeAtRiskUnexposedStart = -1,
-                                              surveillanceUnexposed = -30,
+                                              addLengthOfExposureExposed = TRUE,
+                                              riskWindowStartExposed = 1,
+                                              riskWindowEndExposed = 30,
+                                              addLengthOfExposureUnexposed = TRUE,
+                                              riskWindowEndUnexposed = -1,
+                                              riskWindowStartUnexposed = -30,
                                               hasFullTimeAtRisk = FALSE,
-                                              washoutWindow = 0,
-                                              followupWindow = 0) {
+                                              washoutPeriod = 0,
+                                              followupPeriod = 0) {
   # First: get default values:
   analysis <- list()
   for (name in names(formals(createRunSelfControlledCohortArgs))) {

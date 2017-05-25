@@ -8,15 +8,15 @@ runSelfControlledCohort(connectionDetails, cdmDatabaseSchema, cdmVersion = 5,
   oracleTempSchema, exposureIds, outcomeIds,
   exposureDatabaseSchema = cdmDatabaseSchema, exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema, outcomeTable = "condition_era",
-  firstOccurrenceDrugOnly = TRUE, firstOccurrenceConditionOnly = TRUE,
+  firstExposureOnly = TRUE, firstOutcomeOnly = TRUE,
   outcomeConditionTypeConceptIds = c(38000247), genderConceptIds = c(8507,
   8532), minAge = "", maxAge = "", studyStartDate = "",
   studyEndDate = "", stratifyByGender = FALSE, stratifyByAge = FALSE,
-  stratifyByYear = FALSE, useLengthOfExposureExposed = TRUE,
-  timeAtRiskExposedStart = 1, surveillanceExposed = 30,
-  useLengthOfExposureUnexposed = TRUE, timeAtRiskUnexposedStart = -1,
-  surveillanceUnexposed = -30, hasFullTimeAtRisk = FALSE,
-  washoutWindow = 0, followupWindow = 0)
+  stratifyByYear = FALSE, addLengthOfExposureExposed = TRUE,
+  riskWindowStartExposed = 1, riskWindowEndExposed = 30,
+  addLengthOfExposureUnexposed = TRUE, riskWindowEndUnexposed = -1,
+  riskWindowStartUnexposed = -30, hasFullTimeAtRisk = FALSE,
+  washoutPeriod = 0, followupPeriod = 0)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using
@@ -62,10 +62,10 @@ outcomeTable has format of COHORT table:
 COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 COHORT_END_DATE.}
 
-\item{firstOccurrenceDrugOnly}{If TRUE, only use first occurrence of each drug concept id
+\item{firstExposureOnly}{If TRUE, only use first occurrence of each drug concept id
 for each person}
 
-\item{firstOccurrenceConditionOnly}{If TRUE, only use first occurrence of each condition concept
+\item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition concept
 id for each person.}
 
 \item{outcomeConditionTypeConceptIds}{A list of TYPE_CONCEPT_ID values that will restrict
@@ -94,36 +94,36 @@ across all age groups (using AGE_GROUP table below).}
 \item{stratifyByYear}{If TRUE, analysis will be calculated overall, and stratified
 across all years of the index dates.}
 
-\item{useLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd as
+\item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd as
 part of timeAtRisk.}
 
-\item{timeAtRiskExposedStart}{Integer of days to add to drugEraStart for start of
+\item{riskWindowStartExposed}{Integer of days to add to drugEraStart for start of
 timeAtRisk (0 to include index date, 1 to start the day
 after).}
 
-\item{surveillanceExposed}{Additional window to add to end of exposure period (if
-useLengthOfExposureExposed = TRUE, then add to exposure end
+\item{riskWindowEndExposed}{Additional window to add to end of exposure period (if
+addLengthOfExposureExposed = TRUE, then add to exposure end
 date, else add to exposure start date).}
 
-\item{useLengthOfExposureUnexposed}{If TRUE, use the duration from exposure start -> exposure
+\item{addLengthOfExposureUnexposed}{If TRUE, use the duration from exposure start -> exposure
 end as part of timeAtRisk looking back before exposure
 start.}
 
-\item{timeAtRiskUnexposedStart}{Integer of days to add to exposure start for start of
-timeAtRisk (0 to include index date, -1 to start the day
+\item{riskWindowEndUnexposed}{Integer of days to add to exposure start for end of
+timeAtRisk (0 to include index date, -1 to end the day
 before).}
 
-\item{surveillanceUnexposed}{Additional window to add to end of exposure period (if
-useLengthOfExposureUnexposed = TRUE, then add to exposure
+\item{riskWindowStartUnexposed}{Additional window to add to start of exposure period (if
+addLengthOfExposureUnexposed = TRUE, then add to exposure
 end date, else add to exposure start date).}
 
 \item{hasFullTimeAtRisk}{If TRUE, restrict to people who have full time-at-risk
 exposed and unexposed.}
 
-\item{washoutWindow}{Integer to define required time observed before exposure
+\item{washoutPeriod}{Integer to define required time observed before exposure
 start.}
 
-\item{followupWindow}{Integer to define required time observed after exposure
+\item{followupPeriod}{Integer to define required time observed after exposure
 start.}
 }
 \value{
