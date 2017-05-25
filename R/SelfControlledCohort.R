@@ -36,7 +36,6 @@ NULL
 #' @details
 #' Population-level estimation method that estimates incidence rate comparison of exposed/unexposed
 #' time within an exposed cohort.
-#'
 #' If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
 #' combination of exposure and outcome.
 #'
@@ -78,9 +77,9 @@ NULL
 #'                                         outcomeTable has format of COHORT table:
 #'                                         COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 #'                                         COHORT_END_DATE.
-#' @param firstExposureOnly          If TRUE, only use first occurrence of each drug concept id
+#' @param firstExposureOnly                If TRUE, only use first occurrence of each drug concept id
 #'                                         for each person
-#' @param firstOutcomeOnly     If TRUE, only use first occurrence of each condition concept
+#' @param firstOutcomeOnly                 If TRUE, only use first occurrence of each condition concept
 #'                                         id for each person.
 #' @param outcomeConditionTypeConceptIds   A list of TYPE_CONCEPT_ID values that will restrict
 #'                                         condition occurrences.  Only applicable if outcomeTable =
@@ -104,16 +103,16 @@ NULL
 #' @param riskWindowStartExposed           Integer of days to add to drugEraStart for start of
 #'                                         timeAtRisk (0 to include index date, 1 to start the day
 #'                                         after).
-#' @param riskWindowEndExposed              Additional window to add to end of exposure period (if
+#' @param riskWindowEndExposed             Additional window to add to end of exposure period (if
 #'                                         addLengthOfExposureExposed = TRUE, then add to exposure end
 #'                                         date, else add to exposure start date).
 #' @param addLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposure
 #'                                         end as part of timeAtRisk looking back before exposure
 #'                                         start.
-#' @param riskWindowEndUnexposed         Integer of days to add to exposure start for end of
+#' @param riskWindowEndUnexposed           Integer of days to add to exposure start for end of
 #'                                         timeAtRisk (0 to include index date, -1 to end the day
 #'                                         before).
-#' @param riskWindowStartUnexposed            Additional window to add to start of exposure period (if
+#' @param riskWindowStartUnexposed         Additional window to add to start of exposure period (if
 #'                                         addLengthOfExposureUnexposed = TRUE, then add to exposure
 #'                                         end date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
@@ -272,14 +271,16 @@ runSelfControlledCohort <- function(connectionDetails,
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
   if (nrow(estimates) > 0) {
     for (i in 1:nrow(estimates)) {
-      test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i], estimates$numOutcomesUnexposed[i]),
-                                             n = c(estimates$timeAtRiskExposed[i], estimates$timeAtRiskUnexposed[i]))
+      test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i],
+                                                   estimates$numOutcomesUnexposed[i]),
+                                             n = c(estimates$timeAtRiskExposed[i],
+                                                   estimates$timeAtRiskUnexposed[i]))
       estimates$incidenceRateRatio[i] <- test$estimate[1]
       estimates$irrLb95[i] <- test$conf.int[1]
       estimates$irrUb95[i] <- test$conf.int[2]
     }
     estimates$logRr <- log(estimates$incidenceRateRatio)
-    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
+    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95))/(2 * qnorm(0.975))
   }
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"

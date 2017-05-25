@@ -48,7 +48,7 @@ exposureOutcome1 <- createExposureOutcome(767410, 444382)
 exposureOutcome2 <- createExposureOutcome(1314924, 444382)
 exposureOutcome3 <- createExposureOutcome(907879, 444382)
 exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
-#saveExposureOutcomeList(exposureOutcomeList, "s:/temp/exposureOutcomeList.txt")
+# saveExposureOutcomeList(exposureOutcomeList, 's:/temp/exposureOutcomeList.txt')
 
 
 runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = FALSE)
@@ -58,7 +58,7 @@ sccAnalysis1 <- createSccAnalysis(analysisId = 1,
 sccAnalysis2 <- createSccAnalysis(analysisId = 2,
                                   runSelfControlledCohortArgs = runSelfControlledCohortArgs2)
 sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
-#saveSccAnalysisList(sccAnalysisList, "s:/temp/sccAnalysisList.txt")
+# saveSccAnalysisList(sccAnalysisList, 's:/temp/sccAnalysisList.txt')
 
 outputFolder <- "s:/temp/Scc"
 
@@ -115,8 +115,8 @@ res <- summarizeAnalyses(rr)
 #### PRoblem
 
 
-setwd('s:/temp')
-options('fftempdir' = 's:/fftemp')
+setwd("s:/temp")
+options(fftempdir = "s:/fftemp")
 
 pw <- NULL
 dbms <- "pdw"

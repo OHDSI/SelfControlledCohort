@@ -108,8 +108,7 @@ loadSccAnalysisList <- function(file) {
 #'
 #' @export
 createExposureOutcome <- function(exposureId, outcomeId) {
-  exposureOutcome <- list(exposureId = exposureId,
-                          outcomeId = outcomeId)
+  exposureOutcome <- list(exposureId = exposureId, outcomeId = outcomeId)
   class(exposureOutcome) <- "exposureOutcome"
   return(exposureOutcome)
 }
