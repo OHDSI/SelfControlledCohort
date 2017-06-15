@@ -25,6 +25,26 @@
 #' @import DatabaseConnector
 NULL
 
+.onLoad <- function(libname, pkgname) {
+  missing(libname)  # suppresses R CMD check note
+  missing(pkgname)  # suppresses R CMD check note
+  # Copied this from the ff package:
+  if (is.null(getOption("ffmaxbytes"))) {
+    # memory.limit is windows specific
+    if (.Platform$OS.type == "windows") {
+      if (getRversion() >= "2.6.0")
+        options(ffmaxbytes = 0.5 * utils::memory.limit() * (1024^2)) else options(ffmaxbytes = 0.5 * utils::memory.limit())
+    } else {
+      # some magic constant
+      options(ffmaxbytes = 0.5 * 1024^3)
+    }
+  }
+
+  # Workaround for problem with ff on machines with lots of memory (see
+  # https://github.com/edwindj/ffbase/issues/37)
+  options(ffmaxbytes = min(getOption("ffmaxbytes"), .Machine$integer.max * 12))
+}
+
 computeIrrs <- function(i, estimates) {
   computeIrr <- function(i) {
     test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i],
@@ -40,8 +60,6 @@ computeIrrs <- function(i, estimates) {
   irrs <- lapply(1:nrow(chunk), computeIrr)
   irrs <- do.call("rbind", irrs)
   chunk <- cbind(chunk, irrs)
-  chunk$logRr <- log(chunk$irr)
-  chunk$seLogRr <- (log(chunk$irrUb95) - log(chunk$irrLb95))/(2 * qnorm(0.975))
   return(chunk)
 }
 
@@ -176,6 +194,7 @@ runSelfControlledCohort <- function(connectionDetails,
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
     stop("Risk window end (unexposed) should be on or after risk window start")
+  start <- Sys.time()
   exposureTable <- tolower(exposureTable)
   outcomeTable <- tolower(outcomeTable)
   if (exposureTable == "drug_era") {
@@ -277,15 +296,40 @@ runSelfControlledCohort <- function(connectionDetails,
   if (is.null(connectionDetails$conn)) {
     RJDBC::dbDisconnect(conn)
   }
+  # estimates <- readRDS("s:/temp/estimates.rds")
+  # estimates <- estimates[1:1000000, ]
+  # estimates <- ff::as.ffdf(estimates)
 
   if (nrow(estimates) > 0) {
     writeLines("Computing incidence rate ratios and exact confidence intervals")
-    idxs <- bit::chunk(estimates, by = 10000)
-    cluster <- OhdsiRTools::makeCluster(computeThreads)
-    estimates <- OhdsiRTools::clusterApply(cluster, idxs, computeIrrs, estimates = estimates)
-    OhdsiRTools::stopCluster(cluster)
-    estimates <- do.call("rbind", estimates)
+    zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
+    if (ffbase::any.ff(zeroCountIdx)) {
+      zeroCountRows <- ff::as.ram(estimates[zeroCountIdx, ])
+      zeroCountRows$irr <- NA
+      zeroCountRows$irrLb95 <- 0
+      zeroCountRows$irrUb95 <- Inf
+    }
+    if (ffbase::any.ff(!zeroCountIdx)) {
+      estimates <- estimates[!zeroCountIdx, ]
+      idxs <- bit::chunk(estimates, by = 10000)
+      cluster <- OhdsiRTools::makeCluster(computeThreads)
+      estimates <- OhdsiRTools::clusterApply(cluster, idxs, computeIrrs, estimates = estimates)
+      OhdsiRTools::stopCluster(cluster)
+      estimates <- do.call("rbind", estimates)
+      if (ffbase::any.ff(zeroCountIdx)) {
+        estimates <- rbind(estimates, zeroCountRows)
+      }
+    } else {
+      if (ffbase::any.ff(zeroCountIdx)) {
+        estimates <- zeroCountRows
+      }
+    }
+    estimates$logRr <- log(estimates$irr)
+    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95))/(2 * qnorm(0.975))
   }
+  delta <- Sys.time() - start
+  writeLines(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
+
   result <- list(estimates = estimates,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
