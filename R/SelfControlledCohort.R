@@ -25,6 +25,26 @@
 #' @import DatabaseConnector
 NULL
 
+computeIrrs <- function(i, estimates) {
+  computeIrr <- function(i) {
+    test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i],
+                                                 estimates$numOutcomesUnexposed[i]),
+                                           n = c(estimates$timeAtRiskExposed[i],
+                                                 estimates$timeAtRiskUnexposed[i]))
+    irr <- data.frame(irr = test$estimate[1],
+                      irrLb95 = test$conf.int[1],
+                      irrUb95 = test$conf.int[2])
+    return(irr)
+  }
+  chunk <- estimates[i, ]
+  irrs <- lapply(1:nrow(chunk), computeIrr)
+  irrs <- do.call("rbind", irrs)
+  chunk <- cbind(chunk, irrs)
+  chunk$logRr <- log(chunk$irr)
+  chunk$seLogRr <- (log(chunk$irrUb95) - log(chunk$irrLb95))/(2 * qnorm(0.975))
+  return(chunk)
+}
+
 #' @title
 #' Run self-controlled cohort
 #'
@@ -110,6 +130,8 @@ NULL
 #'                                         start.
 #' @param followupPeriod                   Integer to define required time observed after exposure
 #'                                         start.
+#' @param computeThreads                   Number of parallel threads for computing IRRs with exact
+#'                                         confidence intervals.
 #'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
@@ -148,7 +170,8 @@ runSelfControlledCohort <- function(connectionDetails,
                                     riskWindowStartUnexposed = -30,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutPeriod = 0,
-                                    followupPeriod = 0) {
+                                    followupPeriod = 0,
+                                    computeThreads = 1) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -234,7 +257,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutPeriod,
                                                    followup_window = followupPeriod)
-  writeLines("Executing analysis")
+  writeLines("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
 
   # Fetch results from server:
@@ -242,25 +265,9 @@ runSelfControlledCohort <- function(connectionDetails,
   sql <- SqlRender::translateSql(sql,
                                  targetDialect = connectionDetails$dbms,
                                  oracleTempSchema = oracleTempSchema)$sql
-  estimates <- DatabaseConnector::querySql(conn, sql)
+  estimates <- DatabaseConnector::querySql.ffdf(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
-  if (nrow(estimates) > 0) {
-    computeIrr <- function(i) {
-      test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i],
-                                                   estimates$numOutcomesUnexposed[i]),
-                                             n = c(estimates$timeAtRiskExposed[i],
-                                                   estimates$timeAtRiskUnexposed[i]))
-      irr <- data.frame(irr = test$estimate[1],
-                        irrLb95 = test$conf.int[1],
-                        irrUb95 = test$conf.int[2])
-      return(irr)
-    }
-    irrs <- lapply(1:nrow(estimates), computeIrr)
-    irrs <- do.call("rbind", irrs)
-    estimates <- cbind(estimates, irrs)
-    estimates$logRr <- log(estimates$irr)
-    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95))/(2 * qnorm(0.975))
-  }
+
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
   sql <- SqlRender::translateSql(sql,
@@ -270,16 +277,22 @@ runSelfControlledCohort <- function(connectionDetails,
   if (is.null(connectionDetails$conn)) {
     RJDBC::dbDisconnect(conn)
   }
+
+  if (nrow(estimates) > 0) {
+    writeLines("Computing incidence rate ratios and exact confidence intervals")
+    idxs <- bit::chunk(estimates, by = 10000)
+    cluster <- OhdsiRTools::makeCluster(computeThreads)
+    estimates <- OhdsiRTools::clusterApply(cluster, idxs, computeIrrs, estimates = estimates)
+    OhdsiRTools::stopCluster(cluster)
+    estimates <- do.call("rbind", estimates)
+  }
   result <- list(estimates = estimates,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
-                 call = match.call(),
-                 sql = renderedSql)
-
+                 call = match.call())
   class(result) <- "sccResults"
   return(result)
 }
-
 
 #' @export
 print.sccResults <- function(x, ...) {

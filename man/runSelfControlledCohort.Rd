@@ -13,7 +13,8 @@ runSelfControlledCohort(connectionDetails, cdmDatabaseSchema, cdmVersion = 5,
   addLengthOfExposureExposed = TRUE, riskWindowStartExposed = 1,
   riskWindowEndExposed = 30, addLengthOfExposureUnexposed = TRUE,
   riskWindowEndUnexposed = -1, riskWindowStartUnexposed = -30,
-  hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0)
+  hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0,
+  computeThreads = 1)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using
@@ -108,6 +109,9 @@ start.}
 
 \item{followupPeriod}{Integer to define required time observed after exposure
 start.}
+
+\item{computeThreads}{Number of parallel threads for computing IRRs with exact
+confidence intervals.}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.

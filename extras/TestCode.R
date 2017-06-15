@@ -1,5 +1,5 @@
-
 library(SelfControlledCohort)
+options(fftempdir = "s:/temp")
 
 pw <- NULL
 dbms <- "sql server"
@@ -99,7 +99,8 @@ rr <- runSccAnalyses(connectionDetails = connectionDetails,
                      cdmDatabaseSchema = cdmDatabaseSchema,
                      sccAnalysisList = sccAnalysisList,
                      exposureOutcomeList = exposureOutcomeList,
-                     outputFolder = outputFolder)
+                     outputFolder = outputFolder,
+                     computeThreads = 2)
 
 rr <- readRDS(file.path(outputFolder, "resultsReference.rds"))
 

@@ -57,6 +57,8 @@
 #'                                 the \code{\link{createExposureOutcome}} function.
 #' @param cdmVersion               Define the OMOP CDM version used: currently support "4" and "5".
 #' @param analysisThreads          The number of parallel threads to use to execute the analyses.
+#' @param computeThreads           Number of parallel threads per analysis thread for computing IRRs with exact
+#'                                 confidence intervals.
 #'
 #' @export
 runSccAnalyses <- function(connectionDetails,
@@ -70,7 +72,8 @@ runSccAnalyses <- function(connectionDetails,
                            outputFolder = "./SelfControlledCohortOutput",
                            sccAnalysisList,
                            exposureOutcomeList,
-                           analysisThreads = 1) {
+                           analysisThreads = 1,
+                           computeThreads = 1) {
   for (exposureOutcome in exposureOutcomeList) {
     stopifnot(class(exposureOutcome) == "exposureOutcome")
   }
@@ -127,7 +130,8 @@ runSccAnalyses <- function(connectionDetails,
                    outcomeTable = outcomeTable,
                    cdmVersion = cdmVersion,
                    exposureIds = exposureIds,
-                   outcomeIds = outcomeId)
+                   outcomeIds = outcomeId,
+                   computeThreads = computeThreads)
       args <- append(args, getrunSelfControlledCohortArgs)
       objectsToCreate[[length(objectsToCreate) + 1]] <- list(args = args,
                                                              sccResultsFile = sccResultsFile)

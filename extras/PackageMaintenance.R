@@ -38,7 +38,8 @@ rCode <- OhdsiRTools::createArgFunction("runSelfControlledCohort",
                                                         "outcomeTable",
                                                         "cdmVersion",
                                                         "exposureIds",
-                                                        "outcomeIds"),
+                                                        "outcomeIds",
+                                                        "computeThreads"),
                                         rCode = rCode)
 writeLines(rCode, "r/CreateArgFunctions.R")
 OhdsiRTools::formatRFile("r/CreateArgFunctions.R")
