@@ -8,15 +8,12 @@ runSelfControlledCohort(connectionDetails, cdmDatabaseSchema, cdmVersion = 5,
   oracleTempSchema, exposureIds, outcomeIds,
   exposureDatabaseSchema = cdmDatabaseSchema, exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema, outcomeTable = "condition_era",
-  firstExposureOnly = TRUE, firstOutcomeOnly = TRUE,
-  outcomeConditionTypeConceptIds = c(38000247), genderConceptIds = c(8507,
-  8532), minAge = "", maxAge = "", studyStartDate = "",
-  studyEndDate = "", stratifyByGender = FALSE, stratifyByAge = FALSE,
-  stratifyByYear = FALSE, addLengthOfExposureExposed = TRUE,
-  riskWindowStartExposed = 1, riskWindowEndExposed = 30,
-  addLengthOfExposureUnexposed = TRUE, riskWindowEndUnexposed = -1,
-  riskWindowStartUnexposed = -30, hasFullTimeAtRisk = FALSE,
-  washoutPeriod = 0, followupPeriod = 0)
+  firstExposureOnly = TRUE, firstOutcomeOnly = TRUE, minAge = "",
+  maxAge = "", studyStartDate = "", studyEndDate = "",
+  addLengthOfExposureExposed = TRUE, riskWindowStartExposed = 1,
+  riskWindowEndExposed = 30, addLengthOfExposureUnexposed = TRUE,
+  riskWindowEndUnexposed = -1, riskWindowStartUnexposed = -30,
+  hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using
@@ -34,10 +31,12 @@ want all temporary tables to be managed. Requires
 create/insert permissions to this database.}
 
 \item{exposureIds}{A vector containing the drug_concept_ids or
-cohort_definition_ids of the exposures of interest}
+cohort_definition_ids of the exposures of interest. If empty,
+all exposures in the exposure table will be included.}
 
 \item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
-outcomes of interest}
+outcomes of interest. If empty, all the outcomes in the
+outcome table will be included.}
 
 \item{exposureDatabaseSchema}{The name of the database schema that is the location where
 the exposure data used to define the exposure cohorts is
@@ -68,13 +67,6 @@ for each person}
 \item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition concept
 id for each person.}
 
-\item{outcomeConditionTypeConceptIds}{A list of TYPE_CONCEPT_ID values that will restrict
-condition occurrences.  Only applicable if outcomeTable =
-CONDITION_OCCURRENCE.}
-
-\item{genderConceptIds}{of gender_concept_id, generally use MALE (8507) and FEMALE
-(8532).}
-
 \item{minAge}{Integer for minimum allowable age.}
 
 \item{maxAge}{Integer for maximum allowable age.}
@@ -84,15 +76,6 @@ format is 'yyyymmdd'.}
 
 \item{studyEndDate}{Date for maximum allowable data for index exposure. Date
 format is 'yyyymmdd'.}
-
-\item{stratifyByGender}{If TRUE, analysis will be calculated overall, and stratified
-across all gender groups.}
-
-\item{stratifyByAge}{If TRUE, analysis will be calculated overall, and stratified
-across all age groups (using AGE_GROUP table below).}
-
-\item{stratifyByYear}{If TRUE, analysis will be calculated overall, and stratified
-across all years of the index dates.}
 
 \item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd as
 part of timeAtRisk.}
@@ -136,7 +119,6 @@ unexposed time among exposed cohort.
 \details{
 Population-level estimation method that estimates incidence rate comparison of exposed/unexposed
 time within an exposed cohort.
-
 If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
 combination of exposure and outcome.
 }

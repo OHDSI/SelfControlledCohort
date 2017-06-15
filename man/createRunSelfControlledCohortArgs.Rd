@@ -5,55 +5,35 @@
 \title{Create a parameter object for the function runSelfControlledCohort}
 \usage{
 createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
-  firstOutcomeOnly = TRUE, outcomeConditionTypeConceptIds = c(38000247),
-  genderConceptIds = c(8507, 8532), minAge = "", maxAge = "",
-  studyStartDate = "", studyEndDate = "", stratifyByGender = FALSE,
-  stratifyByAge = FALSE, stratifyByYear = FALSE,
+  firstOutcomeOnly = TRUE, minAge = "", maxAge = "",
+  studyStartDate = "", studyEndDate = "",
   addLengthOfExposureExposed = TRUE, riskWindowStartExposed = 1,
   riskWindowEndExposed = 30, addLengthOfExposureUnexposed = TRUE,
   riskWindowEndUnexposed = -1, riskWindowStartUnexposed = -30,
   hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0)
 }
 \arguments{
-\item{firstExposureOnly}{If TRUE, only use first occurrence of each drug concept
-idfor each person}
+\item{firstExposureOnly}{If TRUE, only use first occurrence of each drug concept idfor
+each person}
 
-\item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition
-conceptid for each person.}
-
-\item{outcomeConditionTypeConceptIds}{A list of TYPE_CONCEPT_ID values that will restrictcondition
-occurrences.  Only applicable if outcomeTable
-=CONDITION_OCCURRENCE.}
-
-\item{genderConceptIds}{of gender_concept_id, generally use MALE (8507) and
-FEMALE(8532).}
+\item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition conceptid
+for each person.}
 
 \item{minAge}{Integer for minimum allowable age.}
 
 \item{maxAge}{Integer for maximum allowable age.}
 
-\item{studyStartDate}{Date for minimum allowable data for index exposure.
-Dateformat is 'yyyymmdd'.}
+\item{studyStartDate}{Date for minimum allowable data for index exposure. Dateformat
+is 'yyyymmdd'.}
 
-\item{studyEndDate}{Date for maximum allowable data for index exposure.
-Dateformat is 'yyyymmdd'.}
-
-\item{stratifyByGender}{If TRUE, analysis will be calculated overall, and
-stratifiedacross all gender groups.}
-
-\item{stratifyByAge}{If TRUE, analysis will be calculated overall, and
-stratifiedacross all age groups (using AGE_GROUP table
-below).}
-
-\item{stratifyByYear}{If TRUE, analysis will be calculated overall, and
-stratifiedacross all years of the index dates.}
+\item{studyEndDate}{Date for maximum allowable data for index exposure. Dateformat
+is 'yyyymmdd'.}
 
 \item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd
 aspart of timeAtRisk.}
 
-\item{riskWindowStartExposed}{Integer of days to add to drugEraStart for start
-oftimeAtRisk (0 to include index date, 1 to start the
-dayafter).}
+\item{riskWindowStartExposed}{Integer of days to add to drugEraStart for start oftimeAtRisk
+(0 to include index date, 1 to start the dayafter).}
 
 \item{riskWindowEndExposed}{Additional window to add to end of exposure period
 (ifaddLengthOfExposureExposed = TRUE, then add to exposure
@@ -62,22 +42,19 @@ enddate, else add to exposure start date).}
 \item{addLengthOfExposureUnexposed}{If TRUE, use the duration from exposure start -> exposureend
 as part of timeAtRisk looking back before exposurestart.}
 
-\item{riskWindowEndUnexposed}{Integer of days to add to exposure start for end
-oftimeAtRisk (0 to include index date, -1 to end the
-daybefore).}
+\item{riskWindowEndUnexposed}{Integer of days to add to exposure start for end oftimeAtRisk
+(0 to include index date, -1 to end the daybefore).}
 
 \item{riskWindowStartUnexposed}{Additional window to add to start of exposure period
 (ifaddLengthOfExposureUnexposed = TRUE, then add to
 exposureend date, else add to exposure start date).}
 
-\item{hasFullTimeAtRisk}{If TRUE, restrict to people who have full
-time-at-riskexposed and unexposed.}
+\item{hasFullTimeAtRisk}{If TRUE, restrict to people who have full time-at-riskexposed
+and unexposed.}
 
-\item{washoutPeriod}{Integer to define required time observed before
-exposurestart.}
+\item{washoutPeriod}{Integer to define required time observed before exposurestart.}
 
-\item{followupPeriod}{Integer to define required time observed after
-exposurestart.}
+\item{followupPeriod}{Integer to define required time observed after exposurestart.}
 }
 \description{
 Create a parameter object for the function runSelfControlledCohort

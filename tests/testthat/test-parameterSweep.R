@@ -13,19 +13,18 @@ testAllParams <- function(connectionDetails,
   for (outcomeTable in c("condition_era", "cohort")) {
     for (exposureTable in c("drug_era", "cohort")) {
       for (restrictAgeAndYear in c(TRUE, FALSE)) {
-        for (stratify in c(TRUE, FALSE)) {
-          for (useLengthOfExposure in c(TRUE, FALSE)) {
+        for (addLengthOfExposure in c(TRUE, FALSE)) {
           for (hasFullTimeAtRisk in c(TRUE, FALSE)) {
             if (restrictAgeAndYear) {
-            minAge <- "21"
-            maxAge <- "65"
-            studyStartDate <- "20000101"
-            studyEndDate <- "20101231"
+              minAge <- "21"
+              maxAge <- "65"
+              studyStartDate <- "20000101"
+              studyEndDate <- "20101231"
             } else {
-            minAge <- ""
-            maxAge <- ""
-            studyStartDate <- ""
-            studyEndDate <- ""
+              minAge <- ""
+              maxAge <- ""
+              studyStartDate <- ""
+              studyEndDate <- ""
             }
             sccResult <- runSelfControlledCohort(connectionDetails,
                                                  cdmDatabaseSchema = cdmDatabaseSchema,
@@ -39,15 +38,11 @@ testAllParams <- function(connectionDetails,
                                                  maxAge = maxAge,
                                                  studyStartDate = studyStartDate,
                                                  studyEndDate = studyEndDate,
-                                                 stratifyByGender = stratify,
-                                                 stratifyByAge = stratify,
-                                                 stratifyByYear = stratify,
-                                                 addLengthOfExposureExposed = useLengthOfExposure,
-                                                 addLengthOfExposureUnexposed = useLengthOfExposure,
+                                                 addLengthOfExposureExposed = addLengthOfExposure,
+                                                 addLengthOfExposureUnexposed = addLengthOfExposure,
                                                  hasFullTimeAtRisk = hasFullTimeAtRisk)
             expect_equal(class(sccResult), "sccResults")
             expect_equal(class(summary(sccResult)), "data.frame")
-          }
           }
         }
       }

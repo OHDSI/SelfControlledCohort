@@ -25,7 +25,6 @@
 #' @import DatabaseConnector
 NULL
 
-
 #' @title
 #' Run self-controlled cohort
 #'
@@ -54,15 +53,16 @@ NULL
 #'                                         want all temporary tables to be managed. Requires
 #'                                         create/insert permissions to this database.
 #' @param exposureIds                      A vector containing the drug_concept_ids or
-#'                                         cohort_definition_ids of the exposures of interest
+#'                                         cohort_definition_ids of the exposures of interest. If empty,
+#'                                         all exposures in the exposure table will be included.
 #' @param outcomeIds                       The condition_concept_ids or cohort_definition_ids of the
-#'                                         outcomes of interest
+#'                                         outcomes of interest. If empty, all the outcomes in the
+#'                                         outcome table will be included.
 #' @param exposureDatabaseSchema           The name of the database schema that is the location where
 #'                                         the exposure data used to define the exposure cohorts is
 #'                                         available. If exposureTable = DRUG_ERA,
 #'                                         exposureDatabaseSchema is not used by assumed to be
 #'                                         cdmSchema.  Requires read permissions to this database.
-#'
 #' @param exposureTable                    The tablename that contains the exposure cohorts.  If
 #'                                         exposureTable <> DRUG_ERA, then expectation is exposureTable
 #'                                         has format of COHORT table: cohort_concept_id, SUBJECT_ID,
@@ -81,23 +81,12 @@ NULL
 #'                                         for each person
 #' @param firstOutcomeOnly                 If TRUE, only use first occurrence of each condition concept
 #'                                         id for each person.
-#' @param outcomeConditionTypeConceptIds   A list of TYPE_CONCEPT_ID values that will restrict
-#'                                         condition occurrences.  Only applicable if outcomeTable =
-#'                                         CONDITION_OCCURRENCE.
-#' @param genderConceptIds                 of gender_concept_id, generally use MALE (8507) and FEMALE
-#'                                         (8532).
 #' @param minAge                           Integer for minimum allowable age.
 #' @param maxAge                           Integer for maximum allowable age.
 #' @param studyStartDate                   Date for minimum allowable data for index exposure. Date
 #'                                         format is 'yyyymmdd'.
 #' @param studyEndDate                     Date for maximum allowable data for index exposure. Date
 #'                                         format is 'yyyymmdd'.
-#' @param stratifyByGender                 If TRUE, analysis will be calculated overall, and stratified
-#'                                         across all gender groups.
-#' @param stratifyByAge                    If TRUE, analysis will be calculated overall, and stratified
-#'                                         across all age groups (using AGE_GROUP table below).
-#' @param stratifyByYear                   If TRUE, analysis will be calculated overall, and stratified
-#'                                         across all years of the index dates.
 #' @param addLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd as
 #'                                         part of timeAtRisk.
 #' @param riskWindowStartExposed           Integer of days to add to drugEraStart for start of
@@ -147,15 +136,10 @@ runSelfControlledCohort <- function(connectionDetails,
                                     outcomeTable = "condition_era",
                                     firstExposureOnly = TRUE,
                                     firstOutcomeOnly = TRUE,
-                                    outcomeConditionTypeConceptIds = c(38000247),
-                                    genderConceptIds = c(8507, 8532),
                                     minAge = "",
                                     maxAge = "",
                                     studyStartDate = "",
                                     studyEndDate = "",
-                                    stratifyByGender = FALSE,
-                                    stratifyByAge = FALSE,
-                                    stratifyByYear = FALSE,
                                     addLengthOfExposureExposed = TRUE,
                                     riskWindowStartExposed = 1,
                                     riskWindowEndExposed = 30,
@@ -165,50 +149,47 @@ runSelfControlledCohort <- function(connectionDetails,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutPeriod = 0,
                                     followupPeriod = 0) {
-  if (riskWindowEndExposed < riskWindowStartExposed)
+  if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
-  if (riskWindowEndUnexposed < riskWindowStartUnexposed)
+  if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
     stop("Risk window end (unexposed) should be on or after risk window start")
   exposureTable <- tolower(exposureTable)
   outcomeTable <- tolower(outcomeTable)
   if (exposureTable == "drug_era") {
     exposureStartDate <- "drug_era_start_date"
     exposureEndDate <- "drug_era_end_date"
-    exposureConceptId <- "drug_concept_id"
+    exposureId <- "drug_concept_id"
     exposurePersonId <- "person_id"
   } else if (exposureTable == "drug_exposure") {
     exposureStartDate <- "drug_exposure_start_date"
     exposureEndDate <- "drug_exposure_end_date"
-    exposureConceptId <- "drug_concept_id"
+    exposureId <- "drug_concept_id"
     exposurePersonId <- "person_id"
   } else {
     exposureStartDate <- "cohort_start_date"
     exposureEndDate <- "cohort_end_date"
     if (cdmVersion == "4") {
-      exposureConceptId <- "cohort_concept_id"
+      exposureId <- "cohort_concept_id"
     } else {
-      exposureConceptId <- "cohort_definition_id"
+      exposureId <- "cohort_definition_id"
     }
     exposurePersonId <- "subject_id"
   }
 
   if (outcomeTable == "condition_era") {
     outcomeStartDate <- "condition_era_start_date"
-    outcomeEndDate <- "condition_era_end_date"
-    outcomeConceptId <- "condition_concept_id"
+    outcomeId <- "condition_concept_id"
     outcomePersonId <- "person_id"
   } else if (outcomeTable == "condition_occurrence") {
     outcomeStartDate <- "condition_start_date"
-    outcomeEndDate <- "condition_end_date"
-    outcomeConceptId <- "condition_concept_id"
+    outcomeId <- "condition_concept_id"
     outcomePersonId <- "person_id"
   } else {
     outcomeStartDate <- "cohort_start_date"
-    outcomeEndDate <- "cohort_end_date"
     if (cdmVersion == "4") {
-      outcomeConceptId <- "cohort_concept_id"
+      outcomeId <- "cohort_concept_id"
     } else {
-      outcomeConceptId <- "cohort_definition_id"
+      outcomeId <- "cohort_definition_id"
     }
     outcomePersonId <- "subject_id"
   }
@@ -220,42 +201,36 @@ runSelfControlledCohort <- function(connectionDetails,
     conn <- connectionDetails$conn
   }
 
-  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccParameterizedSQL.sql",
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connectionDetails$dbms,
                                                    oracleTempSchema = oracleTempSchema,
                                                    cdm_database_schema = cdmDatabaseSchema,
                                                    exposure_ids = exposureIds,
-                                                   outcome_id = outcomeIds,
+                                                   outcome_ids = outcomeIds,
                                                    exposure_database_schema = exposureDatabaseSchema,
                                                    exposure_table = exposureTable,
                                                    exposure_start_date = exposureStartDate,
                                                    exposure_end_date = exposureEndDate,
-                                                   exposure_concept_id = exposureConceptId,
+                                                   exposure_id = exposureId,
                                                    exposure_person_id = exposurePersonId,
                                                    outcome_database_schema = outcomeDatabaseSchema,
                                                    outcome_table = outcomeTable,
                                                    outcome_start_date = outcomeStartDate,
-                                                   outcome_end_date = outcomeEndDate,
-                                                   outcome_concept_id = outcomeConceptId,
+                                                   outcome_id = outcomeId,
                                                    outcome_person_id = outcomePersonId,
-                                                   first_occurrence_drug_only = firstExposureOnly,
-                                                   first_occurrence_condition_only = firstOutcomeOnly,
-                                                   outcome_condition_type_concept_ids = outcomeConditionTypeConceptIds,
-                                                   gender_concept_ids = genderConceptIds,
+                                                   first_exposure_only = firstExposureOnly,
+                                                   first_outcome_only = firstOutcomeOnly,
                                                    min_age = minAge,
                                                    max_age = maxAge,
                                                    study_start_date = studyStartDate,
                                                    study_end_date = studyEndDate,
-                                                   stratify_by_gender = stratifyByGender,
-                                                   stratify_by_age = stratifyByAge,
-                                                   stratify_by_year = stratifyByYear,
-                                                   use_length_of_exposure_exposed = addLengthOfExposureExposed,
-                                                   time_at_risk_exposed_start = riskWindowStartExposed,
-                                                   surveillance_exposed = riskWindowEndExposed,
-                                                   use_length_of_exposure_unexposed = addLengthOfExposureUnexposed,
-                                                   time_at_risk_unexposed_start = riskWindowEndUnexposed,
-                                                   surveillance_unexposed = riskWindowStartUnexposed,
+                                                   add_length_of_exposure_exposed = addLengthOfExposureExposed,
+                                                   risk_window_start_exposed = riskWindowStartExposed,
+                                                   risk_window_end_exposed = riskWindowEndExposed,
+                                                   add_length_of_exposure_unexposed = addLengthOfExposureUnexposed,
+                                                   risk_window_end_unexposed = riskWindowEndUnexposed,
+                                                   risk_window_start_unexposed = riskWindowStartUnexposed,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutPeriod,
                                                    followup_window = followupPeriod)
@@ -270,16 +245,20 @@ runSelfControlledCohort <- function(connectionDetails,
   estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
   if (nrow(estimates) > 0) {
-    for (i in 1:nrow(estimates)) {
+    computeIrr <- function(i) {
       test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i],
                                                    estimates$numOutcomesUnexposed[i]),
                                              n = c(estimates$timeAtRiskExposed[i],
                                                    estimates$timeAtRiskUnexposed[i]))
-      estimates$incidenceRateRatio[i] <- test$estimate[1]
-      estimates$irrLb95[i] <- test$conf.int[1]
-      estimates$irrUb95[i] <- test$conf.int[2]
+      irr <- data.frame(irr = test$estimate[1],
+                        irrLb95 = test$conf.int[1],
+                        irrUb95 = test$conf.int[2])
+      return(irr)
     }
-    estimates$logRr <- log(estimates$incidenceRateRatio)
+    irrs <- lapply(1:nrow(estimates), computeIrr)
+    irrs <- do.call("rbind", irrs)
+    estimates <- cbind(estimates, irrs)
+    estimates$logRr <- log(estimates$irr)
     estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95))/(2 * qnorm(0.975))
   }
   # Drop temp table:
@@ -288,11 +267,9 @@ runSelfControlledCohort <- function(connectionDetails,
                                  targetDialect = connectionDetails$dbms,
                                  oracleTempSchema = oracleTempSchema)$sql
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
-
   if (is.null(connectionDetails$conn)) {
     RJDBC::dbDisconnect(conn)
   }
-
   result <- list(estimates = estimates,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
@@ -300,7 +277,6 @@ runSelfControlledCohort <- function(connectionDetails,
                  sql = renderedSql)
 
   class(result) <- "sccResults"
-
   return(result)
 }
 

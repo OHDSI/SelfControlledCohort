@@ -21,7 +21,7 @@ pw <- NULL
 dbms <- "pdw"
 user <- NULL
 server <- "JRDUSAPSCTL01"
-cdmDatabaseSchema <- "CDM_Truven_MDCD_V432.dbo"
+cdmDatabaseSchema <- "CDM_Truven_MDCD_v569.dbo"
 resultsDatabaseSchema <- "scratch.dbo"
 port <- 17001
 
@@ -35,12 +35,13 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = dbms,
 sccResult <- runSelfControlledCohort(connectionDetails,
                                      cdmDatabaseSchema = cdmDatabaseSchema,
                                      cdmVersion = cdmVersion,
-                                     exposureIds = c(767410, 1314924, 907879),
+                                     exposureIds = c(767410, 1713332, 907879),
                                      outcomeIds = c(444382, 192671),
                                      outcomeTable = "condition_era")
 
 sccResult
 summary(sccResult)
+
 
 # Test multiple analyses
 
@@ -51,8 +52,8 @@ exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3
 # saveExposureOutcomeList(exposureOutcomeList, 's:/temp/exposureOutcomeList.txt')
 
 
-runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = FALSE)
-runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstOccurrenceDrugOnly = TRUE)
+runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE)
+runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE)
 sccAnalysis1 <- createSccAnalysis(analysisId = 1,
                                   runSelfControlledCohortArgs = runSelfControlledCohortArgs1)
 sccAnalysis2 <- createSccAnalysis(analysisId = 2,
@@ -96,7 +97,6 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = dbms,
 
 rr <- runSccAnalyses(connectionDetails = connectionDetails,
                      cdmDatabaseSchema = cdmDatabaseSchema,
-                     cdmVersion = cdmVersion,
                      sccAnalysisList = sccAnalysisList,
                      exposureOutcomeList = exposureOutcomeList,
                      outputFolder = outputFolder)
@@ -105,65 +105,6 @@ rr <- readRDS(file.path(outputFolder, "resultsReference.rds"))
 
 res <- summarizeAnalyses(rr)
 
-
-
-
-
-
-
-
-#### PRoblem
-
-
-setwd("s:/temp")
-options(fftempdir = "s:/fftemp")
-
-pw <- NULL
-dbms <- "pdw"
-user <- NULL
-server <- "JRDUSAPSCTL01"
-cdmDatabaseSchema <- "CDM_Truven_MDCD_V5.dbo"
-oracleTempSchema <- NULL
-outcomeDatabaseSchema <- "scratch.dbo"
-outcomeTable <- "mschuemie_outcomes"
-port <- 17001
-cdmVersion <- "5"
-
-connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = dbms,
-                                                                server = server,
-                                                                user = user,
-                                                                password = pw,
-                                                                port = port)
-
-exposureId <- 1124300
-outcomeId <- 1000
-
-
-x <- SelfControlledCohort::runSelfControlledCohort(connectionDetails = connectionDetails,
-                                                   cdmDatabaseSchema = cdmDatabaseSchema,
-                                                   oracleTempSchema = oracleTempSchema,
-                                                   exposureTable = "drug_era",
-                                                   outcomeDatabaseSchema = outcomeDatabaseSchema,
-                                                   outcomeTable = outcomeTable,
-                                                   cdmVersion = cdmVersion,
-                                                   exposureIds = exposureId,
-                                                   outcomeIds = outcomeId,
-                                                   firstOccurrenceDrugOnly = FALSE,
-                                                   firstOccurrenceConditionOnly = FALSE,
-                                                   useLengthOfExposureExposed = TRUE,
-                                                   timeAtRiskExposedStart = 1,
-                                                   surveillanceExposed = 0,
-                                                   hasFullTimeAtRisk = FALSE,
-                                                   timeAtRiskUnexposedStart = -1,
-                                                   useLengthOfExposureUnexposed = TRUE,
-                                                   surveillanceUnexposed = 0,
-                                                   washoutWindow = 183,
-                                                   followupWindow = 183)
-
-
-summary(x)
-x$sql
-SqlRender::writeSql(x$sql, "s:/temp/sql.sql")
 
 
 

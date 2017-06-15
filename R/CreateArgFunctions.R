@@ -5,63 +5,42 @@
 #' @details
 #' Create an object defining the parameter values.
 #'
-#' @param firstExposureOnly                If TRUE, only use first occurrence of each drug concept
-#'                                         idfor each person
-#' @param firstOutcomeOnly                 If TRUE, only use first occurrence of each condition
-#'                                         conceptid for each person.
-#' @param outcomeConditionTypeConceptIds   A list of TYPE_CONCEPT_ID values that will restrictcondition
-#'                                         occurrences.  Only applicable if outcomeTable
-#'                                         =CONDITION_OCCURRENCE.
-#' @param genderConceptIds                 of gender_concept_id, generally use MALE (8507) and
-#'                                         FEMALE(8532).
-#' @param minAge                           Integer for minimum allowable age.
-#' @param maxAge                           Integer for maximum allowable age.
-#' @param studyStartDate                   Date for minimum allowable data for index exposure.
-#'                                         Dateformat is 'yyyymmdd'.
-#' @param studyEndDate                     Date for maximum allowable data for index exposure.
-#'                                         Dateformat is 'yyyymmdd'.
-#' @param stratifyByGender                 If TRUE, analysis will be calculated overall, and
-#'                                         stratifiedacross all gender groups.
-#' @param stratifyByAge                    If TRUE, analysis will be calculated overall, and
-#'                                         stratifiedacross all age groups (using AGE_GROUP table
-#'                                         below).
-#' @param stratifyByYear                   If TRUE, analysis will be calculated overall, and
-#'                                         stratifiedacross all years of the index dates.
-#' @param addLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd
-#'                                         aspart of timeAtRisk.
-#' @param riskWindowStartExposed           Integer of days to add to drugEraStart for start
-#'                                         oftimeAtRisk (0 to include index date, 1 to start the
-#'                                         dayafter).
-#' @param riskWindowEndExposed             Additional window to add to end of exposure period
-#'                                         (ifaddLengthOfExposureExposed = TRUE, then add to exposure
-#'                                         enddate, else add to exposure start date).
-#' @param addLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposureend
-#'                                         as part of timeAtRisk looking back before exposurestart.
-#' @param riskWindowEndUnexposed           Integer of days to add to exposure start for end
-#'                                         oftimeAtRisk (0 to include index date, -1 to end the
-#'                                         daybefore).
-#' @param riskWindowStartUnexposed         Additional window to add to start of exposure period
-#'                                         (ifaddLengthOfExposureUnexposed = TRUE, then add to
-#'                                         exposureend date, else add to exposure start date).
-#' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full
-#'                                         time-at-riskexposed and unexposed.
-#' @param washoutPeriod                    Integer to define required time observed before
-#'                                         exposurestart.
-#' @param followupPeriod                   Integer to define required time observed after
-#'                                         exposurestart.
+#' @param firstExposureOnly              If TRUE, only use first occurrence of each drug concept idfor
+#'                                       each person
+#' @param firstOutcomeOnly               If TRUE, only use first occurrence of each condition conceptid
+#'                                       for each person.
+#' @param minAge                         Integer for minimum allowable age.
+#' @param maxAge                         Integer for maximum allowable age.
+#' @param studyStartDate                 Date for minimum allowable data for index exposure. Dateformat
+#'                                       is 'yyyymmdd'.
+#' @param studyEndDate                   Date for maximum allowable data for index exposure. Dateformat
+#'                                       is 'yyyymmdd'.
+#' @param addLengthOfExposureExposed     If TRUE, use the duration from drugEraStart -> drugEraEnd
+#'                                       aspart of timeAtRisk.
+#' @param riskWindowStartExposed         Integer of days to add to drugEraStart for start oftimeAtRisk
+#'                                       (0 to include index date, 1 to start the dayafter).
+#' @param riskWindowEndExposed           Additional window to add to end of exposure period
+#'                                       (ifaddLengthOfExposureExposed = TRUE, then add to exposure
+#'                                       enddate, else add to exposure start date).
+#' @param addLengthOfExposureUnexposed   If TRUE, use the duration from exposure start -> exposureend
+#'                                       as part of timeAtRisk looking back before exposurestart.
+#' @param riskWindowEndUnexposed         Integer of days to add to exposure start for end oftimeAtRisk
+#'                                       (0 to include index date, -1 to end the daybefore).
+#' @param riskWindowStartUnexposed       Additional window to add to start of exposure period
+#'                                       (ifaddLengthOfExposureUnexposed = TRUE, then add to
+#'                                       exposureend date, else add to exposure start date).
+#' @param hasFullTimeAtRisk              If TRUE, restrict to people who have full time-at-riskexposed
+#'                                       and unexposed.
+#' @param washoutPeriod                  Integer to define required time observed before exposurestart.
+#' @param followupPeriod                 Integer to define required time observed after exposurestart.
 #'
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
                                               firstOutcomeOnly = TRUE,
-                                              outcomeConditionTypeConceptIds = c(38000247),
-                                              genderConceptIds = c(8507, 8532),
                                               minAge = "",
                                               maxAge = "",
                                               studyStartDate = "",
                                               studyEndDate = "",
-                                              stratifyByGender = FALSE,
-                                              stratifyByAge = FALSE,
-                                              stratifyByYear = FALSE,
                                               addLengthOfExposureExposed = TRUE,
                                               riskWindowStartExposed = 1,
                                               riskWindowEndExposed = 30,
