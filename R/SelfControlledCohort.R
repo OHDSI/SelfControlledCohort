@@ -25,42 +25,23 @@
 #' @import DatabaseConnector
 NULL
 
-.onLoad <- function(libname, pkgname) {
-  missing(libname)  # suppresses R CMD check note
-  missing(pkgname)  # suppresses R CMD check note
-  # Copied this from the ff package:
-  if (is.null(getOption("ffmaxbytes"))) {
-    # memory.limit is windows specific
-    if (.Platform$OS.type == "windows") {
-      if (getRversion() >= "2.6.0")
-        options(ffmaxbytes = 0.5 * utils::memory.limit() * (1024^2)) else options(ffmaxbytes = 0.5 * utils::memory.limit())
-    } else {
-      # some magic constant
-      options(ffmaxbytes = 0.5 * 1024^3)
-    }
+computeIrrs <- function(estimates) {
+  computeIrr <- function(i, numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
+    test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed[i],
+                                                 numOutcomesUnexposed[i]),
+                                           n = c(timeAtRiskExposed[i],
+                                                 timeAtRiskUnexposed[i]))
+    return(c(test$estimate[1], test$conf.int))
   }
-
-  # Workaround for problem with ff on machines with lots of memory (see
-  # https://github.com/edwindj/ffbase/issues/37)
-  options(ffmaxbytes = min(getOption("ffmaxbytes"), .Machine$integer.max * 12))
-}
-
-computeIrrs <- function(i, estimates) {
-  computeIrr <- function(i) {
-    test <- rateratio.test::rateratio.test(x = c(estimates$numOutcomesExposed[i],
-                                                 estimates$numOutcomesUnexposed[i]),
-                                           n = c(estimates$timeAtRiskExposed[i],
-                                                 estimates$timeAtRiskUnexposed[i]))
-    irr <- data.frame(irr = test$estimate[1],
-                      irrLb95 = test$conf.int[1],
-                      irrUb95 = test$conf.int[2])
-    return(irr)
-  }
-  chunk <- estimates[i, ]
-  irrs <- lapply(1:nrow(chunk), computeIrr)
-  irrs <- do.call("rbind", irrs)
-  chunk <- cbind(chunk, irrs)
-  return(chunk)
+  irrs <- mapply(computeIrr,
+                 numOutcomesExposed = estimates$numOutcomesExposed,
+                 numOutcomesUnexposed = estimates$numOutcomesUnexposed,
+                 timeAtRiskExposed = estimates$timeAtRiskExposed,
+                 timeAtRiskUnexposed = estimates$timeAtRiskUnexposed)
+  estimates$irr <- irrs[1, ]
+  estimates$irrLb95 <- irrs[2, ]
+  estimates$irrUb95 <- irrs[3, ]
+  return(estimates)
 }
 
 #' @title
@@ -284,7 +265,7 @@ runSelfControlledCohort <- function(connectionDetails,
   sql <- SqlRender::translateSql(sql,
                                  targetDialect = connectionDetails$dbms,
                                  oracleTempSchema = oracleTempSchema)$sql
-  estimates <- DatabaseConnector::querySql.ffdf(conn, sql)
+  estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
   # Drop temp table:
@@ -297,30 +278,30 @@ runSelfControlledCohort <- function(connectionDetails,
     RJDBC::dbDisconnect(conn)
   }
   # estimates <- readRDS("s:/temp/estimates.rds")
-  # estimates <- estimates[1:1000000, ]
-  # estimates <- ff::as.ffdf(estimates)
+  # estimates <- estimates[1:100000, ]
 
   if (nrow(estimates) > 0) {
     writeLines("Computing incidence rate ratios and exact confidence intervals")
     zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
-    if (ffbase::any.ff(zeroCountIdx)) {
-      zeroCountRows <- ff::as.ram(estimates[zeroCountIdx, ])
+    if (any(zeroCountIdx)) {
+      zeroCountRows <- estimates[zeroCountIdx, ]
       zeroCountRows$irr <- NA
       zeroCountRows$irrLb95 <- 0
       zeroCountRows$irrUb95 <- Inf
     }
-    if (ffbase::any.ff(!zeroCountIdx)) {
+    if (any(!zeroCountIdx)) {
       estimates <- estimates[!zeroCountIdx, ]
-      idxs <- bit::chunk(estimates, by = 10000)
+      batches <- ceiling(nrow(estimates) / 10000)
+      estimates <- split(estimates, rep_len(1:batches, nrow(estimates)))
       cluster <- OhdsiRTools::makeCluster(computeThreads)
-      estimates <- OhdsiRTools::clusterApply(cluster, idxs, computeIrrs, estimates = estimates)
+      estimates <- OhdsiRTools::clusterApply(cluster, estimates, computeIrrs)
       OhdsiRTools::stopCluster(cluster)
       estimates <- do.call("rbind", estimates)
-      if (ffbase::any.ff(zeroCountIdx)) {
+      if (any(zeroCountIdx)) {
         estimates <- rbind(estimates, zeroCountRows)
       }
     } else {
-      if (ffbase::any.ff(zeroCountIdx)) {
+      if (any(zeroCountIdx)) {
         estimates <- zeroCountRows
       }
     }

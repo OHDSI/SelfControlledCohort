@@ -16,9 +16,6 @@ Imports:
     RJDBC,
     OhdsiRTools (>= 1.1.1),
     rateratio.test,
-    ffbase,
-    ff,
-    bit,
     OhdsiRTools
 Suggests:
     testthat
