@@ -20,7 +20,6 @@
 #'
 #' @docType package
 #' @name SelfControlledCohort
-#' @importFrom RJDBC dbDisconnect
 #' @importFrom stats qnorm
 #' @import DatabaseConnector
 NULL
@@ -275,7 +274,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                  oracleTempSchema = oracleTempSchema)$sql
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
   if (is.null(connectionDetails$conn)) {
-    RJDBC::dbDisconnect(conn)
+    DatabaseConnector::disconnect(conn)
   }
   # estimates <- readRDS("s:/temp/estimates.rds")
   # estimates <- estimates[1:100000, ]
