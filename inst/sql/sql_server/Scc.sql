@@ -120,8 +120,8 @@ FROM (
 		ON t1.person_id = op1.person_id
 	WHERE t1.exposure_start_date >= op1.observation_period_start_date
 		AND t1.exposure_start_date <= op1.observation_period_end_date
-{@study_start_date != ''} ? {		AND exposure_start_date >= '@study_start_date'}
-{@study_end_date != ''} ? {		AND exposure_start_date <= '@study_end_date'}
+{@study_start_date != ''} ? {		AND exposure_start_date >= CONVERT(DATE, '@study_start_date')}
+{@study_end_date != ''} ? {		AND exposure_start_date <= CONVERT(DATE, '@study_end_date')}
 {@min_age != ''} ? {		AND YEAR(exposure_start_date) - p1.year_of_birth  >= @min_age}
 {@max_age != ''} ? {		AND YEAR(exposure_start_date) - p1.year_of_birth  <= @max_age}
 {@has_full_time_at_risk}  ? {
