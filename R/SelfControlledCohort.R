@@ -256,7 +256,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutPeriod,
                                                    followup_window = followupPeriod)
-  writeLines("Retrieving counts from database")
+  ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
 
   # Fetch results from server:
@@ -280,7 +280,7 @@ runSelfControlledCohort <- function(connectionDetails,
   # estimates <- estimates[1:100000, ]
 
   if (nrow(estimates) > 0) {
-    writeLines("Computing incidence rate ratios and exact confidence intervals")
+    ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
     zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
     if (any(zeroCountIdx)) {
       zeroCountRows <- estimates[zeroCountIdx, ]
@@ -292,9 +292,9 @@ runSelfControlledCohort <- function(connectionDetails,
       estimates <- estimates[!zeroCountIdx, ]
       batches <- ceiling(nrow(estimates) / 10000)
       estimates <- split(estimates, rep_len(1:batches, nrow(estimates)))
-      cluster <- OhdsiRTools::makeCluster(computeThreads)
-      estimates <- OhdsiRTools::clusterApply(cluster, estimates, computeIrrs)
-      OhdsiRTools::stopCluster(cluster)
+      cluster <- ParallelLogger::makeCluster(computeThreads)
+      estimates <- ParallelLogger::clusterApply(cluster, estimates, computeIrrs)
+      ParallelLogger::stopCluster(cluster)
       estimates <- do.call("rbind", estimates)
       if (any(zeroCountIdx)) {
         estimates <- rbind(estimates, zeroCountRows)
@@ -308,7 +308,7 @@ runSelfControlledCohort <- function(connectionDetails,
     estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95))/(2 * qnorm(0.975))
   }
   delta <- Sys.time() - start
-  writeLines(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
+  ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
 
   result <- list(estimates = estimates,
                  exposureIds = exposureIds,

@@ -6,7 +6,8 @@
 \usage{
 runSccAnalyses(connectionDetails, cdmDatabaseSchema,
   oracleTempSchema = cdmDatabaseSchema,
-  exposureDatabaseSchema = cdmDatabaseSchema, exposureTable = "drug_era",
+  exposureDatabaseSchema = cdmDatabaseSchema,
+  exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
   outcomeTable = "condition_occurrence", cdmVersion = 4,
   outputFolder = "./SelfControlledCohortOutput", sccAnalysisList,

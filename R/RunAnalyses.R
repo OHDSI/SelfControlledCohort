@@ -80,8 +80,8 @@ runSccAnalyses <- function(connectionDetails,
   for (sccAnalysis in sccAnalysisList) {
     stopifnot(class(sccAnalysis) == "sccAnalysis")
   }
-  uniqueOutcomeList <- unique(OhdsiRTools::selectFromList(exposureOutcomeList, "outcomeId"))
-  uniqueAnalysisIds <- unlist(unique(OhdsiRTools::selectFromList(sccAnalysisList, "analysisId")))
+  uniqueOutcomeList <- unique(ParallelLogger::selectFromList(exposureOutcomeList, "outcomeId"))
+  uniqueAnalysisIds <- unlist(unique(ParallelLogger::selectFromList(sccAnalysisList, "analysisId")))
   if (length(uniqueAnalysisIds) != length(sccAnalysisList)) {
     stop("Duplicate analysis IDs are not allowed")
   }
@@ -93,7 +93,7 @@ runSccAnalyses <- function(connectionDetails,
   for (sccAnalysis in sccAnalysisList) {
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
-      exposures <- OhdsiRTools::matchInList(exposureOutcomeList, outcome)
+      exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
       sccResultsFile <- .createSccResultsFileName(outputFolder,
                                                   analysisId = sccAnalysis$analysisId,
                                                   outcomeId = outcomeId)
@@ -110,12 +110,12 @@ runSccAnalyses <- function(connectionDetails,
   }
   saveRDS(resultsReference, file.path(outputFolder, "resultsReference.rds"))
 
-  writeLines("*** Running multiple analysis ***")
+  ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     if (!file.exists((sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
-      analysisRow <- OhdsiRTools::matchInList(sccAnalysisList,
+      analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
       getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
 
@@ -142,10 +142,10 @@ runSccAnalyses <- function(connectionDetails,
     saveRDS(sccResults, params$sccResultsFile)
   }
   if (length(objectsToCreate) != 0) {
-    cluster <- OhdsiRTools::makeCluster(analysisThreads)
-    OhdsiRTools::clusterRequire(cluster, "SelfControlledCohort")
-    dummy <- OhdsiRTools::clusterApply(cluster, objectsToCreate, createSccResultsObject)
-    OhdsiRTools::stopCluster(cluster)
+    cluster <- ParallelLogger::makeCluster(analysisThreads)
+    ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
+    dummy <- ParallelLogger::clusterApply(cluster, objectsToCreate, createSccResultsObject)
+    ParallelLogger::stopCluster(cluster)
   }
 
   invisible(resultsReference)
