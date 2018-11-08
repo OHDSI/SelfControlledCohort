@@ -147,7 +147,7 @@ computeIrrs <- function(estimates) {
 runSelfControlledCohort <- function(connectionDetails,
                                     cdmDatabaseSchema,
                                     cdmVersion = 5,
-                                    oracleTempSchema,
+                                    oracleTempSchema = NULL,
                                     exposureIds,
                                     outcomeIds,
                                     exposureDatabaseSchema = cdmDatabaseSchema,

@@ -68,7 +68,7 @@ runSccAnalyses <- function(connectionDetails,
                            exposureTable = "drug_era",
                            outcomeDatabaseSchema = cdmDatabaseSchema,
                            outcomeTable = "condition_occurrence",
-                           cdmVersion = 4,
+                           cdmVersion = 5,
                            outputFolder = "./SelfControlledCohortOutput",
                            sccAnalysisList,
                            exposureOutcomeList,
@@ -94,8 +94,7 @@ runSccAnalyses <- function(connectionDetails,
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
       exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
-      sccResultsFile <- .createSccResultsFileName(outputFolder,
-                                                  analysisId = sccAnalysis$analysisId,
+      sccResultsFile <- .createSccResultsFileName(analysisId = sccAnalysis$analysisId,
                                                   outcomeId = outcomeId)
       for (exposure in exposures) {
         exposureId <- .selectByType(sccAnalysis$exposureType, exposure$exposureId, "exposure")
@@ -113,7 +112,7 @@ runSccAnalyses <- function(connectionDetails,
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
-    if (!file.exists((sccResultsFile))) {
+    if (!file.exists(file.path(outputFolder, sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
       analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
@@ -134,7 +133,7 @@ runSccAnalyses <- function(connectionDetails,
                    computeThreads = computeThreads)
       args <- append(args, getrunSelfControlledCohortArgs)
       objectsToCreate[[length(objectsToCreate) + 1]] <- list(args = args,
-                                                             sccResultsFile = sccResultsFile)
+                                                             sccResultsFile = file.path(outputFolder, sccResultsFile))
     }
   }
   createSccResultsObject <- function(params) {
@@ -151,9 +150,9 @@ runSccAnalyses <- function(connectionDetails,
   invisible(resultsReference)
 }
 
-.createSccResultsFileName <- function(folder, analysisId, outcomeId) {
+.createSccResultsFileName <- function(analysisId, outcomeId) {
   name <- paste("SccResults_a", analysisId, "_o", outcomeId, ".rds", sep = "")
-  return(file.path(folder, name))
+  return(name)
 }
 
 .selectByType <- function(type, value, label) {
@@ -176,12 +175,13 @@ runSccAnalyses <- function(connectionDetails,
 #' Create a summary report of the analyses
 #'
 #' @param resultsReference   A data.frame as created by the \code{\link{runSccAnalyses}} function.
+#' @param outputFolder       Name of the folder where all the outputs have been written to.
 #'
 #' @export
-summarizeAnalyses <- function(resultsReference) {
+summarizeAnalyses <- function(resultsReference, outputFolder) {
   result <- data.frame()
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
-    sccResults <- readRDS(sccResultsFile)$estimates
+    sccResults <- readRDS(file.path(outputFolder, sccResultsFile))$estimates
     analysisId <- resultsReference$analysisId[resultsReference$sccResultsFile == sccResultsFile][1]
     sccResults$analysisId <- analysisId
     result <- rbind(result, sccResults)

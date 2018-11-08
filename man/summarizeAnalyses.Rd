@@ -4,10 +4,12 @@
 \alias{summarizeAnalyses}
 \title{Create a summary report of the analyses}
 \usage{
-summarizeAnalyses(resultsReference)
+summarizeAnalyses(resultsReference, outputFolder)
 }
 \arguments{
 \item{resultsReference}{A data.frame as created by the \code{\link{runSccAnalyses}} function.}
+
+\item{outputFolder}{Name of the folder where all the outputs have been written to.}
 }
 \description{
 Create a summary report of the analyses

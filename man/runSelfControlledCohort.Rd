@@ -5,7 +5,7 @@
 \title{Run self-controlled cohort}
 \usage{
 runSelfControlledCohort(connectionDetails, cdmDatabaseSchema,
-  cdmVersion = 5, oracleTempSchema, exposureIds, outcomeIds,
+  cdmVersion = 5, oracleTempSchema = NULL, exposureIds, outcomeIds,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,

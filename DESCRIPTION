@@ -10,7 +10,7 @@ Maintainer: Patrick Ryan <ryan@ohdsi.org>
 Description: This package provides a method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
 Depends:
-    DatabaseConnector (>= 1.11.4)
+    DatabaseConnector (>= 2.0.0)
 Imports:
     SqlRender (>= 1.4.3),
     ParallelLogger,

@@ -9,7 +9,7 @@ runSccAnalyses(connectionDetails, cdmDatabaseSchema,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
-  outcomeTable = "condition_occurrence", cdmVersion = 4,
+  outcomeTable = "condition_occurrence", cdmVersion = 5,
   outputFolder = "./SelfControlledCohortOutput", sccAnalysisList,
   exposureOutcomeList, analysisThreads = 1, computeThreads = 1)
 }
