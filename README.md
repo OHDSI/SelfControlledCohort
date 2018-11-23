@@ -1,6 +1,11 @@
 SelfControlledCohort
 ====================
 
+[![Build Status](https://travis-ci.org/OHDSI/SelfControlledCohort.svg?branch=master)](https://travis-ci.org/OHDSI/SelfControlledCohort)
+[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
+
+SelfControlledCohort is part of the [OHDSI Methods Library](https://ohdsi.github.io/MethodsLibrary).
+
 Introduction
 ============
 This package provides a method to estimate risk by comparing time exposed with time unexposed among the exposed cohort.
@@ -37,32 +42,26 @@ System Requirements
 ============
 Requires R. Libraries used in SelfControlledCohort require Java.
 
-Dependencies
-============
- * DatabaseConnector
- * SqlRender
- * ParallelLogger
-
 Getting Started
 ===============
 1. The DatabaseConnector and SqlRender packages require Java. Java can be downloaded from
 <a href="http://www.java.com" target="_blank">http://www.java.com</a>.
-2. In R, use the following commands to download and install CohortMethod:
+2. In R, use the following commands to download and install SelfControlledCohort:
 
   ```r
-  install.packages("devtools")
-  library(devtools)
-  install_github("ohdsi/ParallelLogger") 
-  install_github("ohdsi/SqlRender")
-  install_github("ohdsi/DatabaseConnector")
-  install_github("ohdsi/SelfControlledCohort")
+  install.packages("drat")
+  drat::addRepo("OHDSI")
+  install.packages("SelfControlledCohort")
   ```
 
-Getting Involved
-================
+User Documentation
+==================
 * Package manual: [SelfControlledCohort.pdf](https://raw.githubusercontent.com/OHDSI/SelfControlledCohort/master/extras/SelfControlledCohort.pdf)
+
+Support
+=======
 * Developer questions/comments/feedback: <a href="http://forums.ohdsi.org/c/developers">OHDSI Forum</a>
-* We use the <a href="../../issues">GitHub issue tracker</a> for all bugs/issues/enhancements
+* We use the <a href="https://github.com/OHDSI/SelfControlledCohort/issues">GitHub issue tracker</a> for all bugs/issues/enhancements
 
 License
 =======
@@ -73,7 +72,5 @@ Development
 SelfControlledCohort is being developed in R Studio.
 
 ### Development status
-[![Build Status](https://travis-ci.org/OHDSI/SelfControlledCohort.svg?branch=master)](https://travis-ci.org/OHDSI/SelfControlledCohort)
-[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
 
 Beta

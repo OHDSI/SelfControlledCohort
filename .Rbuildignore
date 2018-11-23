@@ -1,8 +1,10 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+.gitattributes
 .travis.yml
 ^\.travis\.yml$
 extras
 ^\.git
 deploy.sh
 compare_versions
+_pkgdown.yml

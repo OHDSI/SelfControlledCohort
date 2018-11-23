@@ -4,11 +4,17 @@ Title: Population-level estimation method  that estimates
     incidence rate comparison of exposed/unexposed time within an exposed
     cohort
 Version: 1.5.0
-Date: 2018-11-07
+Date: 2018-11-23
+Authors@R: c(
+    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut", "cre")),
+    person("Patrick", "Ryan", role = c("aut"))
+    )
 Author: Patrick Ryan, Martijn Schuemie
 Maintainer: Patrick Ryan <ryan@ohdsi.org>
 Description: This package provides a method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
+URL: https://github.com/OHDSI/SelfControlledCohort
+BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Depends:
     DatabaseConnector (>= 2.0.0)
 Imports:
@@ -18,4 +24,4 @@ Imports:
 Suggests:
     testthat
 License: Apache License 2.0
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
