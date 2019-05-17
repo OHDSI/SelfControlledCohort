@@ -182,9 +182,11 @@ summarizeAnalyses <- function(resultsReference, outputFolder) {
   result <- data.frame()
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     sccResults <- readRDS(file.path(outputFolder, sccResultsFile))$estimates
-    analysisId <- resultsReference$analysisId[resultsReference$sccResultsFile == sccResultsFile][1]
-    sccResults$analysisId <- analysisId
-    result <- rbind(result, sccResults)
+    if (nrow(sccResults) > 0) {
+      analysisId <- resultsReference$analysisId[resultsReference$sccResultsFile == sccResultsFile][1]
+      sccResults$analysisId <- analysisId
+      result <- rbind(result, sccResults)
+    }
   }
   return(result)
 }
