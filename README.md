@@ -4,7 +4,7 @@ SelfControlledCohort
 [![Build Status](https://travis-ci.org/OHDSI/SelfControlledCohort.svg?branch=master)](https://travis-ci.org/OHDSI/SelfControlledCohort)
 [![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
 
-SelfControlledCohort is part of the [OHDSI Methods Library](https://ohdsi.github.io/MethodsLibrary).
+SelfControlledCohort is part of [HADES](https://ohdsi.github.io/Hades).
 
 Introduction
 ============
@@ -44,8 +44,9 @@ Requires R. Libraries used in SelfControlledCohort require Java.
 
 Getting Started
 ===============
-1. The DatabaseConnector and SqlRender packages require Java. Java can be downloaded from
-<a href="http://www.java.com" target="_blank">http://www.java.com</a>.
+
+1. See the instructions [here](https://ohdsi.github.io/Hades/rSetup.html) for configuring your R environment, including Java.
+
 2. In R, use the following commands to download and install SelfControlledCohort:
 
   ```r
@@ -56,12 +57,20 @@ Getting Started
 
 User Documentation
 ==================
+Documentation can be found on the [package website](https://ohdsi.github.io/SelfControlledCohort).
+
+PDF versions of the documentation are also available:
 * Package manual: [SelfControlledCohort.pdf](https://raw.githubusercontent.com/OHDSI/SelfControlledCohort/master/extras/SelfControlledCohort.pdf)
 
 Support
 =======
 * Developer questions/comments/feedback: <a href="http://forums.ohdsi.org/c/developers">OHDSI Forum</a>
 * We use the <a href="https://github.com/OHDSI/SelfControlledCohort/issues">GitHub issue tracker</a> for all bugs/issues/enhancements
+
+Contributing
+============
+Read [here](https://ohdsi.github.io/Hades/contribute.html) how you can contribute to this package.
+
 
 License
 =======
