@@ -225,8 +225,8 @@ LEFT JOIN #scc_outcome_summary outcome_summary
 TRUNCATE TABLE #scc_exposure_summary;
 TRUNCATE TABLE #scc_outcome_summary;
 TRUNCATE TABLE #risk_windows;
-TRUCATE TABLE #scc_outcome_ids;
-TRUCATE TABLE #scc_exposure_ids;
+TRUNCATE TABLE #scc_outcome_ids;
+TRUNCATE TABLE #scc_exposure_ids;
 
 DROP TABLE #scc_exposure_summary;
 DROP TABLE #scc_outcome_summary;
