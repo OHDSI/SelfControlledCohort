@@ -110,7 +110,7 @@ FROM (
 				{@first_exposure_only} ? {,ROW_NUMBER() OVER (PARTITION BY et.@exposure_person_id, et.@exposure_id ORDER BY et.@exposure_start_date) AS rn1}
 			FROM
 				@exposure_database_schema.@exposure_table et
-{@exposure_ids != ''} ? {			INNER JOIN tempdb..#scc_exposure_id sei ON sei.exposure_id = et.@exposure_id }
+{@exposure_ids != ''} ? {			INNER JOIN tempdb..#scc_exposure_ids sei ON sei.exposure_id = et.@exposure_id }
 		) raw_exposures
 {@first_exposure_only} ? {		WHERE rn1 = 1}
 	) t1
