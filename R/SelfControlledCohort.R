@@ -223,8 +223,14 @@ runSelfControlledCohort <- function(connectionDetails,
     conn <- connectionDetails$conn
   }
 
-  DatabaseConnector::insertTable(conn, "tempdb..#scc_outcome_ids", data.frame(outcome_id = outcomeIds), tempTable = TRUE)
-  DatabaseConnector::insertTable(conn, "tempdb..#scc_exposure_ids", data.frame(exposure_id = exposureIds), tempTable = TRUE)
+  DatabaseConnector::insertTable(connection = conn,
+                                 tableName = "#scc_outcome_ids",
+                                 data = data.frame(outcome_id = outcomeIds),
+                                 tempTable = TRUE)
+  DatabaseConnector::insertTable(connection = conn,
+                                 tableName = "#scc_exposure_ids",
+                                 data = data.frame(exposure_id = exposureIds),
+                                 tempTable = TRUE)
 
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",

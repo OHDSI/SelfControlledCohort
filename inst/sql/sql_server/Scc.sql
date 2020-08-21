@@ -110,7 +110,7 @@ FROM (
 				{@first_exposure_only} ? {,ROW_NUMBER() OVER (PARTITION BY et.@exposure_person_id, et.@exposure_id ORDER BY et.@exposure_start_date) AS rn1}
 			FROM
 				@exposure_database_schema.@exposure_table et
-{@exposure_ids != ''} ? {			INNER JOIN tempdb..#scc_exposure_ids sei ON sei.exposure_id = et.@exposure_id }
+{@exposure_ids != ''} ? {			INNER JOIN #scc_exposure_ids sei ON sei.exposure_id = et.@exposure_id }
 		) raw_exposures
 {@first_exposure_only} ? {		WHERE rn1 = 1}
 	) t1
@@ -187,7 +187,7 @@ INNER JOIN (
 			{@first_outcome_only} ? {,ROW_NUMBER() OVER (PARTITION BY ot.@outcome_person_id, ot.@outcome_id ORDER BY ot.@outcome_start_date) AS rn1}
 		FROM
 			@outcome_database_schema.@outcome_table ot
-{@outcome_ids != ''} ? {		INNER JOIN tempdb..#scc_outcome_ids soi ON soi.outcome_id = ot.@outcome_id}
+{@outcome_ids != ''} ? {		INNER JOIN #scc_outcome_ids soi ON soi.outcome_id = ot.@outcome_id}
 	) raw_outcomes
 {@first_outcome_only} ? {	WHERE rn1 = 1}
 ) outcomes
