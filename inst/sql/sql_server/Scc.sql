@@ -103,14 +103,14 @@ FROM (
 			exposure_start_date,
 			exposure_end_date
 		FROM (
-			SELECT @exposure_person_id AS person_id,
-				@exposure_id AS exposure_id,
-				@exposure_start_date AS exposure_start_date,
-				@exposure_end_date AS exposure_end_date
-				{@first_exposure_only} ? {,ROW_NUMBER() OVER (PARTITION BY @exposure_person_id, @exposure_id ORDER BY @exposure_start_date) AS rn1}
+			SELECT et.@exposure_person_id AS person_id,
+				et.@exposure_id AS exposure_id,
+				et.@exposure_start_date AS exposure_start_date,
+				et.@exposure_end_date AS exposure_end_date
+				{@first_exposure_only} ? {,ROW_NUMBER() OVER (PARTITION BY et.@exposure_person_id, et.@exposure_id ORDER BY et.@exposure_start_date) AS rn1}
 			FROM
-				@exposure_database_schema.@exposure_table
-{@exposure_ids != ''} ? {			WHERE @exposure_id IN (@exposure_ids)}
+				@exposure_database_schema.@exposure_table et
+{@exposure_ids != ''} ? {			INNER JOIN #scc_exposure_ids sei ON sei.exposure_id = et.@exposure_id }
 		) raw_exposures
 {@first_exposure_only} ? {		WHERE rn1 = 1}
 	) t1
@@ -181,13 +181,13 @@ INNER JOIN (
 		outcome_id,
 		outcome_date
 	FROM (
-		SELECT @outcome_person_id AS person_id,
-			@outcome_id AS outcome_id,
-			@outcome_start_date AS outcome_date
-			{@first_outcome_only} ? {,ROW_NUMBER() OVER (PARTITION BY @outcome_person_id, @outcome_id ORDER BY @outcome_start_date) AS rn1}
+		SELECT ot.@outcome_person_id AS person_id,
+			ot.@outcome_id AS outcome_id,
+			ot.@outcome_start_date AS outcome_date
+			{@first_outcome_only} ? {,ROW_NUMBER() OVER (PARTITION BY ot.@outcome_person_id, ot.@outcome_id ORDER BY ot.@outcome_start_date) AS rn1}
 		FROM
-			@outcome_database_schema.@outcome_table
-{@outcome_ids != ''} ? {		WHERE @outcome_id IN (@outcome_ids)}
+			@outcome_database_schema.@outcome_table ot
+{@outcome_ids != ''} ? {		INNER JOIN #scc_outcome_ids soi ON soi.outcome_id = ot.@outcome_id}
 	) raw_outcomes
 {@first_outcome_only} ? {	WHERE rn1 = 1}
 ) outcomes
@@ -225,7 +225,11 @@ LEFT JOIN #scc_outcome_summary outcome_summary
 TRUNCATE TABLE #scc_exposure_summary;
 TRUNCATE TABLE #scc_outcome_summary;
 TRUNCATE TABLE #risk_windows;
+TRUNCATE TABLE #scc_outcome_ids;
+TRUNCATE TABLE #scc_exposure_ids;
 
 DROP TABLE #scc_exposure_summary;
 DROP TABLE #scc_outcome_summary;
 DROP TABLE #risk_windows;
+DROP TABLE #scc_outcome_ids;
+DROP TABLE #scc_exposure_ids;
