@@ -263,7 +263,7 @@ runSelfControlledCohort <- function(connectionDetails,
   sql <- "SELECT * FROM #results"
   sql <- SqlRender::translate(sql,
                                  targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)$sql
+                                 oracleTempSchema = oracleTempSchema)
   estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
@@ -271,7 +271,7 @@ runSelfControlledCohort <- function(connectionDetails,
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
   sql <- SqlRender::translate(sql,
                                  targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)$sql
+                                 oracleTempSchema = oracleTempSchema)
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
   if (is.null(connectionDetails$conn)) {
     DatabaseConnector::disconnect(conn)
