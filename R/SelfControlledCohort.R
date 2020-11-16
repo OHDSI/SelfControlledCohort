@@ -16,13 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' SelfControlledCohort
+#' @keywords internal
+#' @aliases
+#' NULL SelfControlledCohort-package
 #'
-#' @docType package
-#' @name SelfControlledCohort
 #' @importFrom stats qnorm
 #' @import DatabaseConnector
-NULL
+#'
+"_PACKAGE"
+
 
 computeIrrs <- function(estimates) {
   computeIrr <- function(i, numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {

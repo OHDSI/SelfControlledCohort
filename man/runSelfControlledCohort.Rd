@@ -4,19 +4,34 @@
 \alias{runSelfControlledCohort}
 \title{Run self-controlled cohort}
 \usage{
-runSelfControlledCohort(connectionDetails, cdmDatabaseSchema,
-  cdmVersion = 5, oracleTempSchema = NULL, exposureIds, outcomeIds,
+runSelfControlledCohort(
+  connectionDetails,
+  cdmDatabaseSchema,
+  cdmVersion = 5,
+  oracleTempSchema = NULL,
+  exposureIds,
+  outcomeIds,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
-  outcomeTable = "condition_era", firstExposureOnly = TRUE,
-  firstOutcomeOnly = TRUE, minAge = "", maxAge = "",
-  studyStartDate = "", studyEndDate = "",
-  addLengthOfExposureExposed = TRUE, riskWindowStartExposed = 1,
-  riskWindowEndExposed = 30, addLengthOfExposureUnexposed = TRUE,
-  riskWindowEndUnexposed = -1, riskWindowStartUnexposed = -30,
-  hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0,
-  computeThreads = 1)
+  outcomeTable = "condition_era",
+  firstExposureOnly = TRUE,
+  firstOutcomeOnly = TRUE,
+  minAge = "",
+  maxAge = "",
+  studyStartDate = "",
+  studyEndDate = "",
+  addLengthOfExposureExposed = TRUE,
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 30,
+  addLengthOfExposureUnexposed = TRUE,
+  riskWindowEndUnexposed = -1,
+  riskWindowStartUnexposed = -30,
+  hasFullTimeAtRisk = FALSE,
+  washoutPeriod = 0,
+  followupPeriod = 0,
+  computeThreads = 1
+)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using

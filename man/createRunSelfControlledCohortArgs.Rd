@@ -4,13 +4,23 @@
 \alias{createRunSelfControlledCohortArgs}
 \title{Create a parameter object for the function runSelfControlledCohort}
 \usage{
-createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
-  firstOutcomeOnly = TRUE, minAge = "", maxAge = "",
-  studyStartDate = "", studyEndDate = "",
-  addLengthOfExposureExposed = TRUE, riskWindowStartExposed = 1,
-  riskWindowEndExposed = 30, addLengthOfExposureUnexposed = TRUE,
-  riskWindowEndUnexposed = -1, riskWindowStartUnexposed = -30,
-  hasFullTimeAtRisk = FALSE, washoutPeriod = 0, followupPeriod = 0)
+createRunSelfControlledCohortArgs(
+  firstExposureOnly = TRUE,
+  firstOutcomeOnly = TRUE,
+  minAge = "",
+  maxAge = "",
+  studyStartDate = "",
+  studyEndDate = "",
+  addLengthOfExposureExposed = TRUE,
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 30,
+  addLengthOfExposureUnexposed = TRUE,
+  riskWindowEndUnexposed = -1,
+  riskWindowStartUnexposed = -30,
+  hasFullTimeAtRisk = FALSE,
+  washoutPeriod = 0,
+  followupPeriod = 0
+)
 }
 \arguments{
 \item{firstExposureOnly}{If TRUE, only use first occurrence of each drug concept idfor
