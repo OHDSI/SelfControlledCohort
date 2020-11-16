@@ -270,17 +270,17 @@ runSelfControlledCohort <- function(connectionDetails,
 
   # Fetch results from server:
   sql <- "SELECT * FROM #results"
-  sql <- SqlRender::translateSql(sql,
+  sql <- SqlRender::translate(sql,
                                  targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)$sql
+                                 oracleTempSchema = oracleTempSchema)
   estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
-  sql <- SqlRender::translateSql(sql,
+  sql <- SqlRender::translate(sql,
                                  targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)$sql
+                                 oracleTempSchema = oracleTempSchema)
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
   if (is.null(connectionDetails$conn)) {
     DatabaseConnector::disconnect(conn)
