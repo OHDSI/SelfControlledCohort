@@ -27,11 +27,11 @@
 
 
 computeIrrs <- function(estimates) {
-  computeIrr <- function(i, numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
-    test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed[i],
-                                                 numOutcomesUnexposed[i]),
-                                           n = c(timeAtRiskExposed[i],
-                                                 timeAtRiskUnexposed[i]))
+  computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
+    test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed,
+                                                 numOutcomesUnexposed),
+                                           n = c(timeAtRiskExposed,
+                                                 timeAtRiskUnexposed))
     return(c(test$estimate[1], test$conf.int))
   }
   irrs <- mapply(computeIrr,
