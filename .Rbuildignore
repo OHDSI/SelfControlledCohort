@@ -8,3 +8,5 @@ extras
 deploy.sh
 compare_versions
 _pkgdown.yml
+work/*
+docs/*
