@@ -1,0 +1,222 @@
+---
+title: "Using SelfControlledCohort"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using SelfControlledCohort}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+
+The Self Controlled Cohort method measures the association between an exposure and an outcome by comparing the number of outcomes during an unexposed time at risk to the number of outcomes durning an exposed time at risk. The method is called "Self-Controlled" because each individual in the study contributes person-time to both the exposed and unexposed cohorts. There are seven time points to keep in mind when defining this analysis shown in the diagram below.
+
+```{r, echo=FALSE}
+  # Note over Tn100,T0: washout period
+  # Note over T0,T100: Followup period
+  # 
+library(DiagrammeR)
+mermaid("
+sequenceDiagram
+  participant Tn100 as Observation Period Start
+  participant Tn30 as Unexposed Risk Window Start
+  participant Tn1 as Unexposed Risk Window End
+  participant T0 as Exposure Start Date (Time 0)
+  participant T1 as Exposed Risk Window Start
+  participant T30 as Exposed Risk Window End
+  participant T100 as Observation Period End
+  
+
+  Tn100 ->> T0: washout period
+  T0 ->> T100: followup period
+  Tn30->>Tn1: Unexposed time at risk
+  T1->>T30: Exposed time at risk
+")
+```
+
+
+Only people who experience the exposure are used in the analysis and their exposure start date is taken as the index date or *Time 0*. The unexposed risk window is defined prior to Time 0 and represents a duration of time when the person was not exposed but could have experienced the outcome. The exposed risk window is defined as a period of time after the Time 0 and represents a duration of time when the person was exposed and could have experienced the outcome. Both of these time windows must be contained within a continuous period of observation. The details about when the risk windows start and end can be adjusted to meet the analysis specifications.
+
+The time between the start of the observation period and Time 0 is called the washout period and a minimum allowed washout period can be set when defining the analysis. Similarly the time between Time 0 and the observation period end date is the followup period. A minimum followup period can also be set.
+
+A common type of exposure is exposure to a drug but an exposure could be any set of characteristics that are captured in your data. We will look at a few different ways to define exposures.
+
+# Tables used in the analysis
+
+Conceptually there are two primary tables used in the analysis along with a few supporting tables that are part of the OMOP Common Data Model
+
+```{r, echo=F}
+exposure_table <- data.frame(field    = c("person_id", "exposure_concept_id", "exposure_start_date", "exposure_end_date"),
+                             datatype = c("INTEGER",    "INTEGER",             "DATE",               "DATE"))
+
+outcome_table <- data.frame(field    = c("person_id", "outcome_concept_id", "outcome_start_date"),
+                            datatype = c("INTEGER",   "INTEGER",            "DATE"))
+
+knitr::kable(exposure_table)
+knitr::kable(outcome_table)
+```
+
+
+These tables can be created manually or standard CDM tables can be used (eg. drug_era => exposure_table, condition_era => outcome_table). Every exposure-outcome combination in these tables will be included in the analysis unless otherwise specified. The additional CDM tables that are required for this analyis are `observation_period` (for observation start and end dates) and `person` (for year of birth).
+
+# A first example
+
+The SelfControlledCohort package makes it easy to run examine the association between every drug and every condition in a CDM database. The Eunomia package provides a mini CDM that runs entirely within R that we can use for examples.
+
+
+```{r}
+# A first example with
+library(SelfControlledCohort)
+library(Eunomia)
+
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+
+result <- runSelfControlledCohort(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = "main",
+  exposureIds = '', # inlcude all drugs as exposures
+  outcomeIds = '' # include all conditions as outcomes
+)
+
+library(dplyr)
+result$estimates %>% 
+  arrange(desc(irr)) %>% 
+  head()
+```
+
+The result of our analysis is a dataframe with one row per exposure-outcome pair along with all the relevant statistics. Let's interpret the resluts for amoxicillin exposure (concept ID 1713332) and the outcome of Chronic sinusitis (concept ID 257012)
+
+```{r}
+example <- result$estimates %>% 
+  filter(exposureId == 1713332, outcomeId == 257012) 
+
+example %>% 
+  tidyr::gather() %>% 
+  mutate(value = format(round(value,1), scientific = F)) %>% 
+  rename(column = key) %>% 
+  knitr::kable(align = c("lr"))
+```
+
+We can see that `r example$numPersons` were exposed to amoxicillin. When we add up all the time before the exposure we get `r example$timeAtRiskUnexposed` person-years. Similarly when we add up all the time after the exposure, the "Exposed time at risk", we get `r example$timeAtRiskExposed` person-years.
+
+The incidence of Chronic sinusitis during the "Unexposed time at risk" is
+
+$$
+\frac{224 \ \ events}{45796.0 \ \ person \ years} =  0.00489
+$$
+
+
+The incidence of Chronic sinusitis during the "Exposed time at risk" is
+
+
+$$
+\frac{65 \ \ events}{277.4 \ \ person \ years} =  0.234
+$$
+
+The incidence rate ratio is $ \frac{234}{0.00489} = 47.9$ with a 95% confidence interval of $[35.8, 63.4]$
+
+When the sample size is large the log of the relative risk is normally distributed with a mean of $logRr = 3.9$ and a standard error of $seLogRr =	0.1$ <Not sure this is correct actually>
+
+See `help( "rateratio.test", package = "rateratio.test")` for method details.
+
+
+# Custom exposure-outcome pairs
+
+In addition to using all drugs as exposures and all conditions as outcomes we can come up with much more specific definitions of exposures and outcomes using cohorts. A cohort is a set of persons who satisfy one or more inclusion criteria for a duration of time. We can define cohorts using Atlas or by writing  SQL code. If we use Atlas then the cohort will be stored in the Atlas "results" schema associated with your CDM database. If you want to write SQL then you will need write access to a schema in your CDM database.
+
+We will simulate using cohorts created in Atlas by using the pre-built cohorts in Eunomia.
+```{r}
+Eunomia::createCohorts(connectionDetails)
+```
+
+
+Suppose we are interested in the exposure of NSAID (cohort #4) and the outcome of GiBleed (cohort #3). Even though this is a drug-condition pair these cohorts could be defined using combinations of data elements from any domain.
+
+```{r}
+
+result <- runSelfControlledCohort(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = "main",
+  exposureIds = c(1,4), # The NSAIDs cohort #4 and the Celecoxib cohort #1
+  outcomeIds = 3, # The GiBleed cohort #3
+  exposureTable = "cohort",
+  outcomeTable = "cohort",
+)
+
+result$estimates %>% 
+  filter(exposureId == 4, outcomeId == 3) %>% 
+  tidyr::gather() %>% 
+  mutate(value = format(round(value,1), scientific = F)) %>% 
+  rename(column = key) %>% 
+  knitr::kable(align = c("lr"))
+```
+
+
+In this case the risk of being in the GI Bleed cohort beore entering the exposure cohort is zero which means our rate ratio is infinite. <How should this be interpreted? Is the sample size too small? Can we add smooting or a better prior?>
+
+
+Even though this example uses a drug-condition pair for the exposure and the outcome, it demonstrates how we can use any cohorts created in Atlas as exposures and outcomes in a self controled cohort study.
+
+Let's demonstrate custom exposure outcome pairs using SQL by asking "Do patients tend to get more measurements in the year after a condition diagnosis than the year before?"
+
+```{r}
+con <- DatabaseConnector::connect(connectionDetails)
+```
+
+```{sql connection=con}
+create table measurement_cohort as 
+select 
+  person_id as subject_id,
+  1 as cohort_definition_id,
+  measurement_date as cohort_start_date,
+  measurement_date as cohort_end_date
+from measurement
+```
+
+```{sql connection=con}
+create table condition_cohort as 
+select 
+  person_id as subject_id,
+  2 as cohort_definition_id,
+  condition_start_date as cohort_start_date,
+  condition_end_date as cohort_end_date
+from condition_occurrence
+  
+```
+
+```{r}
+result <- runSelfControlledCohort(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = "main",
+  exposureIds = '', # use all rows in exposure table
+  outcomeIds = '', # use all rows in outcome table
+  exposureDatabaseSchema = "main",
+  exposureTable = "condition_cohort",
+  outcomeDatabaseSchema = "main",
+  outcomeTable = "measurement_cohort",
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 365,
+  riskWindowEndUnexposed = -1,
+  riskWindowStartUnexposed = -365,
+)
+```
+
+Using the riskWindow arguments we can set the time at risk to one year before and one year after each condition exposure.
+
+
+```{r}
+result$estimates %>% 
+  tidyr::gather() %>% 
+  mutate(value = format(round(value,1), scientific = F)) %>% 
+  rename(column = key) %>% 
+  knitr::kable(align = c("lr"))
+```
+
+Indeed it does appear that in Eunomia patients tend to get more tests after a diagnosis than before.
