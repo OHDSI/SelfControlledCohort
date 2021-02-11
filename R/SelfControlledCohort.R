@@ -128,7 +128,7 @@ computeIrrs <- function(estimates) {
 #'                                         exposed and unexposed.
 #' @param computeTarDistribution           If TRUE, computer the distribution of time-at-risk and
 #'                                         average absolute time between treatment and outcome. Note,
-#'                                         may add signifcant computation time on some database
+#'                                         may add significant computation time on some database
 #'                                         engines.
 #' @param washoutPeriod                    Integer to define required time observed before exposure
 #'                                         start.
@@ -275,46 +275,24 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    compute_tar_distribution = computeTarDistribution)
   ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
-
   # Fetch results from server:
-  sql <- "
-  SELECT r.*
-  {@compute_tar_distribution} ? {
-  ,ts.mean_tx_time,
-  ts.sd_tx_time,
-  ts.min_tx_time,
-  ts.p10_tx_time,
-  ts.p25_tx_time,
-  ts.median_tx_time,
-  ts.p75_tx_time,
-  ts.p90_tx_time,
-  ts.max_tx_time
-  ts.mean_tx_time,
-  ts.sd_time_to_outcome,
-  ts.min_time_to_outcome,
-  ts.p10_time_to_outcome,
-  ts.p25_time_to_outcome,
-  ts.median_time_to_outcome,
-  ts.p75_time_to_outcome,
-  ts.p90_time_to_outcome,
-  ts.max_time_to_outcome}
-  FROM #results r
-  {@compute_tar_distribution} ? {LEFT JOIN #tar_stats ts ON (ts.exposure_id = r.exposure_id AND ts.outcome_id = r.outcome_id) }"
-  sql <- SqlRender::translate(sql,
-                              targetDialect = connectionDetails$dbms,
-                              oracleTempSchema = oracleTempSchema,
-                              compute_tar_distribution = computeTarDistribution)
-  estimates <- DatabaseConnector::querySql(conn, sql)
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connectionDetails$dbms,
+                                                   oracleTempSchema = oracleTempSchema,
+                                                   compute_tar_distribution = computeTarDistribution)
+  estimates <- DatabaseConnector::querySql(conn, renderedSql)
+
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
-  sql <- SqlRender::translate(sql,
-                                 targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema,
-                                 compute_tar_distribution = computeTarDistribution)
-  DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
-
+  DatabaseConnector::renderTranslateExecuteSql(conn,
+                                               sql,
+                                               progressBar = FALSE,
+                                               reportOverallTime = FALSE,
+                                               oracleTempSchema = oracleTempSchema,
+                                               compute_tar_distribution = computeTarDistribution)
   if (is.null(connectionDetails$conn)) {
     DatabaseConnector::disconnect(conn)
   }
