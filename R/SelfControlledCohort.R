@@ -126,6 +126,10 @@ computeIrrs <- function(estimates) {
 #'                                         end date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
 #'                                         exposed and unexposed.
+#' @param computeTarDistribution           If TRUE, computer the distribution of time-at-risk and
+#'                                         average absolute time between treatment and outcome. Note,
+#'                                         may add signifcant computation time on some database
+#'                                         engines.
 #' @param washoutPeriod                    Integer to define required time observed before exposure
 #'                                         start.
 #' @param followupPeriod                   Integer to define required time observed after exposure
@@ -171,6 +175,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
+                                    computeTarDistribution = FALSE,
                                     computeThreads = 1) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
@@ -266,15 +271,16 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    risk_window_start_unexposed = riskWindowStartUnexposed,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutPeriod,
-                                                   followup_window = followupPeriod)
+                                                   followup_window = followupPeriod,
+                                                   compute_tar_distribution = computeTarDistribution)
   ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
 
   # Fetch results from server:
   sql <- "SELECT * FROM #results"
   sql <- SqlRender::translate(sql,
-                                 targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)
+                              targetDialect = connectionDetails$dbms,
+                              oracleTempSchema = oracleTempSchema)
   estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
@@ -284,6 +290,23 @@ runSelfControlledCohort <- function(connectionDetails,
                                  targetDialect = connectionDetails$dbms,
                                  oracleTempSchema = oracleTempSchema)
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
+
+  if (computeTarDistribution) {
+    sql <- "SELECT * FROM #tar_stats"
+    sql <- SqlRender::translate(sql,
+                                targetDialect = connectionDetails$dbms,
+                                oracleTempSchema = oracleTempSchema)
+    tarDistributions <- DatabaseConnector::querySql(conn, sql)
+    colnames(tarDistributions) <- SqlRender::snakeCaseToCamelCase(colnames(tarDistributions))
+
+    # Drop temp table:
+    sql <- "TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;"
+    sql <- SqlRender::translate(sql,
+                                   targetDialect = connectionDetails$dbms,
+                                   oracleTempSchema = oracleTempSchema)
+    DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
+  }
+
   if (is.null(connectionDetails$conn)) {
     DatabaseConnector::disconnect(conn)
   }
@@ -325,6 +348,11 @@ runSelfControlledCohort <- function(connectionDetails,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
                  call = match.call())
+
+  if (computeTarDistribution) {
+    result$tarDistributions <- tarDistributions
+  }
+
   class(result) <- "sccResults"
   return(result)
 }

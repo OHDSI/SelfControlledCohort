@@ -35,7 +35,11 @@ test_that("SCC method runs on Eunomia", {
                                     exposureIds = '',
                                     outcomeIds = '',
                                     exposureTable = 'drug_exposure',
-                                    outcomeTable = 'condition_occurrence')
+                                    outcomeTable = 'condition_occurrence',
+                                    computeTarDistribution = TRUE)
+
   expect_s3_class(result$estimates, "data.frame")
   expect_equal(nrow(result$estimates), 9040)
+  expect_s3_class(result$tarDistribution, "data.frame")
+  expect_equal(nrow(result$tarDistribution), 9040)
 })
