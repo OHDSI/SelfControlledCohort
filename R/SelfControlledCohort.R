@@ -277,35 +277,43 @@ runSelfControlledCohort <- function(connectionDetails,
   DatabaseConnector::executeSql(conn, renderedSql)
 
   # Fetch results from server:
-  sql <- "SELECT * FROM #results"
+  sql <- "
+  SELECT r.*
+  {@compute_tar_distribution} ? {
+  ,ts.mean_tx_time,
+  ts.sd_tx_time,
+  ts.min_tx_time,
+  ts.p10_tx_time,
+  ts.p25_tx_time,
+  ts.median_tx_time,
+  ts.p75_tx_time,
+  ts.p90_tx_time,
+  ts.max_tx_time
+  ts.mean_tx_time,
+  ts.sd_time_to_outcome,
+  ts.min_time_to_outcome,
+  ts.p10_time_to_outcome,
+  ts.p25_time_to_outcome,
+  ts.median_time_to_outcome,
+  ts.p75_time_to_outcome,
+  ts.p90_time_to_outcome,
+  ts.max_time_to_outcome}
+  FROM #results r
+  {@compute_tar_distribution} ? {LEFT JOIN #tar_stats ts ON (ts.exposure_id = r.exposure_id AND ts.outcome_id = r.outcome_id) }"
   sql <- SqlRender::translate(sql,
                               targetDialect = connectionDetails$dbms,
-                              oracleTempSchema = oracleTempSchema)
+                              oracleTempSchema = oracleTempSchema,
+                              compute_tar_distribution = computeTarDistribution)
   estimates <- DatabaseConnector::querySql(conn, sql)
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
   # Drop temp table:
-  sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
+  sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
   sql <- SqlRender::translate(sql,
                                  targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)
+                                 oracleTempSchema = oracleTempSchema,
+                                 compute_tar_distribution = computeTarDistribution)
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
-
-  if (computeTarDistribution) {
-    sql <- "SELECT * FROM #tar_stats"
-    sql <- SqlRender::translate(sql,
-                                targetDialect = connectionDetails$dbms,
-                                oracleTempSchema = oracleTempSchema)
-    tarDistributions <- DatabaseConnector::querySql(conn, sql)
-    colnames(tarDistributions) <- SqlRender::snakeCaseToCamelCase(colnames(tarDistributions))
-
-    # Drop temp table:
-    sql <- "TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;"
-    sql <- SqlRender::translate(sql,
-                                   targetDialect = connectionDetails$dbms,
-                                   oracleTempSchema = oracleTempSchema)
-    DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
-  }
 
   if (is.null(connectionDetails$conn)) {
     DatabaseConnector::disconnect(conn)
@@ -348,10 +356,6 @@ runSelfControlledCohort <- function(connectionDetails,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
                  call = match.call())
-
-  if (computeTarDistribution) {
-    result$tarDistributions <- tarDistributions
-  }
 
   class(result) <- "sccResults"
   return(result)
