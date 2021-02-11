@@ -211,7 +211,7 @@ FROM (
 		num_persons,
 		num_exposures,
 		time_at_risk_exposed,
-		time_at_risk_unexposed ,
+		time_at_risk_unexposed,
 		outcome_id
 	FROM #scc_exposure_summary,
 		(
@@ -249,7 +249,7 @@ WITH treatment_times AS (
             outcome_id,
             outcome_date
         FROM (
-            SELECT subject_id AS person_id,
+            SELECT ot.@outcome_person_id AS person_id,
                 ot.@outcome_id AS outcome_id,
                 ot.@outcome_start_date AS outcome_date
                 {@first_outcome_only} ? {,ROW_NUMBER() OVER (PARTITION BY ot.@outcome_person_id, ot.@outcome_id ORDER BY ot.@outcome_start_date) AS rn1}
@@ -325,7 +325,7 @@ time_to_distribution AS (
               WHERE q.is_exposed_outcome = 1 OR q.is_unexposed_outcome = 1
               GROUP BY exposure_id, outcome_id
        ) o
-       join (
+       JOIN (
               SELECT exposure_id, outcome_id, time_to_outcome, count_big(*) AS total,
                      sum(count_big(*)) OVER (PARTITION BY exposure_id, outcome_id ORDER BY time_to_outcome) AS accumulated
               FROM treatment_times q
@@ -335,7 +335,16 @@ time_to_distribution AS (
        GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome, o.max_time_to_outcome, o.mean_time_to_outcome, o.sd_time_to_outcome
 )
 
-SELECT tx.*, tt.*
+SELECT tx.*,
+    tt.mean_time_to_outcome,
+    tt.sd_time_to_outcome,
+    tt.min_time_to_outcome,
+    tt.p10_time_to_outcome,
+    tt.p25_time_to_outcome,
+    tt.median_time_to_outcome,
+    tt.p75_time_to_outcome,
+    tt.p90_time_to_outcome,
+    tt.max_time_to_outcome
     INTO #tar_stats
     FROM tx_distribution tx
     INNER JOIN time_to_distribution tt ON (tt.exposure_id = tx.exposure_id AND tt.outcome_id = tx.outcome_id);
