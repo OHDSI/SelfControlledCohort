@@ -323,5 +323,112 @@ result$estimates %>%
 Indeed it does appear that in Eunomia patients tend to get more tests
 after a diagnosis than before.
 
+
+# Running multiple analyses
+
+The SelfControlledCohort package supports performing multiple analyses at once 
+and provides functions to specify the details of each analysis to be performed.
+
+
+Start by creating an sccAnalysis object for each analysis type to be performed.
+We will create one analysis that uses 30 day exposure windows and another with
+365 day exposure windows.
+
+
+```{r}
+	
+sccArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
+                                              firstOutcomeOnly = TRUE,
+                                              minAge = "",
+                                              maxAge = "",
+                                              studyStartDate = "",
+                                              studyEndDate = "",
+                                              addLengthOfExposureExposed = TRUE,
+                                              riskWindowStartExposed = 1,
+                                              riskWindowEndExposed = 30,
+                                              addLengthOfExposureUnexposed = TRUE,
+                                              riskWindowEndUnexposed = -1,
+                                              riskWindowStartUnexposed = -30,
+                                              hasFullTimeAtRisk = FALSE,
+                                              washoutPeriod = 0,
+                                              followupPeriod = 0)
+
+sccArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
+                                              firstOutcomeOnly = TRUE,
+                                              minAge = "",
+                                              maxAge = "",
+                                              studyStartDate = "",
+                                              studyEndDate = "",
+                                              addLengthOfExposureExposed = TRUE,
+                                              riskWindowStartExposed = 1,
+                                              riskWindowEndExposed = 365,
+                                              addLengthOfExposureUnexposed = TRUE,
+                                              riskWindowEndUnexposed = -1,
+                                              riskWindowStartUnexposed = -365,
+                                              hasFullTimeAtRisk = FALSE,
+                                              washoutPeriod = 0,
+                                              followupPeriod = 0)
+
+sccAnalysis1 <- createSccAnalysis(analysisId = 1,
+                              description = "30 day risk windows",
+                              exposureType = NULL, # What are the valid values for this argument?
+                              outcomeType = NULL,
+                              runSelfControlledCohortArgs = sccArgs1)
+
+
+sccAnalysis2 <- createSccAnalysis(analysisId = 2,
+                              description = "365 day risk windows",
+                              exposureType = NULL,
+                              outcomeType = NULL,
+                              runSelfControlledCohortArgs = sccArgs1)
+
+sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
+
+```
+
+
+Then create a list with all exposure outcome pairs to be analyzed. These can 
+be concept IDs if you are using the condition_occurrence and drug_era tables or
+cohort IDs if you are using a cohort table for exposures and outcomes. 
+
+
+```{r}
+
+exposureOutcomeList <- list(createExposureOutcome(exposureId = 4, outcomeId = 3),
+                            createExposureOutcome(exposureId = 1, outcomeId = 3))
+  
+```
+
+
+The total number of rate ratios will be `length(sccAnalysisList) * length(exposureOutcomesList)`
+since every analysis will be executed for every exposure-outcome pair.
+
+```{r}
+	
+results <- runSccAnalyses(connectionDetails,
+                          cdmDatabaseSchema = "main",
+                          exposureTable = "cohort",
+                          outcomeTable = "cohort",
+                          outputFolder = "./SelfControlledCohortOutput",
+                          sccAnalysisList = sccAnalysisList,
+                          exposureOutcomeList = exposureOutcomeList,
+                          analysisThreads = 1,
+                          computeThreads = 1)
+
+
+summarizeAnalyses(results, "./SelfControlledCohortOutput")
+```
+
+
+Analysis result objects are saved to the output folder and are aggregated by
+the `summarizeAnalyses` function which returns a results dataframe with one row
+for each result.
+
+
+# Correcting bias with EmpiricalCalibration
+
+`SelfControlledCohort` is often used with the `EmpiricalCalibration` package.
+
+
 <div style="margin-bottom:100px;"></div>
 
