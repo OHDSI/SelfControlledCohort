@@ -228,7 +228,6 @@ runSelfControlledCohort <- function(connectionDetails,
 
   if (is.null(conn)) {
     conn <- DatabaseConnector::connect(connectionDetails)
-  } else {
     closeConnection <- TRUE
   }
 
