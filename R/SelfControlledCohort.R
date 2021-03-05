@@ -219,10 +219,10 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if (is.null(connectionDetails$conn)) {
+  if (is.null(connectionDetails$conn())) {
     conn <- DatabaseConnector::connect(connectionDetails)
   } else {
-    conn <- connectionDetails$conn
+    conn <- connectionDetails$conn()
   }
 
   DatabaseConnector::insertTable(connection = conn,
@@ -284,7 +284,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                  targetDialect = connectionDetails$dbms,
                                  oracleTempSchema = oracleTempSchema)
   DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
-  if (is.null(connectionDetails$conn)) {
+  if (is.null(connectionDetails$conn())) {
     DatabaseConnector::disconnect(conn)
   }
   # estimates <- readRDS("s:/temp/estimates.rds")
