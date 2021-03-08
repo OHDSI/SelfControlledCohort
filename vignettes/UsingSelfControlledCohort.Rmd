@@ -427,7 +427,12 @@ for each result.
 
 # Correcting bias with EmpiricalCalibration
 
-`SelfControlledCohort` is often used with the `EmpiricalCalibration` package.
+Effect estimates generated from observational data likely suffer from
+significant systematic bias. For example, this study design has the flaw that an exposure may look protective
+due to confounding by indication where patients are commonly exposed to a medication that is used to treat a comorbidity.
+For this reason, the `SelfControlledCohort` is often
+used with the [`EmpiricalCalibration`](https://github.com/OHDSI/EmpiricalCalibration)
+package to adjust effect estimates using negative control cohorts.
 
 
 <div style="margin-bottom:100px;"></div>
