@@ -219,13 +219,9 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if (is.function(connectionDetails$conn)) {
-    conn <- connectionDetails$conn()
-  } else {
+  if (inherits(connectionDetails$conn, "DatabaseConnectorDbiConnection")) {
     conn <- connectionDetails$conn
-  }
-
-  if (is.null(conn)) {
+  } else {
     conn <- DatabaseConnector::connect(connectionDetails)
     on.exit(DatabaseConnector::disconnect(conn))
   }
