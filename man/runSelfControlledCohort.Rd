@@ -30,6 +30,7 @@ runSelfControlledCohort(
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
   followupPeriod = 0,
+  computeTarDistribution = FALSE,
   computeThreads = 1
 )
 }
@@ -126,6 +127,11 @@ start.}
 
 \item{followupPeriod}{Integer to define required time observed after exposure
 start.}
+
+\item{computeTarDistribution}{If TRUE, computer the distribution of time-at-risk and
+average absolute time between treatment and outcome. Note,
+may add significant computation time on some database
+engines.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}
