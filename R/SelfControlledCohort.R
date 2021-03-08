@@ -224,10 +224,10 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if (is.null(connectionDetails$conn)) {
+  if (is.null(connectionDetails$conn())) {
     conn <- DatabaseConnector::connect(connectionDetails)
   } else {
-    conn <- connectionDetails$conn
+    conn <- connectionDetails$conn()
   }
 
   DatabaseConnector::insertTable(connection = conn,
