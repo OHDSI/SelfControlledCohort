@@ -25,7 +25,9 @@ Suggests:
     testthat,
     knitr,
     rmarkdown,
-    Eunomia
+    Eunomia,
+    DiagrammeR,
+    dplyr
 License: Apache License 2.0
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
