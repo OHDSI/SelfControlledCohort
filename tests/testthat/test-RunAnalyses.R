@@ -43,7 +43,10 @@ test_that("multiple analyses", {
     cdmVersion <- 5
   }
 
-  outputFolder <- tempdir()
+  outputFolder <- file.path(tempdir(), getOption("dbms"))
+  dir.create(outputFolder)
+  on.exit(unlink(outputFolder))
+
   rr <- runSccAnalyses(connectionDetails = connectionDetails,
                        cdmDatabaseSchema = cdmDatabaseSchema,
                        oracleTempSchema = oracleTempSchema,
