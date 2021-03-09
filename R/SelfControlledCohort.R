@@ -224,7 +224,7 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if (inherits(connectionDetails$conn, "DatabaseConnectorDbiConnection")) {
+  if ("conn"  %in% names(connectionDetails)) {
     conn <- connectionDetails$conn
   } else {
     conn <- DatabaseConnector::connect(connectionDetails)
