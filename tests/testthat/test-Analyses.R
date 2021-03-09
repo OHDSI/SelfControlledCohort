@@ -33,5 +33,30 @@ test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
     item1 = analysis,
     item2 = list() # Should be type of sccAnalysis
   )
-  expect_error(saveSccAnalysisList(badAnalysisList, tmp))
+
+  expect_error(saveSccAnalysisList(c(1,2), tmp)) # Not a list
+  expect_error(saveSccAnalysisList(list(), tmp)) # Empty
+  expect_error(saveSccAnalysisList(badAnalysisList, tmp)) # Not an sccAnalysis object
+})
+
+
+test_that("loadExposureOutcomeList, saveExposureOutcomeList , createExposureOutcome", {
+  exposureOutcome1 <- createExposureOutcome(123, 456)
+  expect_is(exposureOutcome1, "exposureOutcome")
+  exposureOutcome2 <- createExposureOutcome(789, 101112)
+
+  validList <- list(item1 = exposureOutcome1, item2 = exposureOutcome2)
+  tmp <- tempfile(fileext = "json")
+  saveExposureOutcomeList(exposureOutcomeList = validList, file = tmp)
+
+  loadedList <- loadExposureOutcomeList(tmp)
+
+  for (eo in loadedList) {
+    expect_equal(class(eo), "exposureOutcome")
+  }
+
+  badList <- list(item1 = exposureOutcome1, item2 = list())
+  expect_error(saveExposureOutcomeList(c(1,2), tmp)) # Not a list
+  expect_error(saveExposureOutcomeList(list(), tmp)) # Empty
+  expect_error(saveExposureOutcomeList(badList, tmp)) # Not an sccAnalysis object
 })
