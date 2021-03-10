@@ -1,10 +1,6 @@
 # Download the JDBC drivers used in the tests
-
 oldJarFolder <- Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
 Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = tempfile("jdbcDrivers"))
-DatabaseConnector::downloadJdbcDrivers("postgresql")
-DatabaseConnector::downloadJdbcDrivers("sql server")
-DatabaseConnector::downloadJdbcDrivers("oracle")
 
 withr::defer({
   unlink(Sys.getenv("DATABASECONNECTOR_JAR_FOLDER"), recursive = TRUE, force = TRUE)
@@ -12,6 +8,7 @@ withr::defer({
 }, testthat::teardown_env())
 
 if (getOption("dbms") == "postgresql") {
+  DatabaseConnector::downloadJdbcDrivers("postgresql")
   connectionDetails <- createConnectionDetails(dbms = "postgresql",
                                                user = Sys.getenv("CDM5_POSTGRESQL_USER"),
                                                password = URLdecode(Sys.getenv("CDM5_POSTGRESQL_PASSWORD")),
@@ -21,6 +18,7 @@ if (getOption("dbms") == "postgresql") {
   cdmVersion <- 5
 }
 if (getOption("dbms") == "sql server") {
+  DatabaseConnector::downloadJdbcDrivers("sql server")
   connectionDetails <- createConnectionDetails(dbms = "sql server",
                                                user = Sys.getenv("CDM5_SQL_SERVER_USER"),
                                                password = URLdecode(Sys.getenv("CDM5_SQL_SERVER_PASSWORD")),
@@ -29,6 +27,7 @@ if (getOption("dbms") == "sql server") {
   cdmVersion <- 5
 }
 if (getOption("dbms") == "oracle") {
+  DatabaseConnector::downloadJdbcDrivers("oracle")
   connectionDetails <- createConnectionDetails(dbms = "oracle",
                                                user = Sys.getenv("CDM5_ORACLE_USER"),
                                                password = URLdecode(Sys.getenv("CDM5_ORACLE_PASSWORD")),
