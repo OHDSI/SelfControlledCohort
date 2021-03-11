@@ -224,10 +224,11 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if (is.null(connectionDetails$conn())) {
-    conn <- DatabaseConnector::connect(connectionDetails)
+  if ("conn" %in% names(connectionDetails)) {
+    conn <- connectionDetails$conn
   } else {
-    conn <- connectionDetails$conn()
+    conn <- DatabaseConnector::connect(connectionDetails)
+    on.exit(DatabaseConnector::disconnect(conn))
   }
 
   DatabaseConnector::insertTable(connection = conn,
@@ -293,12 +294,9 @@ runSelfControlledCohort <- function(connectionDetails,
                                                reportOverallTime = FALSE,
                                                oracleTempSchema = oracleTempSchema,
                                                compute_tar_distribution = computeTarDistribution)
-  if (is.null(connectionDetails$conn)) {
-    DatabaseConnector::disconnect(conn)
-  }
+
   # estimates <- readRDS("s:/temp/estimates.rds")
   # estimates <- estimates[1:100000, ]
-
   if (nrow(estimates) > 0) {
     ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
     zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
@@ -334,7 +332,6 @@ runSelfControlledCohort <- function(connectionDetails,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
                  call = match.call())
-
   class(result) <- "sccResults"
   return(result)
 }
