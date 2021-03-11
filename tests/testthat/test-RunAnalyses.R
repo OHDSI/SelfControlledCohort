@@ -17,7 +17,9 @@ test_that("multiple analyses", {
 
   outputFolder <- file.path(tempdir(), getOption("dbms"))
   dir.create(outputFolder)
-  on.exit(unlink(outputFolder))
+    withr::defer({
+    unlink(outputFolder, force = TRUE)
+  }, testthat::teardown_env())
 
   rr <- runSccAnalyses(connectionDetails = connectionDetails,
                        cdmDatabaseSchema = cdmDatabaseSchema,

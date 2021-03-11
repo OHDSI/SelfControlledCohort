@@ -21,6 +21,10 @@ test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
   )
 
   tmp <- tempfile(fileext = "json")
+  withr::defer({
+    unlink(tmp, force = TRUE)
+  }, testthat::teardown_env())
+
   saveSccAnalysisList(analysisList, tmp)
   analysisListLoaded <- loadSccAnalysisList(tmp)
 
@@ -46,7 +50,12 @@ test_that("loadExposureOutcomeList, saveExposureOutcomeList , createExposureOutc
   exposureOutcome2 <- createExposureOutcome(789, 101112)
 
   validList <- list(item1 = exposureOutcome1, item2 = exposureOutcome2)
+
   tmp <- tempfile(fileext = "json")
+  withr::defer({
+    unlink(tmp, force = TRUE)
+  }, testthat::teardown_env())
+
   saveExposureOutcomeList(exposureOutcomeList = validList, file = tmp)
 
   loadedList <- loadExposureOutcomeList(tmp)
