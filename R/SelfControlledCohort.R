@@ -224,7 +224,7 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if ("conn"  %in% names(connectionDetails)) {
+  if ("conn" %in% names(connectionDetails)) {
     conn <- connectionDetails$conn
   } else {
     conn <- DatabaseConnector::connect(connectionDetails)
@@ -297,7 +297,6 @@ runSelfControlledCohort <- function(connectionDetails,
 
   # estimates <- readRDS("s:/temp/estimates.rds")
   # estimates <- estimates[1:100000, ]
-
   if (nrow(estimates) > 0) {
     ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
     zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
