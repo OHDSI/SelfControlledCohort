@@ -189,4 +189,5 @@ jobs:
       - name: Push to BroadSea
         if: ${{ env.new_version != '' }}
         run: |
+          perl compare_version --tag && \
           curl --data "build=true" -X POST https://registry.hub.docker.com/u/ohdsi/broadsea-methodslibrary/trigger/f0b51cec-4027-4781-9383-4b38b42dd4f5/
