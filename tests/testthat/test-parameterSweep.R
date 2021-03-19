@@ -9,6 +9,7 @@ testAllParams <- function(connectionDetails,
                           oracleTempSchema = NULL) {
   # Open connection once, so it will be reused:
   connectionDetails$conn <- DatabaseConnector::connect(connectionDetails)
+  on.exit(DatabaseConnector::disconnect(connectionDetails$conn), add = TRUE)
 
   for (outcomeTable in c("condition_era", "cohort")) {
     for (exposureTable in c("drug_era", "cohort")) {
