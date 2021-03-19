@@ -46,7 +46,7 @@ test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
 
 test_that("loadExposureOutcomeList, saveExposureOutcomeList , createExposureOutcome", {
   exposureOutcome1 <- createExposureOutcome(123, 456)
-  expect_is(exposureOutcome1, "exposureOutcome")
+  expect_s3_class(exposureOutcome1, "exposureOutcome")
   exposureOutcome2 <- createExposureOutcome(789, 101112)
 
   validList <- list(item1 = exposureOutcome1, item2 = exposureOutcome2)

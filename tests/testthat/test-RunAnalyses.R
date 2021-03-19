@@ -29,12 +29,12 @@ test_that("multiple analyses", {
                        outputFolder = outputFolder,
                        computeThreads = 8)
 
-  expect_is(rr, "data.frame")
+  expect_s3_class(rr, "data.frame")
   expect_true(file.exists(file.path(outputFolder, "resultsReference.rds")))
   apply(rr, 1, function(item) {
     expect_true(file.exists(file.path(outputFolder, item["sccResultsFile"])))
   })
 
   result <- summarizeAnalyses(rr, outputFolder)
-  expect_is(result, "data.frame")
+  expect_s3_class(result, "data.frame")
 })
