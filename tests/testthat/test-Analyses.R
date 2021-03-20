@@ -5,7 +5,7 @@ test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
 
   analysis <- createSccAnalysis(analysisId = 1, description = "test", runSelfControlledCohortArgs = args1)
 
-  expect_equal(class(analysis), "sccAnalysis")
+  expect_s3_class(analysis, "sccAnalysis")
 
   args2 <- createRunSelfControlledCohortArgs(addLengthOfExposureExposed = TRUE,
                                              riskWindowStartExposed = 1,
@@ -29,7 +29,7 @@ test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
   analysisListLoaded <- loadSccAnalysisList(tmp)
 
   for (loadedAnalaysis in analysisListLoaded) {
-    expect_equal(class(loadedAnalaysis), "sccAnalysis")
+    expect_s3_class(loadedAnalaysis, "sccAnalysis")
   }
 
   # Check for errors

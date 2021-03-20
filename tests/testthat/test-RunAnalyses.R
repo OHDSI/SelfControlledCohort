@@ -16,8 +16,7 @@ test_that("multiple analyses", {
   sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
 
   outputFolder <- file.path(tempdir(), getOption("dbms"))
-  dir.create(outputFolder)
-    withr::defer({
+  withr::defer({
     unlink(outputFolder, force = TRUE)
   }, testthat::teardown_env())
 
@@ -37,4 +36,29 @@ test_that("multiple analyses", {
 
   result <- summarizeAnalyses(rr, outputFolder)
   expect_s3_class(result, "data.frame")
+})
+
+test_that("Fail on analyses clone", {
+  outputFolder <- file.path(tempdir(), getOption("dbms"))
+  withr::defer({
+    unlink(outputFolder, force = TRUE)
+  }, testthat::teardown_env())
+
+  exposureOutcome1 <- createExposureOutcome(767410, 444382)
+  exposureOutcome2 <- createExposureOutcome(1314924, 444382)
+  exposureOutcome3 <- createExposureOutcome(907879, 444382)
+  exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
+
+  runSelfControlledCohortArgs <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE)
+  sccAnalysis <- createSccAnalysis(analysisId = 1,
+                                    runSelfControlledCohortArgs = runSelfControlledCohortArgs)
+
+  sccAnalysisList <- list(sccAnalysis, sccAnalysis)
+  expect_error(runSccAnalyses(connectionDetails = connectionDetails,
+                              cdmDatabaseSchema = cdmDatabaseSchema,
+                              oracleTempSchema = oracleTempSchema,
+                              sccAnalysisList = sccAnalysisList,
+                              exposureOutcomeList = exposureOutcomeList,
+                              outputFolder = outputFolder,
+                              computeThreads = 8))
 })
