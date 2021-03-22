@@ -77,6 +77,7 @@ runSccAnalyses <- function(connectionDetails,
   for (exposureOutcome in exposureOutcomeList) {
     stopifnot(class(exposureOutcome) == "exposureOutcome")
   }
+
   for (sccAnalysis in sccAnalysisList) {
     stopifnot(class(sccAnalysis) == "sccAnalysis")
   }
@@ -88,9 +89,15 @@ runSccAnalyses <- function(connectionDetails,
   if (!file.exists(outputFolder))
     dir.create(outputFolder)
 
+  # If any of the results compute the TAR stats, all the analyses must do the same
+  computeTarDist <- FALSE
   ### Create reference table ###
   resultsReference <- data.frame()
   for (sccAnalysis in sccAnalysisList) {
+
+    if (sccAnalysis$runSelfControlledCohortArgs$computeTarDistribution) {
+      computeTarDist <- TRUE
+    }
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
       exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
@@ -111,12 +118,19 @@ runSccAnalyses <- function(connectionDetails,
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
+
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     if (!file.exists(file.path(outputFolder, sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
       analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
       getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
+
+      if (!getrunSelfControlledCohortArgs$computeTarDistribution & computeTarDist) {
+        warning("Setting computeTarDistribution to true for all analyses")
+      }
+
+      getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
 
       exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsFile == sccResultsFile])
       outcomeId <- unique(resultsReference$outcomeId[resultsReference$sccResultsFile == sccResultsFile])
@@ -140,6 +154,7 @@ runSccAnalyses <- function(connectionDetails,
     sccResults <- do.call("runSelfControlledCohort", params$args)
     saveRDS(sccResults, params$sccResultsFile)
   }
+
   if (length(objectsToCreate) != 0) {
     cluster <- ParallelLogger::makeCluster(analysisThreads)
     ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")

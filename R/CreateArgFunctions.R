@@ -33,6 +33,7 @@
 #'                                       and unexposed.
 #' @param washoutPeriod                  Integer to define required time observed before exposurestart.
 #' @param followupPeriod                 Integer to define required time observed after exposurestart.
+#' @param computeTarDistribution
 #'
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
@@ -49,7 +50,8 @@ createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
                                               riskWindowStartUnexposed = -30,
                                               hasFullTimeAtRisk = FALSE,
                                               washoutPeriod = 0,
-                                              followupPeriod = 0) {
+                                              followupPeriod = 0,
+                                              computeTarDistribution = FALSE) {
   # First: get default values:
   analysis <- list()
   for (name in names(formals(createRunSelfControlledCohortArgs))) {

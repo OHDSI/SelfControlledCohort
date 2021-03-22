@@ -2,12 +2,12 @@ library(testthat)
 
 test_that("multiple analyses", {
   # Analysis.R is checked elsewhere
-  exposureOutcome1 <- createExposureOutcome(767410, 444382)
-  exposureOutcome2 <- createExposureOutcome(1314924, 444382)
-  exposureOutcome3 <- createExposureOutcome(907879, 444382)
+  exposureOutcome1 <- createExposureOutcome(701322, 28060)
+  exposureOutcome2 <- createExposureOutcome(715997, 4294548)
+  exposureOutcome3 <- createExposureOutcome(701322, 4043241)
   exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
 
-  runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE)
+  runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE, computeTarDistribution = TRUE)
   runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE)
   sccAnalysis1 <- createSccAnalysis(analysisId = 1,
                                     runSelfControlledCohortArgs = runSelfControlledCohortArgs1)
@@ -20,14 +20,15 @@ test_that("multiple analyses", {
     unlink(outputFolder, force = TRUE)
   }, testthat::teardown_env())
 
-  rr <- runSccAnalyses(connectionDetails = connectionDetails,
-                       cdmDatabaseSchema = cdmDatabaseSchema,
-                       oracleTempSchema = oracleTempSchema,
-                       sccAnalysisList = sccAnalysisList,
-                       exposureOutcomeList = exposureOutcomeList,
-                       outputFolder = outputFolder,
-                       computeThreads = 8)
-
+  expect_warning(
+    rr <- runSccAnalyses(connectionDetails = connectionDetails,
+                         cdmDatabaseSchema = cdmDatabaseSchema,
+                         oracleTempSchema = oracleTempSchema,
+                         sccAnalysisList = sccAnalysisList,
+                         exposureOutcomeList = exposureOutcomeList,
+                         outputFolder = outputFolder,
+                         computeThreads = 1)
+  )
   expect_s3_class(rr, "data.frame")
   expect_true(file.exists(file.path(outputFolder, "resultsReference.rds")))
   apply(rr, 1, function(item) {
