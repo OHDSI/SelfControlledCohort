@@ -33,7 +33,10 @@
 #'                                       and unexposed.
 #' @param washoutPeriod                  Integer to define required time observed before exposurestart.
 #' @param followupPeriod                 Integer to define required time observed after exposurestart.
-#' @param computeTarDistribution
+#' @param computeTarDistribution         If TRUE, computer the distribution of time-at-risk and
+#'                                       average absolute time between treatment and outcome. Note,
+#'                                       may add significant computation time on some database
+#'                                       engines. If set true in one analysis will default to true for all others.
 #'
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
