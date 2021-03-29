@@ -23,6 +23,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Jamie Gilbert
   \item Patrick Ryan
 }
 

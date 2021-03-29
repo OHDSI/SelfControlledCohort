@@ -1,6 +1,6 @@
 # @file PackageMaintenance
 #
-# Copyright 2018 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -22,8 +22,8 @@ OhdsiRTools::checkUsagePackage("SelfControlledCohort")
 OhdsiRTools::updateCopyrightYearFolder()
 
 # Create manual
-shell("rm extras/SelfControlledCohort.pdf")
-shell("R CMD Rd2pdf ./ --output=extras/SelfControlledCohort.pdf")
+system("rm extras/SelfControlledCohort.pdf")
+system("R CMD Rd2pdf ./ --output=extras/SelfControlledCohort.pdf")
 
 pkgdown::build_site()
 OhdsiRTools::fixHadesLogo()

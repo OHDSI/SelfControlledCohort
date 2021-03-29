@@ -1,6 +1,7 @@
 pandoc: 2.7.3
 pkgdown: 1.5.1
 pkgdown_sha: ~
-articles: []
-last_built: 2020-06-08T07:00Z
+articles:
+  UsingSelfControlledCohort: UsingSelfControlledCohort.html
+last_built: 2021-03-29T02:56Z
 
