@@ -295,8 +295,6 @@ runSelfControlledCohort <- function(connectionDetails,
                                                oracleTempSchema = oracleTempSchema,
                                                compute_tar_distribution = computeTarDistribution)
 
-  # estimates <- readRDS("s:/temp/estimates.rds")
-  # estimates <- estimates[1:100000, ]
   if (nrow(estimates) > 0) {
     ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
     zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0

@@ -37,6 +37,7 @@ test_that("multiple analyses", {
 
   result <- summarizeAnalyses(rr, outputFolder)
   expect_s3_class(result, "data.frame")
+  expect_equal(ncol(result), 31)
 })
 
 test_that("Fail on analyses clone", {

@@ -114,6 +114,7 @@ runSccAnalyses <- function(connectionDetails,
       }
     }
   }
+  resultsReference$computeTarDist <- computeTarDist
   saveRDS(resultsReference, file.path(outputFolder, "resultsReference.rds"))
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
@@ -201,7 +202,24 @@ summarizeAnalyses <- function(resultsReference, outputFolder) {
     if (nrow(sccResults) > 0) {
       analysisId <- resultsReference$analysisId[resultsReference$sccResultsFile == sccResultsFile][1]
       sccResults$analysisId <- analysisId
-      result <- rbind(result, sccResults)
+    }
+
+    result <- rbind(result, sccResults)
+  }
+
+  # Return consistent column names
+  if (nrow(result) == 0) {
+    if (any(resultsReference$computeTarDist)) {
+      result <- data.frame(matrix(ncol = 31, nrow = 0))
+      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "numOutcomesUnexposed",
+                            "timeAtRiskExposed", "timeAtRiskUnexposed", "meanTxTime", "sdTxTime", "minTxTime", "p10TxTime",
+                            "p25TxTime", "medianTxTime", "p75TxTime", "p90TxTime", "maxTxTime", "meanTimeToOutcome", "sdTimeToOutcome",
+                            "minTimeToOutcome", "p10TimeToOutcome", "p25TimeToOutcome", "medianTimeToOutcome", "p75TimeToOutcome",
+                            "p90TimeToOutcome", "maxTimeToOutcome", "irr", "irrLb95", "irrUb95", "logRr", "seLogRr")
+    } else {
+      result <- data.frame(matrix(ncol = 14, nrow = 0))
+      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
+                            "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
     }
   }
   return(result)
