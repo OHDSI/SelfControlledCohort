@@ -9,6 +9,7 @@ testAllParams <- function(connectionDetails,
                           oracleTempSchema = NULL) {
   # Open connection once, so it will be reused:
   connectionDetails$conn <- DatabaseConnector::connect(connectionDetails)
+  on.exit(DatabaseConnector::disconnect(connectionDetails$conn), add = TRUE)
 
   for (outcomeTable in c("condition_era", "cohort")) {
     for (exposureTable in c("drug_era", "cohort")) {
@@ -54,32 +55,5 @@ testAllParams <- function(connectionDetails,
 }
 
 test_that("SCC", {
-  if (getOption("dbms") == "postgresql") {
-    connectionDetails <- createConnectionDetails(dbms = "postgresql",
-                                                 user = Sys.getenv("CDM5_POSTGRESQL_USER"),
-                                                 password = URLdecode(Sys.getenv("CDM5_POSTGRESQL_PASSWORD")),
-                                                 server = Sys.getenv("CDM5_POSTGRESQL_SERVER"))
-
-    cdmDatabaseSchema <- Sys.getenv("CDM5_POSTGRESQL_CDM_SCHEMA")
-    cdmVersion <- 5
-  }
-  if (getOption("dbms") == "sql server") {
-    connectionDetails <- createConnectionDetails(dbms = "sql server",
-                                                 user = Sys.getenv("CDM5_SQL_SERVER_USER"),
-                                                 password = URLdecode(Sys.getenv("CDM5_SQL_SERVER_PASSWORD")),
-                                                 server = Sys.getenv("CDM5_SQL_SERVER_SERVER"))
-    cdmDatabaseSchema <- Sys.getenv("CDM5_SQL_SERVER_CDM_SCHEMA")
-    cdmVersion <- 5
-  }
-  if (getOption("dbms") == "oracle") {
-    connectionDetails <- createConnectionDetails(dbms = "oracle",
-                                                 user = Sys.getenv("CDM5_ORACLE_USER"),
-                                                 password = URLdecode(Sys.getenv("CDM5_ORACLE_PASSWORD")),
-                                                 server = Sys.getenv("CDM5_ORACLE_SERVER"))
-    cdmDatabaseSchema <- Sys.getenv("CDM5_ORACLE_CDM_SCHEMA")
-    oracleTempSchema <- Sys.getenv("CDM5_ORACLE_OHDSI_SCHEMA")
-
-    cdmVersion <- 5
-  }
   testAllParams(connectionDetails, cdmDatabaseSchema, cdmVersion)
 })

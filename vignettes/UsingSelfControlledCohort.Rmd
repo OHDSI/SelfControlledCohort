@@ -350,6 +350,7 @@ sccArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
                                               riskWindowEndUnexposed = -1,
                                               riskWindowStartUnexposed = -30,
                                               hasFullTimeAtRisk = FALSE,
+                                              computeTarDistribution = TRUE,
                                               washoutPeriod = 0,
                                               followupPeriod = 0)
 
@@ -366,6 +367,7 @@ sccArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
                                               riskWindowEndUnexposed = -1,
                                               riskWindowStartUnexposed = -365,
                                               hasFullTimeAtRisk = FALSE,
+                                              computeTarDistribution = TRUE,
                                               washoutPeriod = 0,
                                               followupPeriod = 0)
 
