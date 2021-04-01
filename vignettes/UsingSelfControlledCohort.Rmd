@@ -12,7 +12,9 @@ output:
     toc: yes
   rmarkdown::html_vignette: default
 vignette: |
-  %\VignetteIndexEntry{Single studies using SelfControlledCaseSerie} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{Using SelfControlledCohort}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
