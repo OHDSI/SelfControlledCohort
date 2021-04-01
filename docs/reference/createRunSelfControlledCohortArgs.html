@@ -150,7 +150,8 @@
   <span class='kw'>riskWindowStartUnexposed</span> <span class='kw'>=</span> -<span class='fl'>30</span>,
   <span class='kw'>hasFullTimeAtRisk</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
   <span class='kw'>washoutPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>,
-  <span class='kw'>followupPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>
+  <span class='kw'>followupPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>,
+  <span class='kw'>computeTarDistribution</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -228,6 +229,13 @@ and unexposed.</p></td>
     <tr>
       <th>followupPeriod</th>
       <td><p>Integer to define required time observed after exposurestart.</p></td>
+    </tr>
+    <tr>
+      <th>computeTarDistribution</th>
+      <td><p>If TRUE, computer the distribution of time-at-risk and
+average absolute time between treatment and outcome. Note,
+may add significant computation time on some database
+engines. If set true in one analysis will default to true for all others.</p></td>
     </tr>
     </table>
 

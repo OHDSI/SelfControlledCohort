@@ -6,8 +6,8 @@ Title: Population-level estimation method  that estimates
 Version: 1.5.1
 Date: 2021-29-03
 Authors@R: c(
-    person("Jamie", "Gilbert", role = c("aut")),
-    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut", "cre")),
+    person("Jamie", "Gilbert", role = c("aut", "cre")),
+    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut")),
     person("Patrick", "Ryan", role = c("aut"))
     )
 Author: Patrick Ryan, Martijn Schuemie, James Gilbert
