@@ -16,7 +16,7 @@
 #' @param studyEndDate                   Date for maximum allowable data for index exposure. Dateformat
 #'                                       is 'yyyymmdd'.
 #' @param addLengthOfExposureExposed     If TRUE, use the duration from drugEraStart -> drugEraEnd
-#'                                       aspart of timeAtRisk.
+#'                                       as part of timeAtRisk.
 #' @param riskWindowStartExposed         Integer of days to add to drugEraStart for start oftimeAtRisk
 #'                                       (0 to include index date, 1 to start the dayafter).
 #' @param riskWindowEndExposed           Additional window to add to end of exposure period
