@@ -50,9 +50,8 @@ Getting Started
 2. In R, use the following commands to download and install SelfControlledCohort:
 
   ```r
-  install.packages("drat")
-  drat::addRepo("OHDSI")
-  install.packages("SelfControlledCohort")
+  install.packages("remotes")
+  remotes::install_github("ohdsi/SelfControlledCohort")
   ```
 
 User Documentation
