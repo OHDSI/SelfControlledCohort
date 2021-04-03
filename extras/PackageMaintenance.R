@@ -1,6 +1,6 @@
 # @file PackageMaintenance
 #
-# Copyright 2018 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -17,13 +17,45 @@
 # limitations under the License.
 
 # Format and check code
+devtools::spell_check()
+
 OhdsiRTools::formatRFolder()
 OhdsiRTools::checkUsagePackage("SelfControlledCohort")
+
 OhdsiRTools::updateCopyrightYearFolder()
 
+
 # Create manual
-shell("rm extras/SelfControlledCohort.pdf")
-shell("R CMD Rd2pdf ./ --output=extras/SelfControlledCohort.pdf")
+system("rm extras/SelfControlledCohort.pdf")
+system("R CMD Rd2pdf ./ --output=extras/SelfControlledCohort.pdf")
+
+
+# Create vignette
+diag <- DiagrammeR::mermaid("
+sequenceDiagram
+  participant Tn100 as Observation Period Start
+  participant Tn30 as Unexposed Risk Window Start
+  participant Tn1 as Unexposed Risk Window End
+  participant T0 as Exposure Start Date (Time 0)
+  participant T1 as Exposed Risk Window Start
+  participant T30 as Exposed Risk Window End
+  participant T100 as Observation Period End
+
+  Tn100 ->> T0: washout period
+  T0 ->> T100: followup period
+  Tn30->>Tn1: Unexposed time at risk
+  T1->>T30: Exposed time at risk
+")
+
+print("Use R studio export view to save diag object to vignettes/ExposureWindowsDiagram.png")
+
+rmarkdown::render("vignettes/UsingSelfControlledCohort.Rmd",
+                  output_file = "../inst/doc/UsingSelfControlledCohort.pdf",
+                  rmarkdown::pdf_document(latex_engine = "pdflatex",
+                                          toc = TRUE,
+                                          number_sections = TRUE))
+unlink("inst/doc/UsingSelfControlledCohort.tex")
+
 
 pkgdown::build_site()
 OhdsiRTools::fixHadesLogo()

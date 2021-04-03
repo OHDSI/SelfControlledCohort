@@ -1,13 +1,20 @@
 ---
 title: "Using SelfControlledCohort"
-output: rmarkdown::html_vignette
-vignette: >
+date: "`r Sys.Date()`"
+always_allow_html: yes
+output:
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    template: null
+  html_document:
+    number_sections: yes
+    toc: yes
+  rmarkdown::html_vignette: default
+vignette: |
   %\VignetteIndexEntry{Using SelfControlledCohort}
-  %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
-editor_options: 
-  markdown: 
-    wrap: 92
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
@@ -37,24 +44,7 @@ detail.
 
 There are seven time points to consider when defining this analysis.
 
-```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.align='center'}
-# library(DiagrammeR)
-DiagrammeR::mermaid("
-sequenceDiagram
-  participant Tn100 as Observation Period Start
-  participant Tn30 as Unexposed Risk Window Start
-  participant Tn1 as Unexposed Risk Window End
-  participant T0 as Exposure Start Date (Time 0)
-  participant T1 as Exposed Risk Window Start
-  participant T30 as Exposed Risk Window End
-  participant T100 as Observation Period End
-
-  Tn100 ->> T0: washout period
-  T0 ->> T100: followup period
-  Tn30->>Tn1: Unexposed time at risk
-  T1->>T30: Exposed time at risk
-")
-```
+![Figure: example exposure windows](ExposureWindowsDiagram.png)
 
 For each exposure-outcome pair the following statistics are calculated:
 
@@ -205,8 +195,11 @@ $$
 \frac{65 \ \ events}{277.4 \ \ person \ years} =  0.234
 $$
 
-The incidence rate ratio is \$ \frac{234}{0.00489} = 47.9\$ with a 95%
-confidence interval of $[35.8, 63.4]$ See
+The incidence rate ratio is
+$$
+\frac{234}{0.00489} = 47.9
+$$
+with a 95% confidence interval of $[35.8, 63.4]$ See
 `vignette("rateratio.test", package = "rateratio.test")` for method
 details.
 
