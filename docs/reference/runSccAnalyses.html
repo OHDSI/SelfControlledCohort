@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">SelfControlledCohort</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.5.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.5.1</span>
       </span>
     </div>
 
@@ -86,6 +86,21 @@
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/UsingSelfControlledCohort.html">Using SelfControlledCohort</a>
+    </li>
+  </ul>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -120,14 +135,21 @@
     <p>Run a list of analyses</p>
     </div>
 
-    <pre class="usage"><span class='fu'>runSccAnalyses</span>(<span class='no'>connectionDetails</span>, <span class='no'>cdmDatabaseSchema</span>,
+    <pre class="usage"><span class='fu'>runSccAnalyses</span>(
+  <span class='no'>connectionDetails</span>,
+  <span class='no'>cdmDatabaseSchema</span>,
   <span class='kw'>oracleTempSchema</span> <span class='kw'>=</span> <span class='no'>cdmDatabaseSchema</span>,
   <span class='kw'>exposureDatabaseSchema</span> <span class='kw'>=</span> <span class='no'>cdmDatabaseSchema</span>,
   <span class='kw'>exposureTable</span> <span class='kw'>=</span> <span class='st'>"drug_era"</span>,
   <span class='kw'>outcomeDatabaseSchema</span> <span class='kw'>=</span> <span class='no'>cdmDatabaseSchema</span>,
-  <span class='kw'>outcomeTable</span> <span class='kw'>=</span> <span class='st'>"condition_occurrence"</span>, <span class='kw'>cdmVersion</span> <span class='kw'>=</span> <span class='fl'>5</span>,
-  <span class='kw'>outputFolder</span> <span class='kw'>=</span> <span class='st'>"./SelfControlledCohortOutput"</span>, <span class='no'>sccAnalysisList</span>,
-  <span class='no'>exposureOutcomeList</span>, <span class='kw'>analysisThreads</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>computeThreads</span> <span class='kw'>=</span> <span class='fl'>1</span>)</pre>
+  <span class='kw'>outcomeTable</span> <span class='kw'>=</span> <span class='st'>"condition_occurrence"</span>,
+  <span class='kw'>cdmVersion</span> <span class='kw'>=</span> <span class='fl'>5</span>,
+  <span class='kw'>outputFolder</span> <span class='kw'>=</span> <span class='st'>"./SelfControlledCohortOutput"</span>,
+  <span class='no'>sccAnalysisList</span>,
+  <span class='no'>exposureOutcomeList</span>,
+  <span class='kw'>analysisThreads</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>computeThreads</span> <span class='kw'>=</span> <span class='fl'>1</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -191,12 +213,12 @@ COHORT_END_DATE.</p></td>
     <tr>
       <th>sccAnalysisList</th>
       <td><p>A list of objects of type <code>sccAnalysis</code> as created using the
-<code>createSccAnalysis</code> function.</p></td>
+<code><a href='createSccAnalysis.html'>createSccAnalysis</a></code> function.</p></td>
     </tr>
     <tr>
       <th>exposureOutcomeList</th>
       <td><p>A list of objects of type <code>exposureOutcome</code> as created using
-the <code>createExposureOutcome</code> function.</p></td>
+the <code><a href='createExposureOutcome.html'>createExposureOutcome</a></code> function.</p></td>
     </tr>
     <tr>
       <th>analysisThreads</th>
@@ -226,7 +248,7 @@ models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.</p>
 
       <footer>
       <div class="copyright">
-  <p>Developed by Martijn Schuemie, Patrick Ryan.</p>
+  <p>Developed by Jamie Gilbert, Martijn Schuemie, Patrick Ryan.</p>
 </div>
 
 <div class="pkgdown">

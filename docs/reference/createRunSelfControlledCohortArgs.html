@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">SelfControlledCohort</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.5.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.5.1</span>
       </span>
     </div>
 
@@ -86,6 +86,21 @@
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/UsingSelfControlledCohort.html">Using SelfControlledCohort</a>
+    </li>
+  </ul>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -120,13 +135,24 @@
     <p>Create a parameter object for the function runSelfControlledCohort</p>
     </div>
 
-    <pre class="usage"><span class='fu'>createRunSelfControlledCohortArgs</span>(<span class='kw'>firstExposureOnly</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>firstOutcomeOnly</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>minAge</span> <span class='kw'>=</span> <span class='st'>""</span>, <span class='kw'>maxAge</span> <span class='kw'>=</span> <span class='st'>""</span>,
-  <span class='kw'>studyStartDate</span> <span class='kw'>=</span> <span class='st'>""</span>, <span class='kw'>studyEndDate</span> <span class='kw'>=</span> <span class='st'>""</span>,
-  <span class='kw'>addLengthOfExposureExposed</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>riskWindowStartExposed</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>riskWindowEndExposed</span> <span class='kw'>=</span> <span class='fl'>30</span>, <span class='kw'>addLengthOfExposureUnexposed</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>riskWindowEndUnexposed</span> <span class='kw'>=</span> -<span class='fl'>1</span>, <span class='kw'>riskWindowStartUnexposed</span> <span class='kw'>=</span> -<span class='fl'>30</span>,
-  <span class='kw'>hasFullTimeAtRisk</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>washoutPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>followupPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>)</pre>
+    <pre class="usage"><span class='fu'>createRunSelfControlledCohortArgs</span>(
+  <span class='kw'>firstExposureOnly</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>firstOutcomeOnly</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>minAge</span> <span class='kw'>=</span> <span class='st'>""</span>,
+  <span class='kw'>maxAge</span> <span class='kw'>=</span> <span class='st'>""</span>,
+  <span class='kw'>studyStartDate</span> <span class='kw'>=</span> <span class='st'>""</span>,
+  <span class='kw'>studyEndDate</span> <span class='kw'>=</span> <span class='st'>""</span>,
+  <span class='kw'>addLengthOfExposureExposed</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>riskWindowStartExposed</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>riskWindowEndExposed</span> <span class='kw'>=</span> <span class='fl'>30</span>,
+  <span class='kw'>addLengthOfExposureUnexposed</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>riskWindowEndUnexposed</span> <span class='kw'>=</span> -<span class='fl'>1</span>,
+  <span class='kw'>riskWindowStartUnexposed</span> <span class='kw'>=</span> -<span class='fl'>30</span>,
+  <span class='kw'>hasFullTimeAtRisk</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
+  <span class='kw'>washoutPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>,
+  <span class='kw'>followupPeriod</span> <span class='kw'>=</span> <span class='fl'>0</span>,
+  <span class='kw'>computeTarDistribution</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -204,6 +230,13 @@ and unexposed.</p></td>
       <th>followupPeriod</th>
       <td><p>Integer to define required time observed after exposurestart.</p></td>
     </tr>
+    <tr>
+      <th>computeTarDistribution</th>
+      <td><p>If TRUE, computer the distribution of time-at-risk and
+average absolute time between treatment and outcome. Note,
+may add significant computation time on some database
+engines. If set true in one analysis will default to true for all others.</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
@@ -221,7 +254,7 @@ and unexposed.</p></td>
 
       <footer>
       <div class="copyright">
-  <p>Developed by Martijn Schuemie, Patrick Ryan.</p>
+  <p>Developed by Jamie Gilbert, Martijn Schuemie, Patrick Ryan.</p>
 </div>
 
 <div class="pkgdown">

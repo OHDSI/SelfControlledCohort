@@ -4,14 +4,21 @@
 \alias{runSccAnalyses}
 \title{Run a list of analyses}
 \usage{
-runSccAnalyses(connectionDetails, cdmDatabaseSchema,
+runSccAnalyses(
+  connectionDetails,
+  cdmDatabaseSchema,
   oracleTempSchema = cdmDatabaseSchema,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
-  outcomeTable = "condition_occurrence", cdmVersion = 5,
-  outputFolder = "./SelfControlledCohortOutput", sccAnalysisList,
-  exposureOutcomeList, analysisThreads = 1, computeThreads = 1)
+  outcomeTable = "condition_occurrence",
+  cdmVersion = 5,
+  outputFolder = "./SelfControlledCohortOutput",
+  sccAnalysisList,
+  exposureOutcomeList,
+  analysisThreads = 1,
+  computeThreads = 1
+)
 }
 \arguments{
 \item{connectionDetails}{An R object of type \code{connectionDetails} created using the

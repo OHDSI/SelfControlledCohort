@@ -3,14 +3,15 @@ Type: Package
 Title: Population-level estimation method  that estimates
     incidence rate comparison of exposed/unexposed time within an exposed
     cohort
-Version: 1.5.0
-Date: 2018-11-23
+Version: 1.5.1
+Date: 2021-29-03
 Authors@R: c(
-    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut", "cre")),
+    person("Jamie", "Gilbert", role = c("aut", "cre")),
+    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut")),
     person("Patrick", "Ryan", role = c("aut"))
     )
-Author: Patrick Ryan, Martijn Schuemie
-Maintainer: Patrick Ryan <ryan@ohdsi.org>
+Author: Patrick Ryan, Martijn Schuemie, James Gilbert
+Maintainer: Jamie Gilbert <jpg@azimov.co.uk>
 Description: This package provides a method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
 URL: https://github.com/OHDSI/SelfControlledCohort
@@ -22,6 +23,13 @@ Imports:
     ParallelLogger,
     rateratio.test
 Suggests:
-    testthat
+    withr,
+    testthat,
+    knitr,
+    rmarkdown,
+    Eunomia,
+    DiagrammeR,
+    dplyr
 License: Apache License 2.0
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
+VignetteBuilder: knitr

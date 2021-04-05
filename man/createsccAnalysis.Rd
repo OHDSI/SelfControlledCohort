@@ -4,8 +4,13 @@
 \alias{createSccAnalysis}
 \title{Create a SelfControlledCohort analysis specification}
 \usage{
-createSccAnalysis(analysisId = 1, description = "",
-  exposureType = NULL, outcomeType = NULL, runSelfControlledCohortArgs)
+createSccAnalysis(
+  analysisId = 1,
+  description = "",
+  exposureType = NULL,
+  outcomeType = NULL,
+  runSelfControlledCohortArgs
+)
 }
 \arguments{
 \item{analysisId}{An integer that will be used later to refer to this specific

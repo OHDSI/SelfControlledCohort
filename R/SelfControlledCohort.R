@@ -1,6 +1,6 @@
 # @file SelfControlledCohort.R
 #
-# Copyright 2018 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -16,20 +16,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' SelfControlledCohort
+#' @keywords internal
+#' @aliases
+#' NULL SelfControlledCohort-package
 #'
-#' @docType package
-#' @name SelfControlledCohort
 #' @importFrom stats qnorm
 #' @import DatabaseConnector
-NULL
+#'
+"_PACKAGE"
+
 
 computeIrrs <- function(estimates) {
-  computeIrr <- function(i, numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
-    test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed[i],
-                                                 numOutcomesUnexposed[i]),
-                                           n = c(timeAtRiskExposed[i],
-                                                 timeAtRiskUnexposed[i]))
+  computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
+    test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed,
+                                                 numOutcomesUnexposed),
+                                           n = c(timeAtRiskExposed,
+                                                 timeAtRiskUnexposed))
     return(c(test$estimate[1], test$conf.int))
   }
   irrs <- mapply(computeIrr,
@@ -124,6 +126,10 @@ computeIrrs <- function(estimates) {
 #'                                         end date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
 #'                                         exposed and unexposed.
+#' @param computeTarDistribution           If TRUE, computer the distribution of time-at-risk and
+#'                                         average absolute time between treatment and outcome. Note,
+#'                                         may add significant computation time on some database
+#'                                         engines.
 #' @param washoutPeriod                    Integer to define required time observed before exposure
 #'                                         start.
 #' @param followupPeriod                   Integer to define required time observed after exposure
@@ -169,6 +175,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
+                                    computeTarDistribution = FALSE,
                                     computeThreads = 1) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
@@ -217,11 +224,21 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if (is.null(connectionDetails$conn)) {
-    conn <- DatabaseConnector::connect(connectionDetails)
-  } else {
+  if ("conn" %in% names(connectionDetails)) {
     conn <- connectionDetails$conn
+  } else {
+    conn <- DatabaseConnector::connect(connectionDetails)
+    on.exit(DatabaseConnector::disconnect(conn))
   }
+
+  DatabaseConnector::insertTable(connection = conn,
+                                 tableName = "#scc_outcome_ids",
+                                 data = data.frame(outcome_id = outcomeIds),
+                                 tempTable = TRUE)
+  DatabaseConnector::insertTable(connection = conn,
+                                 tableName = "#scc_exposure_ids",
+                                 data = data.frame(exposure_id = exposureIds),
+                                 tempTable = TRUE)
 
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
@@ -255,29 +272,28 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    risk_window_start_unexposed = riskWindowStartUnexposed,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutPeriod,
-                                                   followup_window = followupPeriod)
+                                                   followup_window = followupPeriod,
+                                                   compute_tar_distribution = computeTarDistribution)
   ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
-
   # Fetch results from server:
-  sql <- "SELECT * FROM #results"
-  sql <- SqlRender::translateSql(sql,
-                                 targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)$sql
-  estimates <- DatabaseConnector::querySql(conn, sql)
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connectionDetails$dbms,
+                                                   oracleTempSchema = oracleTempSchema,
+                                                   compute_tar_distribution = computeTarDistribution)
+  estimates <- DatabaseConnector::querySql(conn, renderedSql)
+
   colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
 
   # Drop temp table:
-  sql <- "TRUNCATE TABLE #results; DROP TABLE #results;"
-  sql <- SqlRender::translateSql(sql,
-                                 targetDialect = connectionDetails$dbms,
-                                 oracleTempSchema = oracleTempSchema)$sql
-  DatabaseConnector::executeSql(conn, sql, progressBar = FALSE, reportOverallTime = FALSE)
-  if (is.null(connectionDetails$conn)) {
-    DatabaseConnector::disconnect(conn)
-  }
-  # estimates <- readRDS("s:/temp/estimates.rds")
-  # estimates <- estimates[1:100000, ]
+  sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
+  DatabaseConnector::renderTranslateExecuteSql(conn,
+                                               sql,
+                                               progressBar = FALSE,
+                                               reportOverallTime = FALSE,
+                                               oracleTempSchema = oracleTempSchema,
+                                               compute_tar_distribution = computeTarDistribution)
 
   if (nrow(estimates) > 0) {
     ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")

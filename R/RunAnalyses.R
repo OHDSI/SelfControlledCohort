@@ -1,6 +1,6 @@
 # @file RunAnalyses.R
 #
-# Copyright 2018 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -28,7 +28,7 @@
 #'                                 \code{DatabaseConnector} package.
 #' @param cdmDatabaseSchema        The name of the database schema that contains the OMOP CDM instance.
 #'                                 Requires read permissions to this database. On SQL Server, this
-#'                                 should specifiy both the database and the schema, so for example
+#'                                 should specify both the database and the schema, so for example
 #'                                 'cdm_instance.dbo'.
 #' @param oracleTempSchema         For Oracle only: the name of the database schema where you want all
 #'                                 temporary tables to be managed. Requires create/insert permissions
@@ -77,6 +77,7 @@ runSccAnalyses <- function(connectionDetails,
   for (exposureOutcome in exposureOutcomeList) {
     stopifnot(class(exposureOutcome) == "exposureOutcome")
   }
+
   for (sccAnalysis in sccAnalysisList) {
     stopifnot(class(sccAnalysis) == "sccAnalysis")
   }
@@ -88,9 +89,15 @@ runSccAnalyses <- function(connectionDetails,
   if (!file.exists(outputFolder))
     dir.create(outputFolder)
 
+  # If any of the results compute the TAR stats, all the analyses must do the same
+  computeTarDist <- FALSE
   ### Create reference table ###
   resultsReference <- data.frame()
   for (sccAnalysis in sccAnalysisList) {
+
+    if (sccAnalysis$runSelfControlledCohortArgs$computeTarDistribution) {
+      computeTarDist <- TRUE
+    }
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
       exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
@@ -107,16 +114,25 @@ runSccAnalyses <- function(connectionDetails,
       }
     }
   }
+  resultsReference$computeTarDist <- computeTarDist
   saveRDS(resultsReference, file.path(outputFolder, "resultsReference.rds"))
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
+  tarDistWarning <- FALSE
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     if (!file.exists(file.path(outputFolder, sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
       analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
       getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
+
+      if (!getrunSelfControlledCohortArgs$computeTarDistribution & computeTarDist & !tarDistWarning) {
+        warning("Setting computeTarDistribution to true for all analyses")
+        tarDistWarning <- TRUE # Only display this warning once
+      }
+
+      getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
 
       exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsFile == sccResultsFile])
       outcomeId <- unique(resultsReference$outcomeId[resultsReference$sccResultsFile == sccResultsFile])
@@ -140,6 +156,7 @@ runSccAnalyses <- function(connectionDetails,
     sccResults <- do.call("runSelfControlledCohort", params$args)
     saveRDS(sccResults, params$sccResultsFile)
   }
+
   if (length(objectsToCreate) != 0) {
     cluster <- ParallelLogger::makeCluster(analysisThreads)
     ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
@@ -185,7 +202,24 @@ summarizeAnalyses <- function(resultsReference, outputFolder) {
     if (nrow(sccResults) > 0) {
       analysisId <- resultsReference$analysisId[resultsReference$sccResultsFile == sccResultsFile][1]
       sccResults$analysisId <- analysisId
-      result <- rbind(result, sccResults)
+    }
+
+    result <- rbind(result, sccResults)
+  }
+
+  # Return consistent column names
+  if (nrow(result) == 0) {
+    if (any(resultsReference$computeTarDist)) {
+      result <- data.frame(matrix(ncol = 31, nrow = 0))
+      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "numOutcomesUnexposed",
+                            "timeAtRiskExposed", "timeAtRiskUnexposed", "meanTxTime", "sdTxTime", "minTxTime", "p10TxTime",
+                            "p25TxTime", "medianTxTime", "p75TxTime", "p90TxTime", "maxTxTime", "meanTimeToOutcome", "sdTimeToOutcome",
+                            "minTimeToOutcome", "p10TimeToOutcome", "p25TimeToOutcome", "medianTimeToOutcome", "p75TimeToOutcome",
+                            "p90TimeToOutcome", "maxTimeToOutcome", "irr", "irrLb95", "irrUb95", "logRr", "seLogRr")
+    } else {
+      result <- data.frame(matrix(ncol = 14, nrow = 0))
+      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
+                            "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
     }
   }
   return(result)

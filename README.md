@@ -1,7 +1,7 @@
 SelfControlledCohort
 ====================
 
-[![Build Status](https://travis-ci.org/OHDSI/SelfControlledCohort.svg?branch=master)](https://travis-ci.org/OHDSI/SelfControlledCohort)
+[![Build Status](https://github.com/OHDSI/SelfControlledCohort/workflows/R-CMD-check/badge.svg)](https://github.com/OHDSI/SelfControlledCohort/actions?query=workflow%3AR-CMD-check)
 [![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
 
 SelfControlledCohort is part of [HADES](https://ohdsi.github.io/Hades).
@@ -50,9 +50,8 @@ Getting Started
 2. In R, use the following commands to download and install SelfControlledCohort:
 
   ```r
-  install.packages("drat")
-  drat::addRepo("OHDSI")
-  install.packages("SelfControlledCohort")
+  install.packages("remotes")
+  remotes::install_github("ohdsi/SelfControlledCohort")
   ```
 
 User Documentation
