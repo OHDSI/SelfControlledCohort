@@ -82,6 +82,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |    
           sudo apt-get install libssh-dev
+
       - name: Install dependencies
         run: |
           remotes::install_deps(dependencies = TRUE, INSTALL_opts=c("--no-multiarch"))
@@ -186,8 +187,9 @@ jobs:
         if: ${{ env.new_version != '' }}
         run: |
           bash deploy.sh
+
       - name: Push to BroadSea
         if: ${{ env.new_version != '' }}
         run: |
-          perl compare_version --tag && \
           curl --data "build=true" -X POST https://registry.hub.docker.com/u/ohdsi/broadsea-methodslibrary/trigger/f0b51cec-4027-4781-9383-4b38b42dd4f5/
+          
