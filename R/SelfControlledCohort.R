@@ -288,14 +288,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    compute_tar_distribution = computeTarDistribution)
   ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
-  # Fetch results from server:
-  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
-                                                   packageName = "SelfControlledCohort",
-                                                   dbms = connectionDetails$dbms,
-                                                   oracleTempSchema = oracleTempSchema,
-                                                   compute_tar_distribution = computeTarDistribution)
 
-  batchSize <- getOption("SccBatchQuerySize", default = 1e06)
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
   # Clean up, regardless of status
@@ -303,14 +296,27 @@ runSelfControlledCohort <- function(connectionDetails,
     ParallelLogger::stopCluster(cluster)
   }, add = TRUE)
 
+  ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
+  # Fetch results from server:
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connectionDetails$dbms,
+                                                   oracleTempSchema = oracleTempSchema,
+                                                   compute_tar_distribution = computeTarDistribution)
   queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
-  estimates <- data.frame()
+  batchSize <- getOption("SccBatchQuerySize", default = 1e06)
+
+  tryCatch({
+    estimates <- DatabaseConnector::dbFetch(queryResult, n = 0)
+  }, error = function(...) {
+    estimates <- data.frame()
+  })
+
   while (!DatabaseConnector::dbHasCompleted(queryResult)) {
     batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
     colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
 
     if (nrow(batchEstimates) > 0) {
-      ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
       clusterBatches <- ceiling(nrow(batchEstimates) / 10000)
       batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
       batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
@@ -318,6 +324,7 @@ runSelfControlledCohort <- function(connectionDetails,
       estimates <- rbind(estimates, batchEstimates)
     }
   }
+
   DatabaseConnector::dbClearResult(queryResult)
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"

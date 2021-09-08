@@ -41,4 +41,13 @@ test_that("SCC method runs on Eunomia", {
   expect_s3_class(result$estimates, "data.frame")
   expect_equal(nrow(result$estimates), 9040)
   expect_true("meanTxTime" %in% colnames(result$estimates))
+
+  # Test empty results - this can cause crashes
+  result <- runSelfControlledCohort(connectionDetails = connectionDetails,
+                                    cdmDatabaseSchema = "main",
+                                    exposureIds = 99999999,
+                                    outcomeIds = 99999999)
+
+  expect_s3_class(result$estimates, "data.frame")
+  expect_equal(nrow(result$estimates), 0)
 })
