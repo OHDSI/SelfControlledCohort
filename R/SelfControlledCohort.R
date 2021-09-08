@@ -298,13 +298,12 @@ runSelfControlledCohort <- function(connectionDetails,
   batchSize <- getOption("SccBatchQuerySize", default = 1e06)
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
-  queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
   # Clean up, regardless of status
   on.exit({
-    DatabaseConnector::dbClearResult(queryResult)
     ParallelLogger::stopCluster(cluster)
   }, add = TRUE)
 
+  queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
   estimates <- data.frame()
   while (!DatabaseConnector::dbHasCompleted(queryResult)) {
     batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
@@ -319,6 +318,7 @@ runSelfControlledCohort <- function(connectionDetails,
       estimates <- rbind(estimates, batchEstimates)
     }
   }
+  DatabaseConnector::dbClearResult(queryResult)
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
   DatabaseConnector::renderTranslateExecuteSql(conn,
