@@ -148,6 +148,9 @@ Population-level estimation method that estimates incidence rate comparison of e
 time within an exposed cohort.
 If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
 combination of exposure and outcome.
+
+Computes query with batches to limit memory usage across processes, use options("SccBatchQuerySize" = num)
+to increase or decrease batch sizes
 }
 \examples{
 \dontrun{

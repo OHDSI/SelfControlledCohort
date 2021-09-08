@@ -27,21 +27,30 @@
 
 
 computeIrrs <- function(estimates) {
+
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
+    if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
+      return(c(NA, 0, Inf))
+    }
     test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed,
                                                  numOutcomesUnexposed),
                                            n = c(timeAtRiskExposed,
                                                  timeAtRiskUnexposed))
     return(c(test$estimate[1], test$conf.int))
   }
+
   irrs <- mapply(computeIrr,
                  numOutcomesExposed = estimates$numOutcomesExposed,
                  numOutcomesUnexposed = estimates$numOutcomesUnexposed,
                  timeAtRiskExposed = estimates$timeAtRiskExposed,
                  timeAtRiskUnexposed = estimates$timeAtRiskUnexposed)
-  estimates$irr <- irrs[1, ]
-  estimates$irrLb95 <- irrs[2, ]
-  estimates$irrUb95 <- irrs[3, ]
+  estimates$irr <- irrs[1,]
+  estimates$irrLb95 <- irrs[2,]
+  estimates$irrUb95 <- irrs[3,]
+
+  estimates$logRr <- log(estimates$irr)
+  estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
+
   return(estimates)
 }
 
@@ -57,6 +66,9 @@ computeIrrs <- function(estimates) {
 #' time within an exposed cohort.
 #' If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
 #' combination of exposure and outcome.
+#'
+#' Computes query with batches to limit memory usage across processes, use options("SccBatchQuerySize" = num)
+#' to increase or decrease batch sizes
 #'
 #' @references
 #' Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
@@ -228,7 +240,7 @@ runSelfControlledCohort <- function(connectionDetails,
     conn <- connectionDetails$conn
   } else {
     conn <- DatabaseConnector::connect(connectionDetails)
-    on.exit(DatabaseConnector::disconnect(conn))
+    on.exit(DatabaseConnector::disconnect(conn), add = TRUE)
   }
 
   DatabaseConnector::insertTable(connection = conn,
@@ -282,10 +294,31 @@ runSelfControlledCohort <- function(connectionDetails,
                                                    dbms = connectionDetails$dbms,
                                                    oracleTempSchema = oracleTempSchema,
                                                    compute_tar_distribution = computeTarDistribution)
-  estimates <- DatabaseConnector::querySql(conn, renderedSql)
 
-  colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
+  batchSize <- getOption("SccBatchQuerySize", default = 1e06)
+  cluster <- ParallelLogger::makeCluster(computeThreads)
+  ParallelLogger::clusterRequire(cluster, "rateratio.test")
+  queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
+  # Clean up, regardless of status
+  on.exit({
+    DatabaseConnector::dbClearResult(queryResult)
+    ParallelLogger::stopCluster(cluster)
+  }, add = TRUE)
 
+  estimates <- data.frame()
+  while (!DatabaseConnector::dbHasCompleted(queryResult)) {
+    batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
+    colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
+
+    if (nrow(batchEstimates) > 0) {
+      ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
+      clusterBatches <- ceiling(nrow(batchEstimates) / 10000)
+      batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
+      batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
+      batchEstimates <- do.call("rbind", batchEstimates)
+      rbind(estimates, batchEstimates)
+    }
+  }
   # Drop temp table:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
   DatabaseConnector::renderTranslateExecuteSql(conn,
@@ -294,35 +327,6 @@ runSelfControlledCohort <- function(connectionDetails,
                                                reportOverallTime = FALSE,
                                                oracleTempSchema = oracleTempSchema,
                                                compute_tar_distribution = computeTarDistribution)
-
-  if (nrow(estimates) > 0) {
-    ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-    zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
-    if (any(zeroCountIdx)) {
-      zeroCountRows <- estimates[zeroCountIdx, ]
-      zeroCountRows$irr <- NA
-      zeroCountRows$irrLb95 <- 0
-      zeroCountRows$irrUb95 <- Inf
-    }
-    if (any(!zeroCountIdx)) {
-      estimates <- estimates[!zeroCountIdx, ]
-      batches <- ceiling(nrow(estimates) / 10000)
-      estimates <- split(estimates, rep_len(1:batches, nrow(estimates)))
-      cluster <- ParallelLogger::makeCluster(computeThreads)
-      estimates <- ParallelLogger::clusterApply(cluster, estimates, computeIrrs)
-      ParallelLogger::stopCluster(cluster)
-      estimates <- do.call("rbind", estimates)
-      if (any(zeroCountIdx)) {
-        estimates <- rbind(estimates, zeroCountRows)
-      }
-    } else {
-      if (any(zeroCountIdx)) {
-        estimates <- zeroCountRows
-      }
-    }
-    estimates$logRr <- log(estimates$irr)
-    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95))/(2 * qnorm(0.975))
-  }
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
 
