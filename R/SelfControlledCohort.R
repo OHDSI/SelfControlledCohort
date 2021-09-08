@@ -316,7 +316,7 @@ runSelfControlledCohort <- function(connectionDetails,
       batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
       batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
       batchEstimates <- do.call("rbind", batchEstimates)
-      rbind(estimates, batchEstimates)
+      estimates <- rbind(estimates, batchEstimates)
     }
   }
   # Drop temp table:
