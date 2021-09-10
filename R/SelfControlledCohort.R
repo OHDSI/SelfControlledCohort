@@ -54,6 +54,64 @@ computeIrrs <- function(estimates) {
   return(estimates)
 }
 
+batchGetEstimates <- function(conn,
+                              computeThreads,
+                              countTableName,
+                              connectionDetails,
+                              computeTarDistribution,
+                              oracleTempSchema) {
+
+  countTableName <- ifelse(is.null(countTableName), "", countTableName)
+  if (countTableName != "") {
+    # Copy results to a non-temp table
+    renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
+                                                     packageName = "SelfControlledCohort",
+                                                     count_table_name = countTableName,
+                                                     dbms = connectionDetails$dbms,
+                                                     oracleTempSchema = oracleTempSchema,
+                                                     compute_tar_distribution = computeTarDistribution)
+    DatabaseConnector::executeSql(connection, renderedSql)
+  }
+
+  cluster <- ParallelLogger::makeCluster(computeThreads)
+  ParallelLogger::clusterRequire(cluster, "rateratio.test")
+  # Clean up, regardless of status
+  on.exit({
+    ParallelLogger::stopCluster(cluster)
+  }, add = TRUE)
+
+  # Fetch results from server:
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connectionDetails$dbms,
+                                                   oracleTempSchema = oracleTempSchema,
+                                                   compute_tar_distribution = computeTarDistribution)
+  queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
+  batchSize <- getOption("SccBatchQuerySize", default = 1e06)
+
+  tryCatch({
+    estimates <- DatabaseConnector::dbFetch(queryResult, n = 0)
+  }, error = function(...) {
+    estimates <- data.frame()
+  })
+
+  while (!DatabaseConnector::dbHasCompleted(queryResult)) {
+    batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
+    colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
+
+    if (nrow(batchEstimates) > 0) {
+      clusterBatches <- ceiling(nrow(batchEstimates) / 10000)
+      batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
+      batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
+      batchEstimates <- do.call("rbind", batchEstimates)
+      estimates <- rbind(estimates, batchEstimates)
+    }
+  }
+
+  DatabaseConnector::dbClearResult(queryResult)
+  return(estimates)
+}
+
 #' @title
 #' Run self-controlled cohort
 #'
@@ -148,6 +206,8 @@ computeIrrs <- function(estimates) {
 #'                                         start.
 #' @param computeThreads                   Number of parallel threads for computing IRRs with exact
 #'                                         confidence intervals.
+#' @param countTableName                   Optional intermediary table to store database counts in
+#'                                         instead of using temp tables. Useful for audit trails
 #'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
@@ -188,7 +248,8 @@ runSelfControlledCohort <- function(connectionDetails,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
                                     computeTarDistribution = FALSE,
-                                    computeThreads = 1) {
+                                    computeThreads = 1,
+                                    countTableName = NULL) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -289,44 +350,15 @@ runSelfControlledCohort <- function(connectionDetails,
   ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(conn, renderedSql)
 
-  cluster <- ParallelLogger::makeCluster(computeThreads)
-  ParallelLogger::clusterRequire(cluster, "rateratio.test")
-  # Clean up, regardless of status
-  on.exit({
-    ParallelLogger::stopCluster(cluster)
-  }, add = TRUE)
-
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  # Fetch results from server:
-  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
-                                                   packageName = "SelfControlledCohort",
-                                                   dbms = connectionDetails$dbms,
-                                                   oracleTempSchema = oracleTempSchema,
-                                                   compute_tar_distribution = computeTarDistribution)
-  queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
-  batchSize <- getOption("SccBatchQuerySize", default = 1e06)
+  estimates <- batchGetEstimates(conn = conn,
+                                 computeThreads = computeThreads,
+                                 countTableName = countTableName,
+                                 connectionDetails = connectionDetails,
+                                 computeTarDistribution = computeTarDistribution,
+                                 oracleTempSchema = oracleTempSchema)
 
-  tryCatch({
-    estimates <- DatabaseConnector::dbFetch(queryResult, n = 0)
-  }, error = function(...) {
-    estimates <- data.frame()
-  })
-
-  while (!DatabaseConnector::dbHasCompleted(queryResult)) {
-    batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
-    colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
-
-    if (nrow(batchEstimates) > 0) {
-      clusterBatches <- ceiling(nrow(batchEstimates) / 10000)
-      batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
-      batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
-      batchEstimates <- do.call("rbind", batchEstimates)
-      estimates <- rbind(estimates, batchEstimates)
-    }
-  }
-
-  DatabaseConnector::dbClearResult(queryResult)
-  # Drop temp table:
+  # Drop temp tables:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
   DatabaseConnector::renderTranslateExecuteSql(conn,
                                                sql,

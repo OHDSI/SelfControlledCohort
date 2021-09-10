@@ -1,4 +1,5 @@
 {DEFAULT @compute_tar_distribution = FALSE}
+{DEFAULT @count_table_name = ""}
 SELECT r.* {@compute_tar_distribution} ? {
 ,ts.mean_tx_time,
 ts.sd_tx_time,
@@ -18,5 +19,6 @@ ts.median_time_to_outcome,
 ts.p75_time_to_outcome,
 ts.p90_time_to_outcome,
 ts.max_time_to_outcome}
+{@count_table_name != ""} ? {INTO @count_table_name}
 FROM #results r
 {@compute_tar_distribution} ? {LEFT JOIN #tar_stats ts ON (ts.exposure_id = r.exposure_id AND ts.outcome_id = r.outcome_id)}
