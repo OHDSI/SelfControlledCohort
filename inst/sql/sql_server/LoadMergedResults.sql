@@ -1,5 +1,10 @@
 {DEFAULT @compute_tar_distribution = FALSE}
 {DEFAULT @count_table_name = ""}
+{@count_table_name != ""} ? {
+IF OBJECT_ID('@count_table_name', 'U') IS NOT NULL
+	DROP TABLE @count_table_name;
+}
+
 SELECT r.* {@compute_tar_distribution} ? {
 ,ts.mean_tx_time,
 ts.sd_tx_time,
