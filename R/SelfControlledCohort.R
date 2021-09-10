@@ -54,6 +54,33 @@ computeIrrs <- function(estimates) {
   return(estimates)
 }
 
+internalDbFetch <- function(res, datesAsString = FALSE, ...) {
+  columnTypes <- rJava::.jcall(res@content, "[I", "getColumnTypes")
+  columns <- vector("list", length(columnTypes))
+  rJava::.jcall(res@content, "V", "fetchBatch")
+  for (i in seq.int(length(columnTypes))) {
+    if (columnTypes[i] == 1) {
+      columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[D", "getNumeric", as.integer(i)))
+    } else if (columnTypes[i] == 5) {
+      columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[D", "getInteger64", as.integer(i)))
+    } else {
+      columns[[i]] <- c(columns[[i]],
+                        rJava::.jcall(res@content, "[Ljava/lang/String;", "getString", i))
+    }
+  }
+  if (!datesAsString) {
+    for (i in seq.int(length(columnTypes))) {
+      if (columnTypes[i] == 3) {
+        columns[[i]] <- as.Date(columns[[i]])
+      }
+    }
+  }
+  names(columns) <- rJava::.jcall(res@content, "[Ljava/lang/String;", "getColumnNames")
+  attr(columns, "row.names") <- c(NA_integer_, length(columns[[1]]))
+  class(columns) <- "data.frame"
+  return(columns)
+}
+
 batchGetEstimates <- function(conn,
                               computeThreads,
                               countTableName,
@@ -89,11 +116,7 @@ batchGetEstimates <- function(conn,
   queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
   batchSize <- getOption("SccBatchQuerySize", default = 1e06)
 
-  tryCatch({
-    estimates <- DatabaseConnector::dbFetch(queryResult, n = 0)
-  }, error = function(...) {
-    estimates <- data.frame()
-  })
+  estimates <- internalDbFetch(queryResult, n = 0)
 
   while (!DatabaseConnector::dbHasCompleted(queryResult)) {
     batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
@@ -304,14 +327,18 @@ runSelfControlledCohort <- function(connectionDetails,
     on.exit(DatabaseConnector::disconnect(conn), add = TRUE)
   }
 
-  DatabaseConnector::insertTable(connection = conn,
-                                 tableName = "#scc_outcome_ids",
-                                 data = data.frame(outcome_id = outcomeIds),
-                                 tempTable = TRUE)
-  DatabaseConnector::insertTable(connection = conn,
-                                 tableName = "#scc_exposure_ids",
-                                 data = data.frame(exposure_id = exposureIds),
-                                 tempTable = TRUE)
+  if (outcomeIds != "") {
+    DatabaseConnector::insertTable(connection = conn,
+                                   tableName = "#scc_outcome_ids",
+                                   data = data.frame(outcome_id = outcomeIds),
+                                   tempTable = TRUE)
+  }
+  if (exposureIds != "") {
+    DatabaseConnector::insertTable(connection = conn,
+                                   tableName = "#scc_exposure_ids",
+                                   data = data.frame(exposure_id = exposureIds),
+                                   tempTable = TRUE)
+  }
 
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",

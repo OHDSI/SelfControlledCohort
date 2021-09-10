@@ -354,11 +354,11 @@ SELECT tx.*,
 TRUNCATE TABLE #scc_exposure_summary;
 TRUNCATE TABLE #scc_outcome_summary;
 TRUNCATE TABLE #risk_windows;
-TRUNCATE TABLE #scc_outcome_ids;
-TRUNCATE TABLE #scc_exposure_ids;
+{@outcome_ids != ''} ? {TRUNCATE TABLE #scc_outcome_ids;}
+{@exposure_ids != ''} ? {TRUNCATE TABLE #scc_exposure_ids;}
 
 DROP TABLE #scc_exposure_summary;
 DROP TABLE #scc_outcome_summary;
 DROP TABLE #risk_windows;
-DROP TABLE #scc_outcome_ids;
-DROP TABLE #scc_exposure_ids;
+{@exposure_ids != ''} ? {DROP TABLE #scc_outcome_ids;}
+{@exposure_ids != ''} ? {DROP TABLE #scc_exposure_ids;}
