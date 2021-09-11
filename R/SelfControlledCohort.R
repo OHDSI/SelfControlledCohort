@@ -63,6 +63,8 @@ internalDbFetch <- function(res, datesAsString = FALSE, ...) {
       columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[D", "getNumeric", as.integer(i)))
     } else if (columnTypes[i] == 5) {
       columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[D", "getInteger64", as.integer(i)))
+    } else if (columnTypes[i] == 6) {
+      columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[I", "getInteger", as.integer(i)))
     } else {
       columns[[i]] <- c(columns[[i]],
                         rJava::.jcall(res@content, "[Ljava/lang/String;", "getString", i))
@@ -116,10 +118,15 @@ batchGetEstimates <- function(conn,
   queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
   batchSize <- getOption("SccBatchQuerySize", default = 1e06)
 
-  estimates <- internalDbFetch(queryResult, n = 0)
+  if (class(conn) == "DatabaseConnectorJdbcConnection") {
+    fetchMethod <- internalDbFetch
+  } else {
+    fetchMethod <- DatabaseConnector::dbFetch
+  }
+  estimates <- fetchMethod(queryResult, n = 0)
 
   while (!DatabaseConnector::dbHasCompleted(queryResult)) {
-    batchEstimates <- DatabaseConnector::dbFetch(queryResult, n = batchSize)
+    batchEstimates <- fetchMethod(queryResult, n = batchSize)
     colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
 
     if (nrow(batchEstimates) > 0) {
