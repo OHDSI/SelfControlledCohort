@@ -99,7 +99,7 @@ batchGetEstimates <- function(conn,
                                                      dbms = connectionDetails$dbms,
                                                      oracleTempSchema = oracleTempSchema,
                                                      compute_tar_distribution = computeTarDistribution)
-    DatabaseConnector::executeSql(connection, renderedSql)
+    DatabaseConnector::executeSql(conn, renderedSql)
   }
 
   cluster <- ParallelLogger::makeCluster(computeThreads)
