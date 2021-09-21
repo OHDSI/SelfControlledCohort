@@ -41,7 +41,7 @@ is 'yyyymmdd'.}
 is 'yyyymmdd'.}
 
 \item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd
-aspart of timeAtRisk.}
+as part of timeAtRisk.}
 
 \item{riskWindowStartExposed}{Integer of days to add to drugEraStart for start oftimeAtRisk
 (0 to include index date, 1 to start the dayafter).}

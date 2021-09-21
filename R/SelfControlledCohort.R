@@ -50,58 +50,17 @@ computeIrrs <- function(estimates) {
 
   estimates$logRr <- log(estimates$irr)
   estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
-
+  estimates$p <- 2 * pmin(pnorm(estimates$logRr/estimates$seLogRr), 1 - pnorm(estimates$logRr/estimates$seLogRr))
   return(estimates)
 }
 
-internalDbFetch <- function(res, datesAsString = FALSE, ...) {
-  columnTypes <- rJava::.jcall(res@content, "[I", "getColumnTypes")
-  columns <- vector("list", length(columnTypes))
-  rJava::.jcall(res@content, "V", "fetchBatch")
-  for (i in seq.int(length(columnTypes))) {
-    if (columnTypes[i] == 1) {
-      columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[D", "getNumeric", as.integer(i)))
-    } else if (columnTypes[i] == 5) {
-      columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[D", "getInteger64", as.integer(i)))
-    } else if (columnTypes[i] == 6) {
-      columns[[i]] <- c(columns[[i]], rJava::.jcall(res@content, "[I", "getInteger", as.integer(i)))
-    } else {
-      columns[[i]] <- c(columns[[i]],
-                        rJava::.jcall(res@content, "[Ljava/lang/String;", "getString", i))
-    }
-  }
-  if (!datesAsString) {
-    for (i in seq.int(length(columnTypes))) {
-      if (columnTypes[i] == 3) {
-        columns[[i]] <- as.Date(columns[[i]])
-      }
-    }
-  }
-  names(columns) <- rJava::.jcall(res@content, "[Ljava/lang/String;", "getColumnNames")
-  attr(columns, "row.names") <- c(NA_integer_, length(columns[[1]]))
-  class(columns) <- "data.frame"
-  return(columns)
-}
-
-batchGetEstimates <- function(conn,
-                              computeThreads,
-                              countTableName,
-                              connectionDetails,
-                              computeTarDistribution,
-                              oracleTempSchema) {
-
-  countTableName <- ifelse(is.null(countTableName), "", countTableName)
-  if (countTableName != "") {
-    # Copy results to a non-temp table
-    renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
-                                                     packageName = "SelfControlledCohort",
-                                                     count_table_name = countTableName,
-                                                     dbms = connectionDetails$dbms,
-                                                     oracleTempSchema = oracleTempSchema,
-                                                     compute_tar_distribution = computeTarDistribution)
-    DatabaseConnector::executeSql(conn, renderedSql)
-  }
-
+batchComputeEstimates <- function(conn,
+                                  computeThreads,
+                                  connectionDetails,
+                                  computeTarDistribution,
+                                  oracleTempSchema,
+                                  postProcessFunction = NULL,
+                                  returnEstimates = TRUE) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
   # Clean up, regardless of status
@@ -116,17 +75,13 @@ batchGetEstimates <- function(conn,
                                                    oracleTempSchema = oracleTempSchema,
                                                    compute_tar_distribution = computeTarDistribution)
   queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
-  batchSize <- getOption("SccBatchQuerySize", default = 1e06)
+  on.exit({
+    DatabaseConnector::dbClearResult(queryResult)
+  }, add = TRUE)
 
-  if (class(conn) == "DatabaseConnectorJdbcConnection") {
-    fetchMethod <- internalDbFetch
-  } else {
-    fetchMethod <- DatabaseConnector::dbFetch
-  }
-  estimates <- fetchMethod(queryResult, n = 0)
-
+  estimates <- data.frame()
   while (!DatabaseConnector::dbHasCompleted(queryResult)) {
-    batchEstimates <- fetchMethod(queryResult, n = batchSize)
+    batchEstimates <- DatabaseConnector::dbFetch(queryResult)
     colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
 
     if (nrow(batchEstimates) > 0) {
@@ -134,12 +89,22 @@ batchGetEstimates <- function(conn,
       batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
       batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
       batchEstimates <- do.call("rbind", batchEstimates)
-      estimates <- rbind(estimates, batchEstimates)
+
+      if (is.function(postProcessFunction)) {
+        postProcessFunction(batchEstimates)
+      }
+
+      if (returnEstimates) {
+        estimates <- rbind(estimates, batchEstimates)
+      }
     }
   }
 
-  DatabaseConnector::dbClearResult(queryResult)
-  return(estimates)
+  if (returnEstimates) {
+    return(estimates)
+  }
+
+  NULL
 }
 
 #' @title
@@ -238,7 +203,10 @@ batchGetEstimates <- function(conn,
 #'                                         confidence intervals.
 #' @param countTableName                   Optional intermediary table to store database counts in
 #'                                         instead of using temp tables. Useful for audit trails
-#'
+#' @param postProcessFunction              Callback function to handle batches of data. Useful for
+#'                                         massive result sets that overflow system memory. See example.
+#' @param returnEstimates                  Boolean opt to not return estimates, only useful in the case
+#'                                         where postProcessFunction is used
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
@@ -250,6 +218,22 @@ batchGetEstimates <- function(conn,
 #'                                      exposureIds = c(767410, 1314924, 907879),
 #'                                      outcomeIds = 444382,
 #'                                      outcomeTable = "condition_era")
+#'
+#' #Using a callback function that writes data to a csv file
+#' first <- TRUE
+#' csvFileName <- "D:/path/to/output.csv
+#' writeSccData <- function(data) {
+#'   vroom::vroom_write(estimates, csvFileName, delim = ",", append = !first, na = "")
+#'   first <- FALSE
+#' }
+#'
+#' runSelfControlledCohort(connectionDetails,
+#'                         cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+#'                         exposureIds = c(767410, 1314924, 907879),
+#'                         outcomeIds = 444382,
+#'                         outcomeTable = "condition_era",
+#'                         postProcessFunction = writeSccData,
+#'                         returnEstimates = FALSE)
 #' }
 #' @export
 runSelfControlledCohort <- function(connectionDetails,
@@ -279,7 +263,8 @@ runSelfControlledCohort <- function(connectionDetails,
                                     followupPeriod = 0,
                                     computeTarDistribution = FALSE,
                                     computeThreads = 1,
-                                    countTableName = NULL) {
+                                    postProcessFunction = NULL,
+                                    returnEstimates = TRUE) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -385,12 +370,13 @@ runSelfControlledCohort <- function(connectionDetails,
   DatabaseConnector::executeSql(conn, renderedSql)
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  estimates <- batchGetEstimates(conn = conn,
-                                 computeThreads = computeThreads,
-                                 countTableName = countTableName,
-                                 connectionDetails = connectionDetails,
-                                 computeTarDistribution = computeTarDistribution,
-                                 oracleTempSchema = oracleTempSchema)
+  estimates <- batchComputeEstimates(conn = conn,
+                                     computeThreads = computeThreads,
+                                     connectionDetails = connectionDetails,
+                                     computeTarDistribution = computeTarDistribution,
+                                     oracleTempSchema = oracleTempSchema,
+                                     postProcessFunction = postProcessFunction,
+                                     returnEstimates = returnEstimates)
 
   # Drop temp tables:
   sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
