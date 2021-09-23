@@ -119,19 +119,12 @@ runSccAnalyses <- function(connectionDetails,
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
-  tarDistWarning <- FALSE
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     if (!file.exists(file.path(outputFolder, sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
       analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
       getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
-
-      if (!getrunSelfControlledCohortArgs$computeTarDistribution & computeTarDist & !tarDistWarning) {
-        warning("Setting computeTarDistribution to true for all analyses")
-        tarDistWarning <- TRUE # Only display this warning once
-      }
-
       getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
 
       exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsFile == sccResultsFile])

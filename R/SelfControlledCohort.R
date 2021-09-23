@@ -77,14 +77,16 @@ batchComputeEstimates <- function(conn,
                                                    compute_tar_distribution = computeTarDistribution)
 
   batchComputeCallBack <- function(data, position, cluster, postProcessFunction, postProcessArgs) {
-    if (nrow(data)) {
+    if (nrow(data) > 0) {
       batches <- ceiling(nrow(data) / 10000)
       data <- split(data, rep_len(1:batches, nrow(data)))
       data <- ParallelLogger::clusterApply(cluster, data, computeIrrs, progressBar = FALSE)
       data <- do.call("rbind", data)
     }
+
     if (is.function(postProcessFunction))
-      data <-  do.call(postProcessFunction, append(list(data, position), postProcessArgs))
+      data <- do.call(postProcessFunction, append(list(data, position), postProcessArgs))
+
     return(data)
   }
 
@@ -315,13 +317,13 @@ runSelfControlledCohort <- function(connectionDetails,
     on.exit(DatabaseConnector::disconnect(conn), add = TRUE)
   }
 
-  if (outcomeIds != "") {
+  if (!all(outcomeIds == "")) {
     DatabaseConnector::insertTable(connection = conn,
                                    tableName = "#scc_outcome_ids",
                                    data = data.frame(outcome_id = outcomeIds),
                                    tempTable = TRUE)
   }
-  if (exposureIds != "") {
+  if (!all(exposureIds == "")) {
     DatabaseConnector::insertTable(connection = conn,
                                    tableName = "#scc_exposure_ids",
                                    data = data.frame(exposure_id = exposureIds),

@@ -3,6 +3,7 @@ test_that("batch callback works", {
 
   writeBack <- function(data, position, writeLocation) {
     write.csv(data, file = writeLocation, row.names = FALSE)
+    return(data)
   }
 
   writeLocation <- tempfile()

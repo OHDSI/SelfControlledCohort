@@ -20,15 +20,14 @@ test_that("multiple analyses", {
     unlink(outputFolder, force = TRUE)
   }, testthat::teardown_env())
 
-  expect_warning(
-    rr <- runSccAnalyses(connectionDetails = connectionDetails,
-                         cdmDatabaseSchema = cdmDatabaseSchema,
-                         oracleTempSchema = oracleTempSchema,
-                         sccAnalysisList = sccAnalysisList,
-                         exposureOutcomeList = exposureOutcomeList,
-                         outputFolder = outputFolder,
-                         computeThreads = 1)
-  )
+  rr <- runSccAnalyses(connectionDetails = connectionDetails,
+                       cdmDatabaseSchema = cdmDatabaseSchema,
+                       oracleTempSchema = oracleTempSchema,
+                       sccAnalysisList = sccAnalysisList,
+                       exposureOutcomeList = exposureOutcomeList,
+                       outputFolder = outputFolder,
+                       computeThreads = 1)
+
   expect_s3_class(rr, "data.frame")
   expect_true(file.exists(file.path(outputFolder, "resultsReference.rds")))
   apply(rr, 1, function(item) {
