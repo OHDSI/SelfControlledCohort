@@ -27,7 +27,6 @@
 
 
 computeIrrs <- function(estimates) {
-
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
     if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
       return(c(NA, 0, Inf))
@@ -50,7 +49,8 @@ computeIrrs <- function(estimates) {
 
   estimates$logRr <- log(estimates$irr)
   estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
-  estimates$p <- 2 * pmin(pnorm(estimates$logRr/estimates$seLogRr), 1 - pnorm(estimates$logRr/estimates$seLogRr))
+  zTest <- pnorm(estimates$logRr / estimates$seLogRr)
+  estimates$p <- 2 * pmin(zTest, 1 - zTest)
   return(estimates)
 }
 
@@ -60,6 +60,7 @@ batchComputeEstimates <- function(conn,
                                   computeTarDistribution,
                                   oracleTempSchema,
                                   postProcessFunction = NULL,
+                                  postProcessArgs = list(),
                                   returnEstimates = TRUE) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
@@ -74,35 +75,29 @@ batchComputeEstimates <- function(conn,
                                                    dbms = connectionDetails$dbms,
                                                    oracleTempSchema = oracleTempSchema,
                                                    compute_tar_distribution = computeTarDistribution)
-  queryResult <- DatabaseConnector::dbSendQuery(conn, renderedSql)
-  on.exit({
-    DatabaseConnector::dbClearResult(queryResult)
-  }, add = TRUE)
 
-  estimates <- data.frame()
-  while (!DatabaseConnector::dbHasCompleted(queryResult)) {
-    batchEstimates <- DatabaseConnector::dbFetch(queryResult)
-    colnames(batchEstimates) <- SqlRender::snakeCaseToCamelCase(colnames(batchEstimates))
-
-    if (nrow(batchEstimates) > 0) {
-      clusterBatches <- ceiling(nrow(batchEstimates) / 10000)
-      batchEstimates <- split(batchEstimates, rep_len(1:clusterBatches, nrow(batchEstimates)))
-      batchEstimates <- ParallelLogger::clusterApply(cluster, batchEstimates, computeIrrs)
-      batchEstimates <- do.call("rbind", batchEstimates)
-
-      if (is.function(postProcessFunction)) {
-        postProcessFunction(batchEstimates)
-      }
-
-      if (returnEstimates) {
-        estimates <- rbind(estimates, batchEstimates)
-      }
+  batchComputeCallBack <- function(data, position, cluster, postProcessFunction, postProcessArgs) {
+    if (nrow(data)) {
+      batches <- ceiling(nrow(data) / 10000)
+      data <- split(data, rep_len(1:batches, nrow(data)))
+      data <- ParallelLogger::clusterApply(cluster, data, computeIrrs, progressBar = FALSE)
+      data <- do.call("rbind", data)
     }
+    if (is.function(postProcessFunction))
+      data <-  do.call(postProcessFunction, append(list(data, position), postProcessArgs))
+    return(data)
   }
 
-  if (returnEstimates) {
+  args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
+  estimates <- DatabaseConnector::renderTranslateQueryApplyBatched(conn,
+                                                                   renderedSql,
+                                                                   batchComputeCallBack,
+                                                                   args = args,
+                                                                   snakeCaseToCamelCase = TRUE,
+                                                                   returnResultsData = returnEstimates)
+
+  if (returnEstimates)
     return(estimates)
-  }
 
   NULL
 }
@@ -205,6 +200,7 @@ batchComputeEstimates <- function(conn,
 #'                                         instead of using temp tables. Useful for audit trails
 #' @param postProcessFunction              Callback function to handle batches of data. Useful for
 #'                                         massive result sets that overflow system memory. See example.
+#' @param postProcessArgs                  Arguments for post processing function callback.
 #' @param returnEstimates                  Boolean opt to not return estimates, only useful in the case
 #'                                         where postProcessFunction is used
 #' @return
@@ -220,11 +216,9 @@ batchComputeEstimates <- function(conn,
 #'                                      outcomeTable = "condition_era")
 #'
 #' #Using a callback function that writes data to a csv file
-#' first <- TRUE
 #' csvFileName <- "D:/path/to/output.csv
-#' writeSccData <- function(data) {
-#'   vroom::vroom_write(estimates, csvFileName, delim = ",", append = !first, na = "")
-#'   first <- FALSE
+#' writeSccData <- function(data, position, ) {
+#'   vroom::vroom_write(estimates, csvFileName, delim = ",", append = position != 1, na = "")
 #' }
 #'
 #' runSelfControlledCohort(connectionDetails,
@@ -233,6 +227,7 @@ batchComputeEstimates <- function(conn,
 #'                         outcomeIds = 444382,
 #'                         outcomeTable = "condition_era",
 #'                         postProcessFunction = writeSccData,
+#'                         postProcessArgs = list(csvFileName = csvFileName),
 #'                         returnEstimates = FALSE)
 #' }
 #' @export
@@ -264,6 +259,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                     computeTarDistribution = FALSE,
                                     computeThreads = 1,
                                     postProcessFunction = NULL,
+                                    postProcessArgs = list(),
                                     returnEstimates = TRUE) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
@@ -376,6 +372,7 @@ runSelfControlledCohort <- function(connectionDetails,
                                      computeTarDistribution = computeTarDistribution,
                                      oracleTempSchema = oracleTempSchema,
                                      postProcessFunction = postProcessFunction,
+                                     postProcessArgs = postProcessArgs,
                                      returnEstimates = returnEstimates)
 
   # Drop temp tables:

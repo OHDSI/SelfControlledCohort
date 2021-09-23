@@ -31,7 +31,9 @@ runSelfControlledCohort(
   washoutPeriod = 0,
   followupPeriod = 0,
   computeTarDistribution = FALSE,
-  computeThreads = 1
+  computeThreads = 1,
+  postProcessFunction = NULL,
+  returnEstimates = TRUE
 )
 }
 \arguments{
@@ -135,6 +137,15 @@ engines.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}
+
+\item{postProcessFunction}{Callback function to handle batches of data. Useful for
+massive result sets that overflow system memory. See example.}
+
+\item{returnEstimates}{Boolean opt to not return estimates, only useful in the case
+where postProcessFunction is used}
+
+\item{countTableName}{Optional intermediary table to store database counts in
+instead of using temp tables. Useful for audit trails}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.
@@ -151,17 +162,6 @@ combination of exposure and outcome.
 
 Computes query with batches to limit memory usage across processes, use options("SccBatchQuerySize" = num)
 to increase or decrease batch sizes
-}
-\examples{
-\dontrun{
-connectionDetails <- createConnectionDetails(dbms = "sql server",
-                                             server = "RNDUSRDHIT07.jnj.com")
-sccResult <- runSelfControlledCohort(connectionDetails,
-                                     cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-                                     exposureIds = c(767410, 1314924, 907879),
-                                     outcomeIds = 444382,
-                                     outcomeTable = "condition_era")
-}
 }
 \references{
 Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
