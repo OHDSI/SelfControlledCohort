@@ -60,9 +60,6 @@ computeIrrs <- function(estimates) {
 #' @param exposureIds                      A vector containing the drug_concept_ids or
 #'                                         cohort_definition_ids of the exposures of interest. If empty,
 #'                                         all exposures in the exposure table will be included.
-#' @param outcomeIds                       The condition_concept_ids or cohort_definition_ids of the
-#'                                         outcomes of interest. If empty, all the outcomes in the
-#'                                         outcome table will be included.
 #' @param exposureDatabaseSchema           The name of the database schema that is the location where
 #'                                         the exposure data used to define the exposure cohorts is
 #'                                         available. If exposureTable = DRUG_ERA,
@@ -72,16 +69,6 @@ computeIrrs <- function(estimates) {
 #'                                         exposureTable <> DRUG_ERA, then expectation is exposureTable
 #'                                         has format of COHORT table: cohort_concept_id, SUBJECT_ID,
 #'                                         COHORT_START_DATE, COHORT_END_DATE.
-#' @param outcomeDatabaseSchema            The name of the database schema that is the location where
-#'                                         the data used to define the outcome cohorts is available. If
-#'                                         exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
-#'                                         used by assumed to be cdmSchema.  Requires read permissions
-#'                                         to this database.
-#' @param outcomeTable                     The tablename that contains the outcome cohorts.  If
-#'                                         outcomeTable <> CONDITION_OCCURRENCE, then expectation is
-#'                                         outcomeTable has format of COHORT table:
-#'                                         COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
-#'                                         COHORT_END_DATE.
 #' @param firstExposureOnly                If TRUE, only use first occurrence of each drug concept id
 #'                                         for each person
 #' @param minAge                           Integer for minimum allowable age.
@@ -109,6 +96,10 @@ computeIrrs <- function(estimates) {
 #'                                         end date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
 #'                                         exposed and unexposed.
+#' @param washoutPeriod                    Integer to define required time observed before exposure
+#'                                         start.
+#' @param followupPeriod                   Integer to define required time observed after exposure
+#'                                         start.
 #' @param riskWindowsTable                 String: optionally store the risk windows in a (non-temporary)
 #'                                         table. If it is not set the temporary table #risk_windows is
 #'                                         created. This may be a large table, consider deleting before
@@ -120,7 +111,7 @@ computeSccRiskWindows <- function(connection,
                                   cdmDatabaseSchema,
                                   cdmVersion = 5,
                                   oracleTempSchema = NULL,
-                                  exposureIds = '',
+                                  exposureIds = NULL,
                                   exposureDatabaseSchema = cdmDatabaseSchema,
                                   exposureTable = "drug_era",
                                   firstExposureOnly = TRUE,
@@ -162,7 +153,7 @@ computeSccRiskWindows <- function(connection,
     exposurePersonId <- "subject_id"
   }
 
-  if (exposureIds != '') {
+  if (!is.null(exposureIds)) {
     DatabaseConnector::insertTable(connection = connection,
                                    tableName = "#scc_exposure_ids",
                                    data = data.frame(exposure_id = exposureIds),
@@ -326,8 +317,8 @@ runSelfControlledCohort <- function(connectionDetails,
                                     cdmDatabaseSchema,
                                     cdmVersion = 5,
                                     oracleTempSchema = NULL,
-                                    exposureIds = '',
-                                    outcomeIds = '',
+                                    exposureIds = NULL,
+                                    outcomeIds = NULL,
                                     exposureDatabaseSchema = cdmDatabaseSchema,
                                     exposureTable = "drug_era",
                                     outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -394,7 +385,7 @@ runSelfControlledCohort <- function(connectionDetails,
     on.exit(DatabaseConnector::disconnect(connection))
   }
 
-  if (outcomeIds != '') {
+  if (!is.null(outcomeIds)) {
     DatabaseConnector::insertTable(connection = connection,
                                    tableName = "#scc_outcome_ids",
                                    data = data.frame(outcome_id = outcomeIds),

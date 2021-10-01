@@ -97,6 +97,12 @@ end date, else add to exposure start date).}
 \item{hasFullTimeAtRisk}{If TRUE, restrict to people who have full time-at-risk
 exposed and unexposed.}
 
+\item{washoutPeriod}{Integer to define required time observed before exposure
+start.}
+
+\item{followupPeriod}{Integer to define required time observed after exposure
+start.}
+
 \item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
 table. If it is not set the temporary table #risk_windows is
 created. This may be a large table, consider deleting before
@@ -104,22 +110,6 @@ closing the conneciton.}
 
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if riskWindowsTable is
 temporary.}
-
-\item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
-outcomes of interest. If empty, all the outcomes in the
-outcome table will be included.}
-
-\item{outcomeDatabaseSchema}{The name of the database schema that is the location where
-the data used to define the outcome cohorts is available. If
-exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
-used by assumed to be cdmSchema.  Requires read permissions
-to this database.}
-
-\item{outcomeTable}{The tablename that contains the outcome cohorts.  If
-outcomeTable <> CONDITION_OCCURRENCE, then expectation is
-outcomeTable has format of COHORT table:
-COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
-COHORT_END_DATE.}
 }
 \description{
 Comnpute time at risk exposed and time at risk unexposed for risk window parameters

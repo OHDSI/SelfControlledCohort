@@ -19,12 +19,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jamie Gilbert
+\strong{Maintainer}: Martijn Schuemie \email{schuemie@ohdsi.org}
 
 Authors:
 \itemize{
-  \item Martijn Schuemie \email{schuemie@ohdsi.org}
-  \item Patrick Ryan
+  \item Jamie jpg@azimov.co.uk Gilbert
 }
 
 }
