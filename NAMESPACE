@@ -2,6 +2,7 @@
 
 S3method(print,sccResults)
 S3method(summary,sccResults)
+export(computeSccRiskWindows)
 export(createExposureOutcome)
 export(createRunSelfControlledCohortArgs)
 export(createSccAnalysis)

@@ -3,7 +3,7 @@ Type: Package
 Title: Population-level estimation method  that estimates
     incidence rate comparison of exposed/unexposed time within an exposed
     cohort
-Version: 1.5.1
+Version: 1.5.2
 Date: 2021-29-03
 Authors@R: c(
     person("Jamie", "Gilbert", role = c("aut", "cre")),
@@ -17,7 +17,7 @@ Description: This package provides a method to estimate risk by comparing time
 URL: https://github.com/OHDSI/SelfControlledCohort
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Depends:
-    DatabaseConnector (>= 2.0.0)
+    DatabaseConnector (>= 4.0.0)
 Imports:
     SqlRender (>= 1.4.3),
     ParallelLogger,

@@ -9,8 +9,8 @@ runSelfControlledCohort(
   cdmDatabaseSchema,
   cdmVersion = 5,
   oracleTempSchema = NULL,
-  exposureIds,
-  outcomeIds,
+  exposureIds = "",
+  outcomeIds = "",
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -31,6 +31,9 @@ runSelfControlledCohort(
   washoutPeriod = 0,
   followupPeriod = 0,
   computeTarDistribution = FALSE,
+  riskWindowsTable = "#risk_windows",
+  resultsTable = "#results",
+  resultsDatabaseSchema = NULL,
   computeThreads = 1
 )
 }
@@ -132,6 +135,17 @@ start.}
 average absolute time between treatment and outcome. Note,
 may add significant computation time on some database
 engines.}
+
+\item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
+table.}
+
+\item{resultsTable}{String: optionally store the summary results (number exposed/
+unexposed patients per outcome-exposure pair) in a (non-temporary)
+table. Note that this table does not store the rate ratios, only
+the values required to calculate rate ratios.}
+
+\item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
+riskWindowsTable are temporary.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}

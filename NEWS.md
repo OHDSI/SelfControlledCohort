@@ -1,3 +1,14 @@
+SelfControlledCohort 1.6.0
+==========================
+Changes: 
+
+- Removed support for older versions of DatabaseConnector below 4.0.0
+- Added function computeSccRiskWindows to allow computation of exposure
+  risk windows without having to run full SCC analysis
+- Storage of results (before rate ratios are computed) now in a results
+  table.
+- Storage of time at risk results no longer merged with estimates
+
 SelfControlledCohort 1.5.1
 ==========================
 

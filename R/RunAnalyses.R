@@ -95,9 +95,6 @@ runSccAnalyses <- function(connectionDetails,
   resultsReference <- data.frame()
   for (sccAnalysis in sccAnalysisList) {
 
-    if (sccAnalysis$runSelfControlledCohortArgs$computeTarDistribution) {
-      computeTarDist <- TRUE
-    }
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
       exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
@@ -126,11 +123,6 @@ runSccAnalyses <- function(connectionDetails,
       analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
       getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
-
-      if (!getrunSelfControlledCohortArgs$computeTarDistribution & computeTarDist & !tarDistWarning) {
-        warning("Setting computeTarDistribution to true for all analyses")
-        tarDistWarning <- TRUE # Only display this warning once
-      }
 
       getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
 
@@ -209,18 +201,9 @@ summarizeAnalyses <- function(resultsReference, outputFolder) {
 
   # Return consistent column names
   if (nrow(result) == 0) {
-    if (any(resultsReference$computeTarDist)) {
-      result <- data.frame(matrix(ncol = 31, nrow = 0))
-      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "numOutcomesUnexposed",
-                            "timeAtRiskExposed", "timeAtRiskUnexposed", "meanTxTime", "sdTxTime", "minTxTime", "p10TxTime",
-                            "p25TxTime", "medianTxTime", "p75TxTime", "p90TxTime", "maxTxTime", "meanTimeToOutcome", "sdTimeToOutcome",
-                            "minTimeToOutcome", "p10TimeToOutcome", "p25TimeToOutcome", "medianTimeToOutcome", "p75TimeToOutcome",
-                            "p90TimeToOutcome", "maxTimeToOutcome", "irr", "irrLb95", "irrUb95", "logRr", "seLogRr")
-    } else {
-      result <- data.frame(matrix(ncol = 14, nrow = 0))
-      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
-                            "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
-    }
+    result <- data.frame(matrix(ncol = 14, nrow = 0))
+    colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
+                          "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
   }
   return(result)
 }

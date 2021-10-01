@@ -1,6 +1,9 @@
-
 test_that("SCC method runs on Eunomia", {
   connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+  tConnection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
+  withr::defer(DatabaseConnector::disconnect(tConnection), testthat::teardown_env())
+  connectionDetails$conn <- tConnection
+
   result <- runSelfControlledCohort(connectionDetails = connectionDetails,
                                     cdmDatabaseSchema = "main",
                                     exposureIds = '',
@@ -36,9 +39,41 @@ test_that("SCC method runs on Eunomia", {
                                     outcomeIds = '',
                                     exposureTable = 'drug_exposure',
                                     outcomeTable = 'condition_occurrence',
+                                    resultsTable = "test_results_store",
+                                    riskWindowsTable = "risk_window",
+                                    resultsDatabaseSchema = "main",
                                     computeTarDistribution = TRUE)
 
-  expect_s3_class(result$estimates, "data.frame")
-  expect_equal(nrow(result$estimates), 9040)
-  expect_true("meanTxTime" %in% colnames(result$estimates))
+  expect_s3_class(result$tarStats, "data.frame")
+  expect_true("meanTxTime" %in% colnames(result$tarStats))
+
+
+  rdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.test_results_store")
+  expect_s3_class(rdf, "data.frame")
+  rwdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.risk_window")
+  expect_s3_class(rdf, "data.frame")
+
+  expect_error(
+    result <- runSelfControlledCohort(connectionDetails = connectionDetails,
+                                      cdmDatabaseSchema = "main",
+                                      exposureIds = '',
+                                      outcomeIds = '',
+                                      exposureTable = 'drug_exposure',
+                                      outcomeTable = 'condition_occurrence',
+                                      resultsTable = "resultsTable",
+                                      computeTarDistribution = TRUE),
+    "Results table"
+  )
+
+  expect_error(
+    result <- runSelfControlledCohort(connectionDetails = connectionDetails,
+                                      cdmDatabaseSchema = "main",
+                                      exposureIds = '',
+                                      outcomeIds = '',
+                                      exposureTable = 'drug_exposure',
+                                      outcomeTable = 'condition_occurrence',
+                                      riskWindowsTable = "risk_window",
+                                      computeTarDistribution = TRUE),
+    "Risk windows table"
+  )
 })
