@@ -206,6 +206,7 @@ runSccRiskWindows <- function(connection,
   DatabaseConnector::executeSql(connection, renderedSql)
 }
 
+#'@export
 getSccRiskWindowStats <- function(connection,
                                   oracleTempSchema = NULL,
                                   outcomeIds = NULL,
