@@ -205,14 +205,49 @@ runSccRiskWindows <- function(connection,
   ParallelLogger::logInfo("Computing time at risk exposed and unexposed windows")
   DatabaseConnector::executeSql(connection, renderedSql)
 }
-
-#'@export
+#' @title
+#' Run Self-Controlled Cohort Risk Window Statistics
+#' @description
+#' Compute statistics from risk windows.
+#' @details
+#' Returns list of data.frames:
+#'  Time on treatment (for population exposed that experience the outcome)
+#'  Time between outcome and exposure in 3 formats:
+#'      Total population
+#'      Population that experienced the outcome in the exposed risk window
+#'      Population that experienced the outcome in the unexposed risk window
+#' @param connection                       DatabaseConnector connection instance
+#' @param outcomeDatabaseSchema            The name of the database schema that is the location where
+#'                                         the data used to define the outcome cohorts is available. If
+#'                                         exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
+#'                                         used by assumed to be cdmSchema.  Requires read permissions
+#'                                         to this database.
+#' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
+#'                                         want all temporary tables to be managed. Requires
+#'                                         create/insert permissions to this database.
+#' @param outcomeIds                       The condition_concept_ids or cohort_definition_ids of the
+#'                                         outcomes of interest. If empty, all the outcomes in the
+#'                                         outcome table will be included.
+#' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
+#'                                         "5".
+#' @param createOutcomeIdTempTable         Create the temporary table for outcomes, True for
+#'                                         most use cases.
+#' @param firstOutcomeOnly                 If TRUE, only use first occurrence of each condition concept
+#'                                         id for each person.
+#' @param outcomeTable                     The tablename that contains the outcome cohorts.  If
+#'                                         outcomeTable <> CONDITION_OCCURRENCE, then expectation is
+#'                                         outcomeTable has format of COHORT table:
+#'                                         COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
+#'                                         COHORT_END_DATE.
+#' @param riskWindowsTable                 String: optionally store the risk windows in a (non-temporary)
+#'                                         table.
+#' @export
 getSccRiskWindowStats <- function(connection,
+                                  outcomeDatabaseSchema,
                                   oracleTempSchema = NULL,
                                   outcomeIds = NULL,
                                   cdmVersion = 5,
                                   createOutcomeIdTempTable = TRUE,
-                                  outcomeDatabaseSchema,
                                   outcomeTable = "condition_era",
                                   firstOutcomeOnly = TRUE,
                                   riskWindowsTable = "#risk_windows") {
@@ -281,9 +316,9 @@ getSccRiskWindowStats <- function(connection,
   tarStats$timeToOutcomeDistributionUnexposed <- DatabaseConnector::renderTranslateQuerySql(connection,
                                                          "SELECT * FROM #time_to_dist_unexposed",
                                                          snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unexposed; DROP TABLE #time_to_dist_unexposed;")
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
 
-  return(tarStats)
+  return(do.call(rbind, tarStats))
 }
 
 #' @title

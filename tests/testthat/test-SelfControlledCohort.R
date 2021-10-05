@@ -43,8 +43,8 @@ test_that("SCC method runs on Eunomia", {
                                     riskWindowsTable = "risk_window",
                                     resultsDatabaseSchema = "main",
                                     computeTarDistribution = TRUE)
-  expect_s3_class(result$tarStats$treatmentTimeDistribution, "data.frame")
-  expect_true("meanTxTime" %in% colnames(result$tarStats$treatmentTimeDistribution))
+  expect_s3_class(result$tarStats, "data.frame")
+  expect_true("mean" %in% colnames(result$tarStats))
 
 
   rdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.test_results_store")

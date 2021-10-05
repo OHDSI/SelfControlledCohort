@@ -47,7 +47,8 @@ tx_distribution AS (
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p90,
           o.max_tx_time as max,
-          o.total
+          o.total,
+          'time_exposed' as stat_type,
    FROM (
           SELECT
                  exposure_id,
@@ -87,7 +88,8 @@ time_to_dist AS (
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p90,
           o.max_time_to_outcome as max,
-          o.total
+          o.total,
+          'time_to_outcome' as stat_type,
    FROM (
           SELECT
                  exposure_id,
@@ -125,7 +127,8 @@ WITH time_to_dist_exposed AS (
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p90,
           o.max_time_to_outcome_exp as max,
-          o.total
+          o.total,
+          'time_to_outcome_exposed' as stat_type
    FROM (
           SELECT
                  exposure_id,
@@ -150,7 +153,7 @@ WITH time_to_dist_exposed AS (
 )
 SELECT * INTO #time_to_dist_exposed FROM time_to_dist_exposed;
 
-WITH time_to_dist_unexposed AS (
+WITH time_to_dist_unex AS (
    SELECT
           o.exposure_id,
           o.outcome_id,
@@ -163,7 +166,8 @@ WITH time_to_dist_unexposed AS (
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p90,
           o.max_time_to_outcome_exp as max,
-          o.total
+          o.total,
+          'time_to_outcome_unexposed' as stat_type
    FROM (
           SELECT
                  exposure_id,
@@ -186,7 +190,7 @@ WITH time_to_dist_unexposed AS (
    ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
    GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome_exp, o.max_time_to_outcome_exp, o.mean_time_to_outcome_exp, o.sd_time_to_outcome_exp
 )
-SELECT * INTO #time_to_dist_unexposed FROM time_to_dist_unexposed;
+SELECT * INTO #time_to_dist_unex FROM time_to_dist_unex;
 
 TRUNCATE TABLE #treatment_times;
 DROP TABLE #treatment_times;
