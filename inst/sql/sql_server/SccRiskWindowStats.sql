@@ -1,39 +1,38 @@
-WITH treatment_times AS (
-    SELECT
-        exposure_id,
+CREATE TABLE #treatment_times AS
+SELECT
+    exposure_id,
+    outcome_id,
+    CASE WHEN outcome_date >= risk_window_start_exposed AND outcome_date <= risk_window_end_exposed
+        THEN 1
+        ELSE 0
+    END AS is_exposed_outcome,
+
+    CASE WHEN outcome_date >= risk_window_start_unexposed AND outcome_date <= risk_window_end_unexposed
+        THEN 1
+        ELSE 0
+    END AS is_unexposed_outcome,
+
+    DATEDIFF(DAY, risk_window_start_exposed, risk_window_end_exposed) + 1 AS time_at_risk_exposed,
+    abs(DATEDIFF(DAY, risk_window_start_exposed, outcome_date) + 1) AS time_to_outcome
+
+FROM @risk_windows_table risk_windows
+INNER JOIN (
+    SELECT person_id,
         outcome_id,
-        CASE WHEN outcome_date >= risk_window_start_exposed AND outcome_date <= risk_window_end_exposed
-            THEN 1
-            ELSE 0
-        END AS is_exposed_outcome,
-
-        CASE WHEN outcome_date >= risk_window_start_unexposed AND outcome_date <= risk_window_end_unexposed
-            THEN 1
-            ELSE 0
-        END AS is_unexposed_outcome,
-
-  	    DATEDIFF(DAY, risk_window_start_exposed, risk_window_end_exposed) + 1 AS time_at_risk_exposed,
-  	    abs(DATEDIFF(DAY, risk_window_start_exposed, outcome_date) + 1) AS time_to_outcome
-
-    FROM @risk_windows_table risk_windows
-    INNER JOIN (
-        SELECT person_id,
-            outcome_id,
-            outcome_date
-        FROM (
-            SELECT ot.@outcome_person_id AS person_id,
-                ot.@outcome_id AS outcome_id,
-                ot.@outcome_start_date AS outcome_date
-                {@first_outcome_only} ? {,ROW_NUMBER() OVER (PARTITION BY ot.@outcome_person_id, ot.@outcome_id ORDER BY ot.@outcome_start_date) AS rn1}
-            FROM
-                @outcome_database_schema.@outcome_table ot
+        outcome_date
+    FROM (
+        SELECT ot.@outcome_person_id AS person_id,
+            ot.@outcome_id AS outcome_id,
+            ot.@outcome_start_date AS outcome_date
+            {@first_outcome_only} ? {,ROW_NUMBER() OVER (PARTITION BY ot.@outcome_person_id, ot.@outcome_id ORDER BY ot.@outcome_start_date) AS rn1}
+        FROM
+            @outcome_database_schema.@outcome_table ot
 {@outcome_ids != ''} ? {		INNER JOIN #scc_outcome_ids soi ON soi.outcome_id = ot.@outcome_id}
-        ) raw_outcomes
-  	    {@first_outcome_only} ? {	WHERE rn1 = 1}
-    ) outcomes
-    ON risk_windows.person_id = outcomes.person_id
-),
+    ) raw_outcomes
+    {@first_outcome_only} ? {	WHERE rn1 = 1}
+) outcomes ON risk_windows.person_id = outcomes.person_id;
 
+WITH
 -- time at risk distribution
 tx_distribution AS (
    SELECT
@@ -42,11 +41,11 @@ tx_distribution AS (
           o.mean_tx_time,
           coalesce(o.sd_tx_time, 0) AS sd_tx_time,
           o.min_tx_time,
-          MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p10_tx_time,
-          MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p25_tx_time,
-          MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS median_tx_time,
-          MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p75_tx_time,
-          MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p90_tx_time,
+          MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p10,
+          MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p25,
+          MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS median,
+          MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p75,
+          MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p90,
           o.max_tx_time
    FROM (
           SELECT
@@ -57,32 +56,35 @@ tx_distribution AS (
                  min(time_at_risk_exposed) AS min_tx_time,
                  max(time_at_risk_exposed) AS max_tx_time,
                  count_big(*) AS total
-          FROM treatment_times q
+          FROM #treatment_times q
           WHERE q.is_exposed_outcome = 1 OR q.is_unexposed_outcome = 1
           GROUP BY exposure_id, outcome_id
    ) o
    JOIN (
           SELECT exposure_id, outcome_id, time_at_risk_exposed, count_big(*) AS total,
                  sum(count_big(*)) OVER (PARTITION BY exposure_id, outcome_id ORDER BY time_at_risk_exposed) AS accumulated
-          FROM treatment_times q
+          FROM #treatment_times q
           WHERE q.is_exposed_outcome = 1 OR q.is_unexposed_outcome = 1
           GROUP BY exposure_id, outcome_id, time_at_risk_exposed
    ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
    GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_tx_time, o.max_tx_time, o.mean_tx_time, o.sd_tx_time
-),
+)
+SELECT * INTO #tx_distribution FROM tx_distribution;
+
+WITH
 -- Average (absolute) time between exposure and outcome
-time_to_distribution AS (
+time_to_dist AS (
    SELECT
           o.exposure_id,
           o.outcome_id,
           o.mean_time_to_outcome,
           coalesce(o.sd_time_to_outcome, 0) AS sd_time_to_outcome,
           o.min_time_to_outcome,
-          MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p10_time_to_outcome,
-          MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p25_time_to_outcome,
-          MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS median_time_to_outcome,
-          MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p75_time_to_outcome,
-          MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p90_time_to_outcome,
+          MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p10,
+          MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p25,
+          MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS median,
+          MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p75,
+          MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p90,
           o.max_time_to_outcome
    FROM (
           SELECT
@@ -93,30 +95,94 @@ time_to_distribution AS (
                  min(time_to_outcome) AS min_time_to_outcome,
                  max(time_to_outcome) AS max_time_to_outcome,
                  count_big(*) AS total
-          FROM treatment_times q
+          FROM #treatment_times q
           WHERE q.is_exposed_outcome = 1 OR q.is_unexposed_outcome = 1
           GROUP BY exposure_id, outcome_id
    ) o
    JOIN (
           SELECT exposure_id, outcome_id, time_to_outcome, count_big(*) AS total,
                  sum(count_big(*)) OVER (PARTITION BY exposure_id, outcome_id ORDER BY time_to_outcome) AS accumulated
-          FROM treatment_times q
+          FROM #treatment_times q
           WHERE q.is_exposed_outcome = 1 OR q.is_unexposed_outcome = 1
           GROUP BY exposure_id, outcome_id, time_to_outcome
    ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
    GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome, o.max_time_to_outcome, o.mean_time_to_outcome, o.sd_time_to_outcome
 )
+SELECT * INTO #time_to_dist FROM time_to_dist;
 
-SELECT tx.*,
-    tt.mean_time_to_outcome,
-    tt.sd_time_to_outcome,
-    tt.min_time_to_outcome,
-    tt.p10_time_to_outcome,
-    tt.p25_time_to_outcome,
-    tt.median_time_to_outcome,
-    tt.p75_time_to_outcome,
-    tt.p90_time_to_outcome,
-    tt.max_time_to_outcome
-    INTO #tar_stats
-    FROM tx_distribution tx
-    INNER JOIN time_to_distribution tt ON (tt.exposure_id = tx.exposure_id AND tt.outcome_id = tx.outcome_id);
+WITH time_to_dist_exposed AS (
+   SELECT
+          o.exposure_id,
+          o.outcome_id,
+          o.mean_time_to_outcome_exp,
+          coalesce(o.sd_time_to_outcome_exp, 0) AS sd_time_to_outcome_exp,
+          o.min_time_to_outcome_exp,
+          MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p10,
+          MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p25,
+          MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS median,
+          MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p75,
+          MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p90,
+          o.max_time_to_outcome_exp
+   FROM (
+          SELECT
+                 exposure_id,
+                 outcome_id,
+                 avg(1.0 * time_to_outcome) AS mean_time_to_outcome_exp,
+                 stdev(time_to_outcome) AS sd_time_to_outcome_exp,
+                 min(time_to_outcome) AS min_time_to_outcome_exp,
+                 max(time_to_outcome) AS max_time_to_outcome_exp,
+                 count_big(*) AS total
+          FROM #treatment_times q
+          WHERE q.is_exposed_outcome = 1
+          GROUP BY exposure_id, outcome_id
+   ) o
+   JOIN (
+          SELECT exposure_id, outcome_id, time_to_outcome, count_big(*) AS total,
+                 sum(count_big(*)) OVER (PARTITION BY exposure_id, outcome_id ORDER BY time_to_outcome) AS accumulated
+          FROM #treatment_times q
+          WHERE q.is_exposed_outcome = 1
+          GROUP BY exposure_id, outcome_id, time_to_outcome
+   ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
+   GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome_exp, o.max_time_to_outcome_exp, o.mean_time_to_outcome_exp, o.sd_time_to_outcome_exp
+)
+SELECT * INTO #time_to_dist_exposed FROM time_to_dist_exposed;
+
+WITH time_to_dist_unexposed AS (
+   SELECT
+          o.exposure_id,
+          o.outcome_id,
+          o.mean_time_to_outcome_exp,
+          coalesce(o.sd_time_to_outcome_exp, 0) AS sd_time_to_outcome_exp,
+          o.min_time_to_outcome_exp,
+          MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p10,
+          MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p25,
+          MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS median,
+          MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p75,
+          MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p90,
+          o.max_time_to_outcome_exp
+   FROM (
+          SELECT
+                 exposure_id,
+                 outcome_id,
+                 avg(1.0 * time_to_outcome) AS mean_time_to_outcome_exp,
+                 stdev(time_to_outcome) AS sd_time_to_outcome_exp,
+                 min(time_to_outcome) AS min_time_to_outcome_exp,
+                 max(time_to_outcome) AS max_time_to_outcome_exp,
+                 count_big(*) AS total
+          FROM #treatment_times q
+          WHERE q.is_unexposed_outcome = 1
+          GROUP BY exposure_id, outcome_id
+   ) o
+   JOIN (
+          SELECT exposure_id, outcome_id, time_to_outcome, count_big(*) AS total,
+                 sum(count_big(*)) OVER (PARTITION BY exposure_id, outcome_id ORDER BY time_to_outcome) AS accumulated
+          FROM #treatment_times q
+          WHERE q.is_unexposed_outcome = 1
+          GROUP BY exposure_id, outcome_id, time_to_outcome
+   ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
+   GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome_exp, o.max_time_to_outcome_exp, o.mean_time_to_outcome_exp, o.sd_time_to_outcome_exp
+)
+SELECT * INTO #time_to_dist_unexposed FROM time_to_dist_unexposed;
+
+TRUNCATE TABLE #treatment_times;
+DROP TABLE #treatment_times;

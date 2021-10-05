@@ -23,7 +23,3 @@ DROP TABLE #scc_outcome_summary;
     TRUNCATE TABLE #results;
     DROP TABLE #results;
 }
-{@compute_tar_distribution} ? {
-    TRUNCATE TABLE #tar_stats;
-    DROP TABLE #tar_stats;
-}
