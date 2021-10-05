@@ -13,7 +13,7 @@ SELECT
     END AS is_unexposed_outcome,
 
     DATEDIFF(DAY, risk_window_start_exposed, risk_window_end_exposed) + 1 AS time_at_risk_exposed,
-    abs(DATEDIFF(DAY, risk_window_start_exposed, outcome_date)) AS time_to_outcome
+    abs(DATEDIFF(DAY, exposure_start_date, outcome_date)) AS time_to_outcome
 
 FROM @risk_windows_table risk_windows
 INNER JOIN (

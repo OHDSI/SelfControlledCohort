@@ -27,6 +27,7 @@ IF OBJECT_ID('@risk_windows_table', 'U') IS NOT NULL
 --HINT DISTRIBUTE_ON_KEY(person_id)
 SELECT person_id,
   exposure_id,
+  exposure_start_date,
   risk_window_start_exposed,
   risk_window_end_exposed,
   risk_window_start_unexposed,
@@ -35,6 +36,7 @@ INTO @risk_windows_table
 FROM (
 	SELECT t1.person_id,
 		exposure_id,
+		exposure_start_date,
 		CASE WHEN
 			DATEADD(DAY, @risk_window_start_exposed, exposure_start_date) <= op1.observation_period_end_date
 		THEN
