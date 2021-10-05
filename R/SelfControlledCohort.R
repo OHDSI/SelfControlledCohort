@@ -314,7 +314,7 @@ getSccRiskWindowStats <- function(connection,
   DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
 
   tarStats$timeToOutcomeDistributionUnexposed <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                         "SELECT * FROM #time_to_dist_unexposed",
+                                                         "SELECT * FROM #time_to_dist_unex",
                                                          snakeCaseToCamelCase = TRUE)
   DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
 
