@@ -38,15 +38,16 @@ tx_distribution AS (
    SELECT
           o.exposure_id,
           o.outcome_id,
-          o.mean_tx_time,
-          coalesce(o.sd_tx_time, 0) AS sd_tx_time,
-          o.min_tx_time,
+          o.mean_tx_time as mean,
+          coalesce(o.sd_tx_time, 0) AS sd,
+          o.min_tx_time as min,
           MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p10,
           MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p25,
           MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS median,
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p90,
-          o.max_tx_time
+          o.max_tx_time as max,
+          o.total
    FROM (
           SELECT
                  exposure_id,
@@ -77,15 +78,16 @@ time_to_dist AS (
    SELECT
           o.exposure_id,
           o.outcome_id,
-          o.mean_time_to_outcome,
-          coalesce(o.sd_time_to_outcome, 0) AS sd_time_to_outcome,
-          o.min_time_to_outcome,
+          o.mean_time_to_outcome as mean,
+          coalesce(o.sd_time_to_outcome, 0) AS sd,
+          o.min_time_to_outcome as min,
           MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p10,
           MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p25,
           MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS median,
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p90,
-          o.max_time_to_outcome
+          o.max_time_to_outcome as max,
+          o.total
    FROM (
           SELECT
                  exposure_id,
@@ -114,15 +116,16 @@ WITH time_to_dist_exposed AS (
    SELECT
           o.exposure_id,
           o.outcome_id,
-          o.mean_time_to_outcome_exp,
-          coalesce(o.sd_time_to_outcome_exp, 0) AS sd_time_to_outcome_exp,
-          o.min_time_to_outcome_exp,
+          o.mean_time_to_outcome_exp as mean,
+          coalesce(o.sd_time_to_outcome_exp, 0) as sd,
+          o.min_time_to_outcome_exp as min,
           MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p10,
           MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p25,
           MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS median,
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p90,
-          o.max_time_to_outcome_exp
+          o.max_time_to_outcome_exp as max,
+          o.total
    FROM (
           SELECT
                  exposure_id,
@@ -151,15 +154,16 @@ WITH time_to_dist_unexposed AS (
    SELECT
           o.exposure_id,
           o.outcome_id,
-          o.mean_time_to_outcome_exp,
-          coalesce(o.sd_time_to_outcome_exp, 0) AS sd_time_to_outcome_exp,
-          o.min_time_to_outcome_exp,
+          o.mean_time_to_outcome_exp as mean,
+          coalesce(o.sd_time_to_outcome_exp, 0) AS sd,
+          o.min_time_to_outcome_exp as min,
           MIN(CASE WHEN s.accumulated >= .10 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p10,
           MIN(CASE WHEN s.accumulated >= .25 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p25,
           MIN(CASE WHEN s.accumulated >= .50 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS median,
           MIN(CASE WHEN s.accumulated >= .75 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p75,
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome_exp END) AS p90,
-          o.max_time_to_outcome_exp
+          o.max_time_to_outcome_exp as max,
+          o.total
    FROM (
           SELECT
                  exposure_id,
