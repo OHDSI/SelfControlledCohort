@@ -48,7 +48,7 @@ tx_distribution AS (
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_at_risk_exposed ELSE o.max_tx_time END) AS p90,
           o.max_tx_time as max,
           o.total,
-          'time_exposed' as stat_type,
+          'time_exposed' as stat_type
    FROM (
           SELECT
                  exposure_id,
@@ -89,7 +89,7 @@ time_to_dist AS (
           MIN(CASE WHEN s.accumulated >= .90 * o.total THEN time_to_outcome ELSE o.max_time_to_outcome END) AS p90,
           o.max_time_to_outcome as max,
           o.total,
-          'time_to_outcome' as stat_type,
+          'time_to_outcome' as stat_type
    FROM (
           SELECT
                  exposure_id,
