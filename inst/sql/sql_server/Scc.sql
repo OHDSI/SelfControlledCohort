@@ -360,5 +360,5 @@ TRUNCATE TABLE #risk_windows;
 DROP TABLE #scc_exposure_summary;
 DROP TABLE #scc_outcome_summary;
 DROP TABLE #risk_windows;
-{@exposure_ids != ''} ? {DROP TABLE #scc_outcome_ids;}
+{@outcome_ids != ''} ? {DROP TABLE #scc_outcome_ids;}
 {@exposure_ids != ''} ? {DROP TABLE #scc_exposure_ids;}
