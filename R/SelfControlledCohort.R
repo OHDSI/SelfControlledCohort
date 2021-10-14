@@ -87,7 +87,10 @@ batchComputeEstimates <- function(conn,
     if (is.function(postProcessFunction))
       data <- do.call(postProcessFunction, append(list(data, position), postProcessArgs))
 
-    return(data)
+    if (returnEstimates)
+      return(data)
+
+    return(data.frame())
   }
 
   args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
@@ -95,8 +98,7 @@ batchComputeEstimates <- function(conn,
                                                                    renderedSql,
                                                                    batchComputeCallBack,
                                                                    args = args,
-                                                                   snakeCaseToCamelCase = TRUE,
-                                                                   returnResultsData = returnEstimates)
+                                                                   snakeCaseToCamelCase = TRUE)
 
   if (returnEstimates)
     return(estimates)
