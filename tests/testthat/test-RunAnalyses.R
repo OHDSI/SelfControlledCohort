@@ -22,7 +22,6 @@ test_that("multiple analyses", {
 
   rr <- runSccAnalyses(connectionDetails = connectionDetails,
                        cdmDatabaseSchema = cdmDatabaseSchema,
-                       oracleTempSchema = oracleTempSchema,
                        sccAnalysisList = sccAnalysisList,
                        exposureOutcomeList = exposureOutcomeList,
                        outputFolder = outputFolder,
@@ -57,7 +56,6 @@ test_that("Fail on analyses clone", {
   sccAnalysisList <- list(sccAnalysis, sccAnalysis)
   expect_error(runSccAnalyses(connectionDetails = connectionDetails,
                               cdmDatabaseSchema = cdmDatabaseSchema,
-                              oracleTempSchema = oracleTempSchema,
                               sccAnalysisList = sccAnalysisList,
                               exposureOutcomeList = exposureOutcomeList,
                               outputFolder = outputFolder,

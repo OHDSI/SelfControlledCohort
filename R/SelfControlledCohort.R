@@ -25,7 +25,6 @@
 #'
 "_PACKAGE"
 
-
 computeIrrs <- function(estimates) {
 
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
@@ -51,67 +50,12 @@ computeIrrs <- function(estimates) {
 #' Run Self-Controlled Cohort Risk Windows
 #' @description
 #' Compute time at risk exposed and time at risk unexposed for risk window parameters
-#' @param connection                       DatabaseConnector connection instance
-#' @param cdmDatabaseSchema                Name of database schema that contains the OMOP CDM and
-#'                                         vocabulary.
-#' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
-#'                                         "5".
-#' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
-#'                                         want all temporary tables to be managed. Requires
-#'                                         create/insert permissions to this database.
-#' @param exposureIds                      A vector containing the drug_concept_ids or
-#'                                         cohort_definition_ids of the exposures of interest. If empty,
-#'                                         all exposures in the exposure table will be included.
-#' @param exposureDatabaseSchema           The name of the database schema that is the location where
-#'                                         the exposure data used to define the exposure cohorts is
-#'                                         available. If exposureTable = DRUG_ERA,
-#'                                         exposureDatabaseSchema is not used by assumed to be
-#'                                         cdmSchema.  Requires read permissions to this database.
-#' @param exposureTable                    The tablename that contains the exposure cohorts.  If
-#'                                         exposureTable <> DRUG_ERA, then expectation is exposureTable
-#'                                         has format of COHORT table: cohort_concept_id, SUBJECT_ID,
-#'                                         COHORT_START_DATE, COHORT_END_DATE.
-#' @param firstExposureOnly                If TRUE, only use first occurrence of each drug concept id
-#'                                         for each person
-#' @param minAge                           Integer for minimum allowable age.
-#' @param maxAge                           Integer for maximum allowable age.
-#' @param studyStartDate                   Date for minimum allowable data for index exposure. Date
-#'                                         format is 'yyyymmdd'.
-#' @param studyEndDate                     Date for maximum allowable data for index exposure. Date
-#'                                         format is 'yyyymmdd'.
-#' @param addLengthOfExposureExposed       If TRUE, use the duration from drugEraStart -> drugEraEnd as
-#'                                         part of timeAtRisk.
-#' @param riskWindowStartExposed           Integer of days to add to drugEraStart for start of
-#'                                         timeAtRisk (0 to include index date, 1 to start the day
-#'                                         after).
-#' @param riskWindowEndExposed             Additional window to add to end of exposure period (if
-#'                                         addLengthOfExposureExposed = TRUE, then add to exposure end
-#'                                         date, else add to exposure start date).
-#' @param addLengthOfExposureUnexposed     If TRUE, use the duration from exposure start -> exposure
-#'                                         end as part of timeAtRisk looking back before exposure
-#'                                         start.
-#' @param riskWindowEndUnexposed           Integer of days to add to exposure start for end of
-#'                                         timeAtRisk (0 to include index date, -1 to end the day
-#'                                         before).
-#' @param riskWindowStartUnexposed         Additional window to add to start of exposure period (if
-#'                                         addLengthOfExposureUnexposed = TRUE, then add to exposure
-#'                                         end date, else add to exposure start date).
-#' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
-#'                                         exposed and unexposed.
-#' @param washoutPeriod                    Integer to define required time observed before exposure
-#'                                         start.
-#' @param followupPeriod                   Integer to define required time observed after exposure
-#'                                         start.
-#' @param riskWindowsTable                 String: optionally store the risk windows in a (non-temporary)
-#'                                         table. If it is not set the temporary table #risk_windows is
-#'                                         created. This may be a large table, consider deleting before
-#'                                         closing the conneciton.
-#' @param resultsDatabaseSchema            Schema to oputput results to. Ignored if riskWindowsTable is
-#'                                         temporary.
+#' @inheritParams runSelfControlledCohort
 #' @export
 runSccRiskWindows <- function(connection,
                               cdmDatabaseSchema,
                               cdmVersion = 5,
+                              tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                               oracleTempSchema = NULL,
                               exposureIds = NULL,
                               exposureDatabaseSchema = cdmDatabaseSchema,
@@ -159,6 +103,11 @@ runSccRiskWindows <- function(connection,
     exposurePersonId <- "subject_id"
   }
 
+  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  }
+
   if (!is.null(exposureIds)) {
     DatabaseConnector::insertTable(connection = connection,
                                    tableName = "#scc_exposure_ids",
@@ -177,7 +126,7 @@ runSccRiskWindows <- function(connection,
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "ComputeSccRiskWindows.sql",
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connection@dbms,
-                                                   oracleTempSchema = oracleTempSchema,
+                                                   tempEmulationSchema = tempEmulationSchema,
                                                    cdm_database_schema = cdmDatabaseSchema,
                                                    exposure_ids = exposureIds,
                                                    exposure_database_schema = exposureDatabaseSchema,
@@ -216,34 +165,11 @@ runSccRiskWindows <- function(connection,
 #'      Total population
 #'      Population that experienced the outcome in the exposed risk window
 #'      Population that experienced the outcome in the unexposed risk window
-#' @param connection                       DatabaseConnector connection instance
-#' @param outcomeDatabaseSchema            The name of the database schema that is the location where
-#'                                         the data used to define the outcome cohorts is available. If
-#'                                         exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
-#'                                         used by assumed to be cdmSchema.  Requires read permissions
-#'                                         to this database.
-#' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
-#'                                         want all temporary tables to be managed. Requires
-#'                                         create/insert permissions to this database.
-#' @param outcomeIds                       The condition_concept_ids or cohort_definition_ids of the
-#'                                         outcomes of interest. If empty, all the outcomes in the
-#'                                         outcome table will be included.
-#' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
-#'                                         "5".
-#' @param createOutcomeIdTempTable         Create the temporary table for outcomes, True for
-#'                                         most use cases.
-#' @param firstOutcomeOnly                 If TRUE, only use first occurrence of each condition concept
-#'                                         id for each person.
-#' @param outcomeTable                     The tablename that contains the outcome cohorts.  If
-#'                                         outcomeTable <> CONDITION_OCCURRENCE, then expectation is
-#'                                         outcomeTable has format of COHORT table:
-#'                                         COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
-#'                                         COHORT_END_DATE.
-#' @param riskWindowsTable                 String: optionally store the risk windows in a (non-temporary)
-#'                                         table.
+#' @inheritParams runSelfControlledCohort
 #' @export
 getSccRiskWindowStats <- function(connection,
                                   outcomeDatabaseSchema,
+                                  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                   oracleTempSchema = NULL,
                                   outcomeIds = NULL,
                                   cdmVersion = 5,
@@ -254,6 +180,11 @@ getSccRiskWindowStats <- function(connection,
 
   if (!DatabaseConnector::dbIsValid(connection))
     stop("Invalid connection object")
+
+  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  }
 
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
@@ -285,7 +216,7 @@ getSccRiskWindowStats <- function(connection,
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccRiskWindowStats.sql",
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connection@dbms,
-                                                   oracleTempSchema = oracleTempSchema,
+                                                   tempEmulationSchema = tempEmulationSchema,
                                                    outcome_ids = outcomeIds,
                                                    outcome_database_schema = outcomeDatabaseSchema,
                                                    outcome_table = outcomeTable,
@@ -337,10 +268,10 @@ getSccRiskWindowStats <- function(connection,
 #' @references
 #' Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
 #' for developing a risk identification and analysis system. Drug Safety 36 Suppl1:S95-106, 2013
-#'
 #' @param connectionDetails                An R object of type \code{connectionDetails} created using
 #'                                         the function \code{createConnectionDetails} in the
 #'                                         \code{DatabaseConnector} package.
+#' @param connection                       DatabaseConnector connection instance
 #' @param cdmDatabaseSchema                Name of database schema that contains the OMOP CDM and
 #'                                         vocabulary.
 #' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
@@ -348,6 +279,9 @@ getSccRiskWindowStats <- function(connection,
 #' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
 #'                                         want all temporary tables to be managed. Requires
 #'                                         create/insert permissions to this database.
+#' @param tempEmulationSchema              Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
+#'                                         tables, provide a schema with write privileges where temp tables can be created.
+
 #' @param exposureIds                      A vector containing the drug_concept_ids or
 #'                                         cohort_definition_ids of the exposures of interest. If empty,
 #'                                         all exposures in the exposure table will be included.
@@ -436,7 +370,9 @@ getSccRiskWindowStats <- function(connection,
 #' @export
 runSelfControlledCohort <- function(connectionDetails,
                                     cdmDatabaseSchema,
+                                    connection = NULL,
                                     cdmVersion = 5,
+                                    tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                     oracleTempSchema = NULL,
                                     exposureIds = NULL,
                                     outcomeIds = NULL,
@@ -489,6 +425,11 @@ runSelfControlledCohort <- function(connectionDetails,
     outcomePersonId <- "subject_id"
   }
 
+  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  }
+
   if (resultsTable != "#results") {
     if (is.null(resultsDatabaseSchema))
       stop("Results table is not temporary and resultsDatabaseSchema is not set")
@@ -499,11 +440,11 @@ runSelfControlledCohort <- function(connectionDetails,
   }
 
   # Check if connection already open:
-  if ("conn" %in% names(connectionDetails)) {
-    connection <- connectionDetails$conn
-  } else {
+  if (is.null(connection)) {
     connection <- DatabaseConnector::connect(connectionDetails)
     on.exit(DatabaseConnector::disconnect(connection))
+  } else if (!DatabaseConnector::dbIsValid(connection)) {
+    stop("Invalid connection object")
   }
 
   if (!is.null(outcomeIds)) {
@@ -516,7 +457,7 @@ runSelfControlledCohort <- function(connectionDetails,
   runSccRiskWindows(connection = connection,
                     cdmDatabaseSchema = cdmDatabaseSchema,
                     cdmVersion = cdmVersion,
-                    oracleTempSchema = oracleTempSchema,
+                    tempEmulationSchema = tempEmulationSchema,
                     exposureIds = exposureIds,
                     exposureDatabaseSchema = exposureDatabaseSchema,
                     exposureTable = exposureTable,
@@ -547,7 +488,7 @@ runSelfControlledCohort <- function(connectionDetails,
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connection@dbms,
-                                                   oracleTempSchema = oracleTempSchema,
+                                                   tempEmulationSchema = tempEmulationSchema,
                                                    outcome_ids = outcomeIds,
                                                    outcome_database_schema = outcomeDatabaseSchema,
                                                    outcome_table = outcomeTable,
@@ -562,7 +503,7 @@ runSelfControlledCohort <- function(connectionDetails,
 
   if (computeTarDistribution) {
     tarStats <- getSccRiskWindowStats(connection,
-                                      oracleTempSchema = oracleTempSchema,
+                                      tempEmulationSchema = tempEmulationSchema,
                                       outcomeIds = outcomeIds,
                                       outcomeDatabaseSchema = outcomeDatabaseSchema,
                                       createOutcomeIdTempTable = FALSE,
@@ -577,7 +518,7 @@ runSelfControlledCohort <- function(connectionDetails,
   estimates <- DatabaseConnector::renderTranslateQuerySql(connection,
                                                           "SELECT * FROM @results_table",
                                                           results_table = resultsTable,
-                                                          oracleTempSchema = oracleTempSchema,
+                                                          tempEmulationSchema = tempEmulationSchema,
                                                           snakeCaseToCamelCase = TRUE)
 
   if (nrow(estimates) > 0) {
@@ -613,7 +554,7 @@ runSelfControlledCohort <- function(connectionDetails,
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",
                                            packageName = "SelfControlledCohort",
                                            dbms = connection@dbms,
-                                           oracleTempSchema = oracleTempSchema,
+                                           tempEmulationSchema = tempEmulationSchema,
                                            outcome_ids = outcomeIds,
                                            exposure_ids = exposureIds,
                                            results_table = resultsTable)

@@ -34,6 +34,10 @@ if (getOption("dbms") == "oracle") {
                                                server = Sys.getenv("CDM5_ORACLE_SERVER"),
                                                pathToDriver = jdbcDriverFolder)
   cdmDatabaseSchema <- Sys.getenv("CDM5_ORACLE_CDM_SCHEMA")
-  oracleTempSchema <- Sys.getenv("CDM5_ORACLE_OHDSI_SCHEMA")
+
+  # Restore temp schema setting after tests complete
+  oldTempSchema <- getOption("sqlRenderTempEmulationSchema")
+  withr::defer(options("sqlRenderTempEmulationSchema" = oldTempSchema), testthat::teardown_env())
+  options("sqlRenderTempEmulationSchema" = Sys.getenv("CDM5_ORACLE_OHDSI_SCHEMA"))
   cdmVersion <- 5
 }

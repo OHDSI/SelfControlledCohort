@@ -5,8 +5,7 @@ library(testthat)
 
 testAllParams <- function(connectionDetails,
                           cdmDatabaseSchema,
-                          cdmVersion,
-                          oracleTempSchema = NULL) {
+                          cdmVersion) {
   # Open connection once, so it will be reused:
   connectionDetails$conn <- DatabaseConnector::connect(connectionDetails)
   on.exit(DatabaseConnector::disconnect(connectionDetails$conn), add = TRUE)
@@ -30,7 +29,6 @@ testAllParams <- function(connectionDetails,
               }
               sccResult <- runSelfControlledCohort(connectionDetails,
                                                    cdmDatabaseSchema = cdmDatabaseSchema,
-                                                   oracleTempSchema = oracleTempSchema,
                                                    cdmVersion = cdmVersion,
                                                    exposureIds = c(767410, 1314924, 907879),
                                                    exposureTable = exposureTable,

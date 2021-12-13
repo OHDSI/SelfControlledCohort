@@ -1,4 +1,3 @@
-CREATE TABLE #treatment_times AS
 SELECT
     exposure_id,
     outcome_id,
@@ -14,7 +13,7 @@ SELECT
 
     DATEDIFF(DAY, risk_window_start_exposed, risk_window_end_exposed) + 1 AS time_at_risk_exposed,
     abs(DATEDIFF(DAY, exposure_start_date, outcome_date)) AS time_to_outcome
-
+INTO #treatment_times
 FROM @risk_windows_table risk_windows
 INNER JOIN (
     SELECT person_id,

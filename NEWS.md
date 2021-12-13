@@ -1,8 +1,10 @@
 SelfControlledCohort 1.6.0
 ==========================
+
 Changes: 
 
 - Removed support for older versions of DatabaseConnector below 4.0.0
+- Deprecated usage of `oracleTempSchema` in favour of `tempEmulationSchema`
 - Added function computeSccRiskWindows to allow computation of exposure
   risk windows without having to run full SCC analysis
 - Storage of results (before rate ratios are computed) now in a results
