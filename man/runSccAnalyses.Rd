@@ -62,6 +62,14 @@ COHORT_END_DATE.}
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
 
+\item{outputFolder}{Name of the folder where all the outputs will written to.}
+
+\item{sccAnalysisList}{A list of objects of type \code{sccAnalysis} as created using the
+\code{\link{createSccAnalysis}} function.}
+
+\item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
+the \code{\link{createExposureOutcome}} function.}
+
 \item{analysisThreads}{The number of parallel threads to use to execute the analyses.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact

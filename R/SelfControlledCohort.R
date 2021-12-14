@@ -162,10 +162,11 @@ runSccRiskWindows <- function(connection,
 #' Returns list of data.frames:
 #'  Time on treatment (for population exposed that experience the outcome)
 #'  Time between outcome and exposure in 3 formats:
-#'      Total population
-#'      Population that experienced the outcome in the exposed risk window
-#'      Population that experienced the outcome in the unexposed risk window
+#'      -Total population
+#'      -Population that experienced the outcome in the exposed risk window
+#'      -Population that experienced the outcome in the unexposed risk window
 #' @inheritParams runSelfControlledCohort
+#' @param createOutcomeIdTempTable          Optionally create a temp table of outcomes
 #' @export
 getSccRiskWindowStats <- function(connection,
                                   outcomeDatabaseSchema,

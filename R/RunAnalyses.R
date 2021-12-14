@@ -24,6 +24,11 @@
 #' models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
 #'
 #' @inheritParams runSelfControlledCohort
+#' @param outputFolder             Name of the folder where all the outputs will written to.
+#' @param sccAnalysisList          A list of objects of type \code{sccAnalysis} as created using the
+#'                                 \code{\link{createSccAnalysis}} function.
+#' @param exposureOutcomeList      A list of objects of type \code{exposureOutcome} as created using
+#'                                 the \code{\link{createExposureOutcome}} function.
 #' @param analysisThreads          The number of parallel threads to use to execute the analyses.
 #'
 #' @export
