@@ -8,6 +8,7 @@ runSccRiskWindows(
   connection,
   cdmDatabaseSchema,
   cdmVersion = 5,
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   oracleTempSchema = NULL,
   exposureIds = NULL,
   exposureDatabaseSchema = cdmDatabaseSchema,
@@ -38,6 +39,9 @@ vocabulary.}
 
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
+
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
+tables, provide a schema with write privileges where temp tables can be created.}
 
 \item{oracleTempSchema}{For Oracle only: the name of the database schema where you
 want all temporary tables to be managed. Requires
@@ -104,12 +108,10 @@ start.}
 start.}
 
 \item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
-table. If it is not set the temporary table #risk_windows is
-created. This may be a large table, consider deleting before
-closing the conneciton.}
+table.}
 
-\item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if riskWindowsTable is
-temporary.}
+\item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
+riskWindowsTable are temporary.}
 }
 \description{
 Compute time at risk exposed and time at risk unexposed for risk window parameters

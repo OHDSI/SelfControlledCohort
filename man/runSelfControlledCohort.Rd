@@ -7,7 +7,9 @@
 runSelfControlledCohort(
   connectionDetails,
   cdmDatabaseSchema,
+  connection = NULL,
   cdmVersion = 5,
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   oracleTempSchema = NULL,
   exposureIds = NULL,
   outcomeIds = NULL,
@@ -45,8 +47,13 @@ the function \code{createConnectionDetails} in the
 \item{cdmDatabaseSchema}{Name of database schema that contains the OMOP CDM and
 vocabulary.}
 
+\item{connection}{DatabaseConnector connection instance}
+
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
+
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
+tables, provide a schema with write privileges where temp tables can be created.}
 
 \item{oracleTempSchema}{For Oracle only: the name of the database schema where you
 want all temporary tables to be managed. Requires

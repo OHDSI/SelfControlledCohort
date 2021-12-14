@@ -7,6 +7,7 @@
 getSccRiskWindowStats(
   connection,
   outcomeDatabaseSchema,
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   oracleTempSchema = NULL,
   outcomeIds = NULL,
   cdmVersion = 5,
@@ -25,6 +26,9 @@ exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
 used by assumed to be cdmSchema.  Requires read permissions
 to this database.}
 
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
+tables, provide a schema with write privileges where temp tables can be created.}
+
 \item{oracleTempSchema}{For Oracle only: the name of the database schema where you
 want all temporary tables to be managed. Requires
 create/insert permissions to this database.}
@@ -35,9 +39,6 @@ outcome table will be included.}
 
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
-
-\item{createOutcomeIdTempTable}{Create the temporary table for outcomes, True for
-most use cases.}
 
 \item{outcomeTable}{The tablename that contains the outcome cohorts.  If
 outcomeTable <> CONDITION_OCCURRENCE, then expectation is
