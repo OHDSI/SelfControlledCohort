@@ -166,7 +166,7 @@ runSccRiskWindows <- function(connection,
 #'      -Population that experienced the outcome in the exposed risk window
 #'      -Population that experienced the outcome in the unexposed risk window
 #' @inheritParams runSelfControlledCohort
-#' @param createOutcomeIdTempTable          Optionally create a temp table of outcomes
+#' @param createOutcomeIdTempTable          Optionally create a temp table of outcomes (used internally)
 #' @export
 getSccRiskWindowStats <- function(connection,
                                   outcomeDatabaseSchema,

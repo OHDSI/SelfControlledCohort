@@ -94,7 +94,7 @@ runSccAnalyses <- function(connectionDetails,
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
-  tarDistWarning <- FALSE
+
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     if (!file.exists(file.path(outputFolder, sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]

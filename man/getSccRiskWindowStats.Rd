@@ -40,6 +40,8 @@ outcome table will be included.}
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
 
+\item{createOutcomeIdTempTable}{Optionally create a temp table of outcomes (used internally)}
+
 \item{outcomeTable}{The tablename that contains the outcome cohorts.  If
 outcomeTable <> CONDITION_OCCURRENCE, then expectation is
 outcomeTable has format of COHORT table:
@@ -59,7 +61,7 @@ Compute statistics from risk windows.
 Returns list of data.frames:
  Time on treatment (for population exposed that experience the outcome)
  Time between outcome and exposure in 3 formats:
-     Total population
-     Population that experienced the outcome in the exposed risk window
-     Population that experienced the outcome in the unexposed risk window
+     -Total population
+     -Population that experienced the outcome in the exposed risk window
+     -Population that experienced the outcome in the unexposed risk window
 }
