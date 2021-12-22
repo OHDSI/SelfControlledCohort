@@ -6,34 +6,26 @@ test_that("batch callback works", {
     return(data)
   }
 
-  writeLocation <- tempfile()
-  # Test with real db (jdbc connection)
-  result <- runSelfControlledCohort(connectionDetails = connectionDetails,
-                                    cdmDatabaseSchema = cdmDatabaseSchema,
-                                    exposureIds = c(948078),
-                                    outcomeIds = 72990,
-                                    returnEstimates = FALSE,
-                                    postProcessFunction = writeBack,
-                                    postProcessArgs = list(writeLocation = writeLocation),
-                                    computeThreads = 2)
+  if (dbms != "sqlite") {
+    exposureIds <- 948078
+    outcomeIds <- 72990
+  } else {
+    exposureIds <- NULL
+    outcomeIds <- NULL
+  }
 
-  readData <- read.csv(writeLocation)
-  expect_true(nrow(readData) > 0)
-  unlink(writeLocation)
+  withr::with_tempfile("writeLocation", {
+    result <- runSelfControlledCohort(connectionDetails = connectionDetails,
+                                      cdmDatabaseSchema = cdmDatabaseSchema,
+                                      exposureIds = exposureIds,
+                                      outcomeIds = outcomeIds,
+                                      returnEstimates = FALSE,
+                                      postProcessFunction = writeBack,
+                                      postProcessArgs = list(writeLocation = writeLocation),
+                                      computeThreads = 2)
 
-  writeLocation <- tempfile()
-  # Test with eunomia
-  connectionDetails <- Eunomia::getEunomiaConnectionDetails()
-  result <- runSelfControlledCohort(connectionDetails = connectionDetails,
-                                    cdmDatabaseSchema = "main",
-                                    exposureIds = '',
-                                    outcomeIds = '',
-                                    returnEstimates = FALSE,
-                                    postProcessFunction = writeBack,
-                                    postProcessArgs = list(writeLocation = writeLocation),
-                                    computeThreads = 2)
 
-  readData <- read.csv(writeLocation)
-  expect_true(nrow(readData) > 0)
-  unlink(writeLocation)
+    readData <- read.csv(writeLocation)
+    expect_true(nrow(readData) > 0)
+  })
 })

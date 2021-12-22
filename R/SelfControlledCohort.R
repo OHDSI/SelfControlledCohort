@@ -26,6 +26,7 @@
 "_PACKAGE"
 
 computeIrrs <- function(estimates) {
+
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
     if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
       return(c(NA, 0, Inf))
@@ -36,6 +37,7 @@ computeIrrs <- function(estimates) {
                                                  timeAtRiskUnexposed))
     return(c(test$estimate[1], test$conf.int))
   }
+
   irrs <- mapply(computeIrr,
                  numOutcomesExposed = estimates$numOutcomesExposed,
                  numOutcomesUnexposed = estimates$numOutcomesUnexposed,
@@ -282,11 +284,10 @@ getSccRiskWindowStats <- function(connection,
                          riskWindowsTable)
 }
 
-batchComputeEstimates <- function(conn,
+batchComputeEstimates <- function(connection,
                                   computeThreads,
-                                  connectionDetails,
-                                  computeTarDistribution,
-                                  oracleTempSchema,
+                                  resultsTable,
+                                  tempEmulationSchema,
                                   postProcessFunction = NULL,
                                   postProcessArgs = list(),
                                   returnEstimates = TRUE) {
@@ -296,13 +297,6 @@ batchComputeEstimates <- function(conn,
   on.exit({
     ParallelLogger::stopCluster(cluster)
   }, add = TRUE)
-
-  # Fetch results from server:
-  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "LoadMergedResults.sql",
-                                                   packageName = "SelfControlledCohort",
-                                                   dbms = connectionDetails$dbms,
-                                                   oracleTempSchema = oracleTempSchema,
-                                                   compute_tar_distribution = computeTarDistribution)
 
   batchComputeCallBack <- function(data, position, cluster, postProcessFunction, postProcessArgs) {
     if (nrow(data) > 0) {
@@ -321,12 +315,20 @@ batchComputeEstimates <- function(conn,
     return(data.frame())
   }
 
+  # Fetch results from server:
   args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
-  estimates <- DatabaseConnector::renderTranslateQueryApplyBatched(conn,
+  estimates <- DatabaseConnector::renderTranslateQueryApplyBatched(connection,
+                                                                   "SELECT * FROM @results_table",
+                                                                   results_table = resultsTable,
+                                                                   tempEmulationSchema = tempEmulationSchema,
+                                                                   fun = batchComputeCallBack,
+                                                                   args = args,
+                                                                   snakeCaseToCamelCase = TRUE)
 
-  if (returnEstimates)
-    return(estimates)
 
+  if (returnEstimates) {
+    return(data.frame(estimates))
+  }
   return(NULL)
 }
 
@@ -496,13 +498,12 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     followupPeriod = 0,
                                     computeTarDistribution = FALSE,
                                     computeThreads = 1,
-                                    postProcessFunction = NULL,
-                                    postProcessArgs = list(),
-                                    returnEstimates = TRUE) {
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
                                     resultsDatabaseSchema = NULL,
-                                    computeThreads = 1) {
+                                    postProcessFunction = NULL,
+                                    postProcessArgs = list(),
+                                    returnEstimates = TRUE) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -591,6 +592,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
 
   }
 
+  ParallelLogger::logInfo("Retrieving counts from database")
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connection@dbms,
@@ -604,7 +606,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable,
                                                    results_table = resultsTable)
-  ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (computeTarDistribution) {
@@ -621,11 +622,10 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   }
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  estimates <- batchComputeEstimates(conn = connection,
+  estimates <- batchComputeEstimates(connection = connection,
                                      computeThreads = computeThreads,
-                                     connectionDetails = connectionDetails,
-                                     computeTarDistribution = computeTarDistribution,
-                                     oracleTempSchema = oracleTempSchema,
+                                     resultsTable = resultsTable,
+                                     tempEmulationSchema = tempEmulationSchema,
                                      postProcessFunction = postProcessFunction,
                                      postProcessArgs = postProcessArgs,
                                      returnEstimates = returnEstimates)
