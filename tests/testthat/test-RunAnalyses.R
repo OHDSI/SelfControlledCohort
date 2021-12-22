@@ -20,15 +20,13 @@ test_that("multiple analyses", {
     unlink(outputFolder, force = TRUE)
   }, testthat::teardown_env())
 
-  expect_warning(
-    rr <- runSccAnalyses(connectionDetails = connectionDetails,
-                         cdmDatabaseSchema = cdmDatabaseSchema,
-                         oracleTempSchema = oracleTempSchema,
-                         sccAnalysisList = sccAnalysisList,
-                         exposureOutcomeList = exposureOutcomeList,
-                         outputFolder = outputFolder,
-                         computeThreads = 1)
-  )
+  rr <- runSccAnalyses(connectionDetails = connectionDetails,
+                       cdmDatabaseSchema = cdmDatabaseSchema,
+                       sccAnalysisList = sccAnalysisList,
+                       exposureOutcomeList = exposureOutcomeList,
+                       outputFolder = outputFolder,
+                       computeThreads = 1)
+
   expect_s3_class(rr, "data.frame")
   expect_true(file.exists(file.path(outputFolder, "resultsReference.rds")))
   apply(rr, 1, function(item) {
@@ -37,7 +35,7 @@ test_that("multiple analyses", {
 
   result <- summarizeAnalyses(rr, outputFolder)
   expect_s3_class(result, "data.frame")
-  expect_equal(ncol(result), 31)
+  expect_equal(ncol(result), 14)
 })
 
 test_that("Fail on analyses clone", {
@@ -58,7 +56,6 @@ test_that("Fail on analyses clone", {
   sccAnalysisList <- list(sccAnalysis, sccAnalysis)
   expect_error(runSccAnalyses(connectionDetails = connectionDetails,
                               cdmDatabaseSchema = cdmDatabaseSchema,
-                              oracleTempSchema = oracleTempSchema,
                               sccAnalysisList = sccAnalysisList,
                               exposureOutcomeList = exposureOutcomeList,
                               outputFolder = outputFolder,

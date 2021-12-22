@@ -3,12 +3,9 @@
 \docType{package}
 \name{SelfControlledCohort-package}
 \alias{SelfControlledCohort-package}
-\title{SelfControlledCohort: Population-level estimation method  that estimates
-    incidence rate comparison of exposed/unexposed time within an exposed
-    cohort}
+\title{SelfControlledCohort: Population-level estimation method that estimates incidence rate comparison of exposed/unexposed time within an exposed cohort}
 \description{
-This package provides a method to estimate risk by comparing time
-    exposed with time unexposed among the exposed cohort.
+This package provides a method to estimate risk by comparing time exposed with time unexposed among the exposed cohort.
 }
 \seealso{
 Useful links:
@@ -23,8 +20,7 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Jamie Gilbert
-  \item Patrick Ryan
+  \item Jamie jpg@azimov.co.uk Gilbert
 }
 
 }

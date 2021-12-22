@@ -23,47 +23,19 @@
 #' specified analyses against all hypotheses of interest, meaning that the total number of outcome
 #' models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
 #'
-#' @param connectionDetails        An R object of type \code{connectionDetails} created using the
-#'                                 function \code{createConnectionDetails} in the
-#'                                 \code{DatabaseConnector} package.
-#' @param cdmDatabaseSchema        The name of the database schema that contains the OMOP CDM instance.
-#'                                 Requires read permissions to this database. On SQL Server, this
-#'                                 should specify both the database and the schema, so for example
-#'                                 'cdm_instance.dbo'.
-#' @param oracleTempSchema         For Oracle only: the name of the database schema where you want all
-#'                                 temporary tables to be managed. Requires create/insert permissions
-#'                                 to this database.
-#' @param exposureDatabaseSchema   The name of the database schema that is the location where the
-#'                                 exposure data used to define the exposure cohorts is available. If
-#'                                 exposureTable = DRUG_ERA, exposureDatabaseSchema is not used by
-#'                                 assumed to be cdmSchema.  Requires read permissions to this
-#'                                 database.
-#' @param exposureTable            The tablename that contains the exposure cohorts.  If exposureTable
-#'                                 <> DRUG_ERA, then expectation is exposureTable has format of COHORT
-#'                                 table: COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
-#'                                 COHORT_END_DATE.
-#' @param outcomeDatabaseSchema    The name of the database schema that is the location where the data
-#'                                 used to define the outcome cohorts is available. If exposureTable =
-#'                                 CONDITION_ERA, exposureDatabaseSchema is not used by assumed to be
-#'                                 cdmSchema.  Requires read permissions to this database.
-#' @param outcomeTable             The tablename that contains the outcome cohorts.  If outcomeTable <>
-#'                                 CONDITION_OCCURRENCE, then expectation is outcomeTable has format of
-#'                                 COHORT table: COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
-#'                                 COHORT_END_DATE.
+#' @inheritParams runSelfControlledCohort
 #' @param outputFolder             Name of the folder where all the outputs will written to.
 #' @param sccAnalysisList          A list of objects of type \code{sccAnalysis} as created using the
 #'                                 \code{\link{createSccAnalysis}} function.
 #' @param exposureOutcomeList      A list of objects of type \code{exposureOutcome} as created using
 #'                                 the \code{\link{createExposureOutcome}} function.
-#' @param cdmVersion               Define the OMOP CDM version used: currently support "4" and "5".
 #' @param analysisThreads          The number of parallel threads to use to execute the analyses.
-#' @param computeThreads           Number of parallel threads per analysis thread for computing IRRs with exact
-#'                                 confidence intervals.
 #'
 #' @export
 runSccAnalyses <- function(connectionDetails,
                            cdmDatabaseSchema,
-                           oracleTempSchema = cdmDatabaseSchema,
+                           tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+                           oracleTempSchema = NULL,
                            exposureDatabaseSchema = cdmDatabaseSchema,
                            exposureTable = "drug_era",
                            outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -81,6 +53,12 @@ runSccAnalyses <- function(connectionDetails,
   for (sccAnalysis in sccAnalysisList) {
     stopifnot(class(sccAnalysis) == "sccAnalysis")
   }
+
+  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  }
+
   uniqueOutcomeList <- unique(ParallelLogger::selectFromList(exposureOutcomeList, "outcomeId"))
   uniqueAnalysisIds <- unlist(unique(ParallelLogger::selectFromList(sccAnalysisList, "analysisId")))
   if (length(uniqueAnalysisIds) != length(sccAnalysisList)) {
@@ -95,9 +73,6 @@ runSccAnalyses <- function(connectionDetails,
   resultsReference <- data.frame()
   for (sccAnalysis in sccAnalysisList) {
 
-    if (sccAnalysis$runSelfControlledCohortArgs$computeTarDistribution) {
-      computeTarDist <- TRUE
-    }
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
       exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
@@ -119,18 +94,13 @@ runSccAnalyses <- function(connectionDetails,
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   objectsToCreate <- list()
-  tarDistWarning <- FALSE
+
   for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
     if (!file.exists(file.path(outputFolder, sccResultsFile))) {
       refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
       analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                               list(analysisId = refRow$analysisId))[[1]]
       getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
-
-      if (!getrunSelfControlledCohortArgs$computeTarDistribution & computeTarDist & !tarDistWarning) {
-        warning("Setting computeTarDistribution to true for all analyses")
-        tarDistWarning <- TRUE # Only display this warning once
-      }
 
       getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
 
@@ -146,6 +116,7 @@ runSccAnalyses <- function(connectionDetails,
                    cdmVersion = cdmVersion,
                    exposureIds = exposureIds,
                    outcomeIds = outcomeId,
+                   tempEmulationSchema = tempEmulationSchema,
                    computeThreads = computeThreads)
       args <- append(args, getrunSelfControlledCohortArgs)
       objectsToCreate[[length(objectsToCreate) + 1]] <- list(args = args,
@@ -209,18 +180,9 @@ summarizeAnalyses <- function(resultsReference, outputFolder) {
 
   # Return consistent column names
   if (nrow(result) == 0) {
-    if (any(resultsReference$computeTarDist)) {
-      result <- data.frame(matrix(ncol = 31, nrow = 0))
-      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "numOutcomesUnexposed",
-                            "timeAtRiskExposed", "timeAtRiskUnexposed", "meanTxTime", "sdTxTime", "minTxTime", "p10TxTime",
-                            "p25TxTime", "medianTxTime", "p75TxTime", "p90TxTime", "maxTxTime", "meanTimeToOutcome", "sdTimeToOutcome",
-                            "minTimeToOutcome", "p10TimeToOutcome", "p25TimeToOutcome", "medianTimeToOutcome", "p75TimeToOutcome",
-                            "p90TimeToOutcome", "maxTimeToOutcome", "irr", "irrLb95", "irrUb95", "logRr", "seLogRr")
-    } else {
-      result <- data.frame(matrix(ncol = 14, nrow = 0))
-      colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
-                            "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
-    }
+    result <- data.frame(matrix(ncol = 14, nrow = 0))
+    colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
+                          "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
   }
   return(result)
 }

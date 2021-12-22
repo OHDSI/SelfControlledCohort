@@ -5,11 +5,10 @@ library(testthat)
 
 testAllParams <- function(connectionDetails,
                           cdmDatabaseSchema,
-                          cdmVersion,
-                          oracleTempSchema = NULL) {
+                          cdmVersion) {
   # Open connection once, so it will be reused:
-  connectionDetails$conn <- DatabaseConnector::connect(connectionDetails)
-  on.exit(DatabaseConnector::disconnect(connectionDetails$conn), add = TRUE)
+  conn <- DatabaseConnector::connect(connectionDetails)
+  on.exit(DatabaseConnector::disconnect(conn), add = TRUE)
 
   for (outcomeTable in c("condition_era", "cohort")) {
     for (exposureTable in c("drug_era", "cohort")) {
@@ -28,9 +27,8 @@ testAllParams <- function(connectionDetails,
                 studyStartDate <- ""
                 studyEndDate <- ""
               }
-              sccResult <- runSelfControlledCohort(connectionDetails,
+              sccResult <- runSelfControlledCohort(connection = conn,
                                                    cdmDatabaseSchema = cdmDatabaseSchema,
-                                                   oracleTempSchema = oracleTempSchema,
                                                    cdmVersion = cdmVersion,
                                                    exposureIds = c(767410, 1314924, 907879),
                                                    exposureTable = exposureTable,
