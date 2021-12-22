@@ -25,7 +25,6 @@
 #'
 "_PACKAGE"
 
-
 computeIrrs <- function(estimates) {
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
     if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
@@ -37,7 +36,6 @@ computeIrrs <- function(estimates) {
                                                  timeAtRiskUnexposed))
     return(c(test$estimate[1], test$conf.int))
   }
-
   irrs <- mapply(computeIrr,
                  numOutcomesExposed = estimates$numOutcomesExposed,
                  numOutcomesUnexposed = estimates$numOutcomesUnexposed,
@@ -52,6 +50,236 @@ computeIrrs <- function(estimates) {
   zTest <- pnorm(estimates$logRr / estimates$seLogRr)
   estimates$p <- 2 * pmin(zTest, 1 - zTest)
   return(estimates)
+}
+
+#' @title
+#' Run Self-Controlled Cohort Risk Windows
+#' @description
+#' Compute time at risk exposed and time at risk unexposed for risk window parameters
+#' @inheritParams runSelfControlledCohort
+#' @export
+runSccRiskWindows <- function(connection,
+                              cdmDatabaseSchema,
+                              cdmVersion = 5,
+                              tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+                              oracleTempSchema = NULL,
+                              exposureIds = NULL,
+                              exposureDatabaseSchema = cdmDatabaseSchema,
+                              exposureTable = "drug_era",
+                              firstExposureOnly = TRUE,
+                              minAge = "",
+                              maxAge = "",
+                              studyStartDate = "",
+                              studyEndDate = "",
+                              addLengthOfExposureExposed = TRUE,
+                              riskWindowStartExposed = 1,
+                              riskWindowEndExposed = 30,
+                              addLengthOfExposureUnexposed = TRUE,
+                              riskWindowEndUnexposed = -1,
+                              riskWindowStartUnexposed = -30,
+                              hasFullTimeAtRisk = FALSE,
+                              washoutPeriod = 0,
+                              followupPeriod = 0,
+                              riskWindowsTable = "#risk_windows",
+                              resultsDatabaseSchema = NULL) {
+
+  if (!DatabaseConnector::dbIsValid(connection))
+    stop("Invalid connection object")
+
+  exposureTable <- tolower(exposureTable)
+
+  if (exposureTable == "drug_era") {
+    exposureStartDate <- "drug_era_start_date"
+    exposureEndDate <- "drug_era_end_date"
+    exposureId <- "drug_concept_id"
+    exposurePersonId <- "person_id"
+  } else if (exposureTable == "drug_exposure") {
+    exposureStartDate <- "drug_exposure_start_date"
+    exposureEndDate <- "drug_exposure_end_date"
+    exposureId <- "drug_concept_id"
+    exposurePersonId <- "person_id"
+  } else {
+    exposureStartDate <- "cohort_start_date"
+    exposureEndDate <- "cohort_end_date"
+    if (cdmVersion == "4") {
+      exposureId <- "cohort_concept_id"
+    } else {
+      exposureId <- "cohort_definition_id"
+    }
+    exposurePersonId <- "subject_id"
+  }
+
+  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  }
+
+  if (!is.null(exposureIds)) {
+    DatabaseConnector::insertTable(connection = connection,
+                                   tableName = "#scc_exposure_ids",
+                                   data = data.frame(exposure_id = exposureIds),
+                                   tempTable = TRUE)
+  }
+
+  if (riskWindowsTable != "#risk_windows") {
+    if (is.null(resultsDatabaseSchema))
+      stop("Risk windows table is not temporary and resultsDatabaseSchema is not set")
+    riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
+                                          results_database_schema = resultsDatabaseSchema,
+                                          risk_windows_table = riskWindowsTable)
+  }
+
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "ComputeSccRiskWindows.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connection@dbms,
+                                                   tempEmulationSchema = tempEmulationSchema,
+                                                   cdm_database_schema = cdmDatabaseSchema,
+                                                   exposure_ids = exposureIds,
+                                                   exposure_database_schema = exposureDatabaseSchema,
+                                                   exposure_table = exposureTable,
+                                                   exposure_start_date = exposureStartDate,
+                                                   exposure_end_date = exposureEndDate,
+                                                   exposure_id = exposureId,
+                                                   exposure_person_id = exposurePersonId,
+                                                   first_exposure_only = firstExposureOnly,
+                                                   min_age = minAge,
+                                                   max_age = maxAge,
+                                                   study_start_date = studyStartDate,
+                                                   study_end_date = studyEndDate,
+                                                   add_length_of_exposure_exposed = addLengthOfExposureExposed,
+                                                   risk_window_start_exposed = riskWindowStartExposed,
+                                                   risk_window_end_exposed = riskWindowEndExposed,
+                                                   add_length_of_exposure_unexposed = addLengthOfExposureUnexposed,
+                                                   risk_window_end_unexposed = riskWindowEndUnexposed,
+                                                   risk_window_start_unexposed = riskWindowStartUnexposed,
+                                                   has_full_time_at_risk = hasFullTimeAtRisk,
+                                                   washout_window = washoutPeriod,
+                                                   followup_window = followupPeriod,
+                                                   risk_windows_table = riskWindowsTable)
+
+  ParallelLogger::logInfo("Computing time at risk exposed and unexposed windows")
+  DatabaseConnector::executeSql(connection, renderedSql)
+}
+
+.getSccRiskWindowStats <- function(connection,
+                                   tempEmulationSchema,
+                                   outcomeIds,
+                                   outcomeDatabaseSchema,
+                                   outcomeTable,
+                                   outcomeStartDate,
+                                   outcomeId,
+                                   outcomePersonId,
+                                   firstOutcomeOnly,
+                                   riskWindowsTable) {
+  ParallelLogger::logInfo("Computing time at risk distribution statistics")
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccRiskWindowStats.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connection@dbms,
+                                                   tempEmulationSchema = tempEmulationSchema,
+                                                   outcome_ids = outcomeIds,
+                                                   outcome_database_schema = outcomeDatabaseSchema,
+                                                   outcome_table = outcomeTable,
+                                                   outcome_start_date = outcomeStartDate,
+                                                   outcome_id = outcomeId,
+                                                   outcome_person_id = outcomePersonId,
+                                                   first_outcome_only = firstOutcomeOnly,
+                                                   risk_windows_table = riskWindowsTable)
+  DatabaseConnector::executeSql(connection, renderedSql)
+
+  tarStats <- list()
+  tarStats$treatmentTimeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                   "SELECT * FROM #tx_distribution",
+                                                                                   snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #tx_distribution; DROP TABLE #tx_distribution;")
+
+
+  tarStats$timeToOutcomeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                   "SELECT * FROM #time_to_dist",
+                                                                                   snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist; DROP TABLE #time_to_dist;")
+
+  tarStats$timeToOutcomeDistributionExposed <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                          "SELECT * FROM #time_to_dist_exposed",
+                                                                                          snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
+
+  tarStats$timeToOutcomeDistributionUnexposed <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                            "SELECT * FROM #time_to_dist_unex",
+                                                                                            snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
+
+  return(tarStats)
+}
+
+#' @title
+#' Run Self-Controlled Cohort Risk Window Statistics
+#' @description
+#' Compute statistics from risk windows.
+#' @details
+#' Returns list of data.frames:
+#'  Time on treatment (for population exposed that experience the outcome)
+#'  Time between outcome and exposure in 3 formats:
+#'      -Total population
+#'      -Population that experienced the outcome in the exposed risk window
+#'      -Population that experienced the outcome in the unexposed risk window
+#'
+#' Requires a risk window table to be created first with `runSccRiskWindows`
+#' @inheritParams runSelfControlledCohort
+#' @export
+getSccRiskWindowStats <- function(connection,
+                                  outcomeDatabaseSchema,
+                                  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+                                  oracleTempSchema = NULL,
+                                  outcomeIds = NULL,
+                                  cdmVersion = 5,
+                                  outcomeTable = "condition_era",
+                                  firstOutcomeOnly = TRUE,
+                                  riskWindowsTable = "#risk_windows") {
+
+  if (!DatabaseConnector::dbIsValid(connection))
+    stop("Invalid connection object")
+
+  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  }
+
+  outcomeTable <- tolower(outcomeTable)
+  if (outcomeTable == "condition_era") {
+    outcomeStartDate <- "condition_era_start_date"
+    outcomeId <- "condition_concept_id"
+    outcomePersonId <- "person_id"
+  } else if (outcomeTable == "condition_occurrence") {
+    outcomeStartDate <- "condition_start_date"
+    outcomeId <- "condition_concept_id"
+    outcomePersonId <- "person_id"
+  } else {
+    outcomeStartDate <- "cohort_start_date"
+    if (cdmVersion == "4") {
+      outcomeId <- "cohort_concept_id"
+    } else {
+      outcomeId <- "cohort_definition_id"
+    }
+    outcomePersonId <- "subject_id"
+  }
+
+  if (!is.null(outcomeIds)) {
+    DatabaseConnector::insertTable(connection = connection,
+                                   tableName = "#scc_outcome_ids",
+                                   data = data.frame(outcome_id = outcomeIds),
+                                   tempTable = TRUE)
+  }
+
+  .getSccRiskWindowStats(connection,
+                         tempEmulationSchema,
+                         outcomeIds,
+                         outcomeDatabaseSchema,
+                         outcomeTable,
+                         outcomeStartDate,
+                         outcomeId,
+                         outcomePersonId,
+                         firstOutcomeOnly,
+                         riskWindowsTable)
 }
 
 batchComputeEstimates <- function(conn,
@@ -95,15 +323,11 @@ batchComputeEstimates <- function(conn,
 
   args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
   estimates <- DatabaseConnector::renderTranslateQueryApplyBatched(conn,
-                                                                   renderedSql,
-                                                                   batchComputeCallBack,
-                                                                   args = args,
-                                                                   snakeCaseToCamelCase = TRUE)
 
   if (returnEstimates)
     return(estimates)
 
-  NULL
+  return(NULL)
 }
 
 #' @title
@@ -119,16 +343,13 @@ batchComputeEstimates <- function(conn,
 #' If multiple exposureIds and outcomeIds are provided, estimates will be generated for every
 #' combination of exposure and outcome.
 #'
-#' Computes query with batches to limit memory usage across processes, use options("SccBatchQuerySize" = num)
-#' to increase or decrease batch sizes
-#'
 #' @references
 #' Ryan PB, Schuemie MJ, Madigan D.Empirical performance of a self-controlled cohort method: lessons
 #' for developing a risk identification and analysis system. Drug Safety 36 Suppl1:S95-106, 2013
-#'
 #' @param connectionDetails                An R object of type \code{connectionDetails} created using
 #'                                         the function \code{createConnectionDetails} in the
 #'                                         \code{DatabaseConnector} package.
+#' @param connection                       DatabaseConnector connection instance
 #' @param cdmDatabaseSchema                Name of database schema that contains the OMOP CDM and
 #'                                         vocabulary.
 #' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
@@ -136,6 +357,9 @@ batchComputeEstimates <- function(conn,
 #' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
 #'                                         want all temporary tables to be managed. Requires
 #'                                         create/insert permissions to this database.
+#' @param tempEmulationSchema              Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
+#'                                         tables, provide a schema with write privileges where temp tables can be created.
+
 #' @param exposureIds                      A vector containing the drug_concept_ids or
 #'                                         cohort_definition_ids of the exposures of interest. If empty,
 #'                                         all exposures in the exposure table will be included.
@@ -194,6 +418,14 @@ batchComputeEstimates <- function(conn,
 #'                                         average absolute time between treatment and outcome. Note,
 #'                                         may add significant computation time on some database
 #'                                         engines.
+#' @param riskWindowsTable                 String: optionally store the risk windows in a (non-temporary)
+#'                                         table.
+#' @param resultsTable                     String: optionally store the summary results (number exposed/
+#'                                         unexposed patients per outcome-exposure pair) in a (non-temporary)
+#'                                         table. Note that this table does not store the rate ratios, only
+#'                                         the values required to calculate rate ratios.
+#' @param resultsDatabaseSchema                    Schema to oputput results to. Ignored if resultsTable and
+#'                                         riskWindowsTable are temporary.
 #' @param washoutPeriod                    Integer to define required time observed before exposure
 #'                                         start.
 #' @param followupPeriod                   Integer to define required time observed after exposure
@@ -235,12 +467,14 @@ batchComputeEstimates <- function(conn,
 #'                         returnEstimates = FALSE)
 #' }
 #' @export
-runSelfControlledCohort <- function(connectionDetails,
+runSelfControlledCohort <- function(connectionDetails = NULL,
                                     cdmDatabaseSchema,
+                                    connection = NULL,
                                     cdmVersion = 5,
+                                    tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                     oracleTempSchema = NULL,
-                                    exposureIds,
-                                    outcomeIds,
+                                    exposureIds = NULL,
+                                    outcomeIds = NULL,
                                     exposureDatabaseSchema = cdmDatabaseSchema,
                                     exposureTable = "drug_era",
                                     outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -265,34 +499,17 @@ runSelfControlledCohort <- function(connectionDetails,
                                     postProcessFunction = NULL,
                                     postProcessArgs = list(),
                                     returnEstimates = TRUE) {
+                                    riskWindowsTable = "#risk_windows",
+                                    resultsTable = "#results",
+                                    resultsDatabaseSchema = NULL,
+                                    computeThreads = 1) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
     stop("Risk window end (unexposed) should be on or after risk window start")
   start <- Sys.time()
-  exposureTable <- tolower(exposureTable)
-  outcomeTable <- tolower(outcomeTable)
-  if (exposureTable == "drug_era") {
-    exposureStartDate <- "drug_era_start_date"
-    exposureEndDate <- "drug_era_end_date"
-    exposureId <- "drug_concept_id"
-    exposurePersonId <- "person_id"
-  } else if (exposureTable == "drug_exposure") {
-    exposureStartDate <- "drug_exposure_start_date"
-    exposureEndDate <- "drug_exposure_end_date"
-    exposureId <- "drug_concept_id"
-    exposurePersonId <- "person_id"
-  } else {
-    exposureStartDate <- "cohort_start_date"
-    exposureEndDate <- "cohort_end_date"
-    if (cdmVersion == "4") {
-      exposureId <- "cohort_concept_id"
-    } else {
-      exposureId <- "cohort_definition_id"
-    }
-    exposurePersonId <- "subject_id"
-  }
 
+  outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
     outcomeStartDate <- "condition_era_start_date"
     outcomeId <- "condition_concept_id"
@@ -311,66 +528,100 @@ runSelfControlledCohort <- function(connectionDetails,
     outcomePersonId <- "subject_id"
   }
 
-  # Check if connection already open:
-  if ("conn" %in% names(connectionDetails)) {
-    conn <- connectionDetails$conn
-  } else {
-    conn <- DatabaseConnector::connect(connectionDetails)
-    on.exit(DatabaseConnector::disconnect(conn), add = TRUE)
+  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
+    tempEmulationSchema <- oracleTempSchema
+    warning('OracleTempSchema has been deprecated by DatabaseConnector')
   }
 
-  if (!all(outcomeIds == "")) {
-    DatabaseConnector::insertTable(connection = conn,
+  if (resultsTable != "#results") {
+    if (is.null(resultsDatabaseSchema))
+      stop("Results table is not temporary and resultsDatabaseSchema is not set")
+
+    resultsTable <- SqlRender::render("@results_database_schema.@results_table",
+                                      results_database_schema = resultsDatabaseSchema,
+                                      results_table = resultsTable)
+  }
+
+  # Check if connection already open:
+  if (is.null(connection)) {
+    if (is.null(connectionDetails)) {
+      stop("Connection details not set")
+    }
+    connection <- DatabaseConnector::connect(connectionDetails)
+    on.exit(DatabaseConnector::disconnect(connection))
+  } else if (!DatabaseConnector::dbIsValid(connection)) {
+    stop("Invalid connection object")
+  }
+
+  if (!is.null(outcomeIds)) {
+    DatabaseConnector::insertTable(connection = connection,
                                    tableName = "#scc_outcome_ids",
                                    data = data.frame(outcome_id = outcomeIds),
                                    tempTable = TRUE)
   }
-  if (!all(exposureIds == "")) {
-    DatabaseConnector::insertTable(connection = conn,
-                                   tableName = "#scc_exposure_ids",
-                                   data = data.frame(exposure_id = exposureIds),
-                                   tempTable = TRUE)
+
+  runSccRiskWindows(connection = connection,
+                    cdmDatabaseSchema = cdmDatabaseSchema,
+                    cdmVersion = cdmVersion,
+                    tempEmulationSchema = tempEmulationSchema,
+                    exposureIds = exposureIds,
+                    exposureDatabaseSchema = exposureDatabaseSchema,
+                    exposureTable = exposureTable,
+                    firstExposureOnly = TRUE,
+                    minAge = minAge,
+                    maxAge = maxAge,
+                    studyStartDate = studyStartDate,
+                    studyEndDate = studyEndDate,
+                    addLengthOfExposureExposed = addLengthOfExposureExposed,
+                    riskWindowStartExposed = riskWindowStartExposed,
+                    riskWindowEndExposed = riskWindowEndExposed,
+                    addLengthOfExposureUnexposed = addLengthOfExposureUnexposed,
+                    riskWindowEndUnexposed = riskWindowEndUnexposed,
+                    riskWindowStartUnexposed = riskWindowStartUnexposed,
+                    hasFullTimeAtRisk = hasFullTimeAtRisk,
+                    washoutPeriod = washoutPeriod,
+                    followupPeriod = followupPeriod,
+                    riskWindowsTable = riskWindowsTable,
+                    resultsDatabaseSchema = resultsDatabaseSchema)
+
+  if (riskWindowsTable != "#risk_windows") {
+    riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
+                                          results_database_schema = resultsDatabaseSchema,
+                                          risk_windows_table = riskWindowsTable)
+
   }
 
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
-                                                   dbms = connectionDetails$dbms,
-                                                   oracleTempSchema = oracleTempSchema,
-                                                   cdm_database_schema = cdmDatabaseSchema,
-                                                   exposure_ids = exposureIds,
+                                                   dbms = connection@dbms,
+                                                   tempEmulationSchema = tempEmulationSchema,
                                                    outcome_ids = outcomeIds,
-                                                   exposure_database_schema = exposureDatabaseSchema,
-                                                   exposure_table = exposureTable,
-                                                   exposure_start_date = exposureStartDate,
-                                                   exposure_end_date = exposureEndDate,
-                                                   exposure_id = exposureId,
-                                                   exposure_person_id = exposurePersonId,
                                                    outcome_database_schema = outcomeDatabaseSchema,
                                                    outcome_table = outcomeTable,
                                                    outcome_start_date = outcomeStartDate,
                                                    outcome_id = outcomeId,
                                                    outcome_person_id = outcomePersonId,
-                                                   first_exposure_only = firstExposureOnly,
                                                    first_outcome_only = firstOutcomeOnly,
-                                                   min_age = minAge,
-                                                   max_age = maxAge,
-                                                   study_start_date = studyStartDate,
-                                                   study_end_date = studyEndDate,
-                                                   add_length_of_exposure_exposed = addLengthOfExposureExposed,
-                                                   risk_window_start_exposed = riskWindowStartExposed,
-                                                   risk_window_end_exposed = riskWindowEndExposed,
-                                                   add_length_of_exposure_unexposed = addLengthOfExposureUnexposed,
-                                                   risk_window_end_unexposed = riskWindowEndUnexposed,
-                                                   risk_window_start_unexposed = riskWindowStartUnexposed,
-                                                   has_full_time_at_risk = hasFullTimeAtRisk,
-                                                   washout_window = washoutPeriod,
-                                                   followup_window = followupPeriod,
-                                                   compute_tar_distribution = computeTarDistribution)
+                                                   risk_windows_table = riskWindowsTable,
+                                                   results_table = resultsTable)
   ParallelLogger::logInfo("Retrieving counts from database")
-  DatabaseConnector::executeSql(conn, renderedSql)
+  DatabaseConnector::executeSql(connection, renderedSql)
+
+  if (computeTarDistribution) {
+    tarStats <- .getSccRiskWindowStats(connection,
+                                       tempEmulationSchema,
+                                       outcomeIds,
+                                       outcomeDatabaseSchema,
+                                       outcomeTable,
+                                       outcomeStartDate,
+                                       outcomeId,
+                                       outcomePersonId,
+                                       firstOutcomeOnly,
+                                       riskWindowsTable)
+  }
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  estimates <- batchComputeEstimates(conn = conn,
+  estimates <- batchComputeEstimates(conn = connection,
                                      computeThreads = computeThreads,
                                      connectionDetails = connectionDetails,
                                      computeTarDistribution = computeTarDistribution,
@@ -378,15 +629,17 @@ runSelfControlledCohort <- function(connectionDetails,
                                      postProcessFunction = postProcessFunction,
                                      postProcessArgs = postProcessArgs,
                                      returnEstimates = returnEstimates)
-
   # Drop temp tables:
-  sql <- "TRUNCATE TABLE #results; DROP TABLE #results; {@compute_tar_distribution} ? {TRUNCATE TABLE #tar_stats; DROP TABLE #tar_stats;}"
-  DatabaseConnector::renderTranslateExecuteSql(conn,
-                                               sql,
-                                               progressBar = FALSE,
-                                               reportOverallTime = FALSE,
-                                               oracleTempSchema = oracleTempSchema,
-                                               compute_tar_distribution = computeTarDistribution)
+  ParallelLogger::logInfo("Cleaning up intermedate tables")
+  sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",
+                                           packageName = "SelfControlledCohort",
+                                           dbms = connection@dbms,
+                                           tempEmulationSchema = tempEmulationSchema,
+                                           outcome_ids = outcomeIds,
+                                           exposure_ids = exposureIds,
+                                           results_table = resultsTable)
+  DatabaseConnector::executeSql(connection, sql)
+
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
 
@@ -394,6 +647,11 @@ runSelfControlledCohort <- function(connectionDetails,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeIds,
                  call = match.call())
+
+  if (computeTarDistribution) {
+    result$tarStats <- tarStats
+  }
+
   class(result) <- "sccResults"
   return(result)
 }

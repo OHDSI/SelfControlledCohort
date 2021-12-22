@@ -22,7 +22,6 @@ test_that("multiple analyses", {
 
   rr <- runSccAnalyses(connectionDetails = connectionDetails,
                        cdmDatabaseSchema = cdmDatabaseSchema,
-                       oracleTempSchema = oracleTempSchema,
                        sccAnalysisList = sccAnalysisList,
                        exposureOutcomeList = exposureOutcomeList,
                        outputFolder = outputFolder,
@@ -36,7 +35,7 @@ test_that("multiple analyses", {
 
   result <- summarizeAnalyses(rr, outputFolder)
   expect_s3_class(result, "data.frame")
-  expect_equal(ncol(result), 31)
+  expect_equal(ncol(result), 14)
 })
 
 test_that("Fail on analyses clone", {
@@ -57,7 +56,6 @@ test_that("Fail on analyses clone", {
   sccAnalysisList <- list(sccAnalysis, sccAnalysis)
   expect_error(runSccAnalyses(connectionDetails = connectionDetails,
                               cdmDatabaseSchema = cdmDatabaseSchema,
-                              oracleTempSchema = oracleTempSchema,
                               sccAnalysisList = sccAnalysisList,
                               exposureOutcomeList = exposureOutcomeList,
                               outputFolder = outputFolder,

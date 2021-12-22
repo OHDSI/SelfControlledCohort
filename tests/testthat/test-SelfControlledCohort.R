@@ -1,6 +1,9 @@
-
 test_that("SCC method runs on Eunomia", {
+  skip_if_not(dbms == "sqlite", "Eunomia tests - skipping dbms platform tests")
   connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+  tConnection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
+  withr::defer(DatabaseConnector::disconnect(tConnection), testthat::teardown_env())
+
   result <- runSelfControlledCohort(connectionDetails = connectionDetails,
                                     cdmDatabaseSchema = "main",
                                     exposureIds = '',
@@ -11,7 +14,7 @@ test_that("SCC method runs on Eunomia", {
   expect_equal(length(capture_output_lines(print(result))), 4)
   expect_equal(summary(result), result$estimates)
 
-  expect_error(runSelfControlledCohort(connectionDetails = connectionDetails,
+  expect_error(runSelfControlledCohort(connection = tConnection,
                                        cdmDatabaseSchema = "main",
                                        exposureIds = '',
                                        outcomeIds = '',
@@ -20,7 +23,7 @@ test_that("SCC method runs on Eunomia", {
                                        addLengthOfExposureExposed = F),
                "risk window")
 
-  expect_error(runSelfControlledCohort(connectionDetails = connectionDetails,
+  expect_error(runSelfControlledCohort(connection = tConnection,
                                        cdmDatabaseSchema = "main",
                                        exposureIds = '',
                                        outcomeIds = '',
@@ -30,24 +33,85 @@ test_that("SCC method runs on Eunomia", {
                "risk window")
 
   rm(result)
-  result <- runSelfControlledCohort(connectionDetails = connectionDetails,
+  result <- runSelfControlledCohort(connection = tConnection,
                                     cdmDatabaseSchema = "main",
                                     exposureIds = '',
                                     outcomeIds = '',
                                     exposureTable = 'drug_exposure',
                                     outcomeTable = 'condition_occurrence',
+                                    resultsTable = "test_results_store",
+                                    riskWindowsTable = "risk_window",
+                                    resultsDatabaseSchema = "main",
                                     computeTarDistribution = TRUE)
 
-  expect_s3_class(result$estimates, "data.frame")
-  expect_equal(nrow(result$estimates), 9040)
-  expect_true("meanTxTime" %in% colnames(result$estimates))
+  expect_false(is.null(result$tarStats$treatmentTimeDistribution))
+  expect_true("mean" %in% colnames(result$tarStats$treatmentTimeDistribution))
 
-  # Test empty results - this can cause crashes
-  result <- runSelfControlledCohort(connectionDetails = connectionDetails,
-                                    cdmDatabaseSchema = "main",
-                                    exposureIds = 99999999,
-                                    outcomeIds = 99999999)
+  expect_false(is.null(result$tarStats$timeToOutcomeDistribution))
+  expect_true("mean" %in% colnames(result$tarStats$timeToOutcomeDistribution))
 
-  expect_s3_class(result$estimates, "data.frame")
-  expect_equal(nrow(result$estimates), 0)
+  expect_false(is.null(result$tarStats$timeToOutcomeDistributionExposed))
+  expect_true("mean" %in% colnames(result$tarStats$timeToOutcomeDistributionExposed))
+
+  expect_false(is.null(result$tarStats$timeToOutcomeDistributionUnexposed))
+  expect_true("mean" %in% colnames(result$tarStats$timeToOutcomeDistributionUnexposed))
+
+
+  rdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.test_results_store")
+  expect_s3_class(rdf, "data.frame")
+  rwdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.risk_window")
+  expect_s3_class(rdf, "data.frame")
+
+  expect_error(
+    result <- runSelfControlledCohort(connection = tConnection,
+                                      cdmDatabaseSchema = "main",
+                                      exposureIds = '',
+                                      outcomeIds = '',
+                                      exposureTable = 'drug_exposure',
+                                      outcomeTable = 'condition_occurrence',
+                                      resultsTable = "resultsTable",
+                                      computeTarDistribution = TRUE),
+    "Results table"
+  )
+
+  expect_error(
+    result <- runSelfControlledCohort(connection = tConnection,
+                                      cdmDatabaseSchema = "main",
+                                      exposureIds = '',
+                                      outcomeIds = '',
+                                      exposureTable = 'drug_exposure',
+                                      outcomeTable = 'condition_occurrence',
+                                      riskWindowsTable = "risk_window",
+                                      computeTarDistribution = TRUE),
+    "Risk windows table"
+  )
+
+  expect_error(
+    result <- runSelfControlledCohort(cdmDatabaseSchema = "main",
+                                      exposureIds = '',
+                                      outcomeIds = '',
+                                      addLengthOfExposureUnexposed = F),
+    "Connection details not set"
+  )
+
+  runSccRiskWindows(connection = tConnection,
+                    cdmDatabaseSchema = "main",
+                    exposureTable = "drug_era",
+                    firstExposureOnly = TRUE,
+                    addLengthOfExposureExposed = F,
+                    riskWindowStartExposed = 1,
+                    riskWindowEndExposed = 30,
+                    addLengthOfExposureUnexposed = TRUE,
+                    riskWindowEndUnexposed = -1,
+                    riskWindowStartUnexposed = -30,
+                    hasFullTimeAtRisk = FALSE,
+                    washoutPeriod = 100,
+                    followupPeriod = 0,
+                    riskWindowsTable = "#risk_windows")
+
+  stats <- getSccRiskWindowStats(tConnection, outcomeDatabaseSchema = "main")
+  expect_false(is.null(stats$treatmentTimeDistribution))
+  expect_false(is.null(stats$timeToOutcomeDistribution))
+  expect_false(is.null(stats$timeToOutcomeDistributionExposed))
+  expect_false(is.null(stats$timeToOutcomeDistributionUnexposed))
 })

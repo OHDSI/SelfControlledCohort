@@ -69,3 +69,9 @@ test_that("loadExposureOutcomeList, saveExposureOutcomeList , createExposureOutc
   expect_error(saveExposureOutcomeList(list(), tmp)) # Empty
   expect_error(saveExposureOutcomeList(badList, tmp)) # Not an sccAnalysis object
 })
+
+test_that(".selectByType works", {
+  expect_error(.selectByType(NULL, list(a=1), "test"))
+  expect_error(.selectByType("foo", c(), "test"))
+  expect_true(.selectByType("foo", list(foo = 1), "test") == 1)
+})
