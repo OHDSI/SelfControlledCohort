@@ -11,7 +11,6 @@ getSccRiskWindowStats(
   oracleTempSchema = NULL,
   outcomeIds = NULL,
   cdmVersion = 5,
-  createOutcomeIdTempTable = TRUE,
   outcomeTable = "condition_era",
   firstOutcomeOnly = TRUE,
   riskWindowsTable = "#risk_windows"
@@ -40,8 +39,6 @@ outcome table will be included.}
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
 
-\item{createOutcomeIdTempTable}{Optionally create a temp table of outcomes (used internally)}
-
 \item{outcomeTable}{The tablename that contains the outcome cohorts.  If
 outcomeTable <> CONDITION_OCCURRENCE, then expectation is
 outcomeTable has format of COHORT table:
@@ -64,4 +61,6 @@ Returns list of data.frames:
      -Total population
      -Population that experienced the outcome in the exposed risk window
      -Population that experienced the outcome in the unexposed risk window
+
+Requires a risk window table to be created first with `runSccRiskWindows`
 }

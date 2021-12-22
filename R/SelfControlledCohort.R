@@ -103,7 +103,7 @@ runSccRiskWindows <- function(connection,
     exposurePersonId <- "subject_id"
   }
 
-  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
     tempEmulationSchema <- oracleTempSchema
     warning('OracleTempSchema has been deprecated by DatabaseConnector')
   }
@@ -154,6 +154,57 @@ runSccRiskWindows <- function(connection,
   ParallelLogger::logInfo("Computing time at risk exposed and unexposed windows")
   DatabaseConnector::executeSql(connection, renderedSql)
 }
+
+.getSccRiskWindowStats <- function(connection,
+                                   tempEmulationSchema,
+                                   outcomeIds,
+                                   outcomeDatabaseSchema,
+                                   outcomeTable,
+                                   outcomeStartDate,
+                                   outcomeId,
+                                   outcomePersonId,
+                                   firstOutcomeOnly,
+                                   riskWindowsTable) {
+  ParallelLogger::logInfo("Computing time at risk distribution statistics")
+  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccRiskWindowStats.sql",
+                                                   packageName = "SelfControlledCohort",
+                                                   dbms = connection@dbms,
+                                                   tempEmulationSchema = tempEmulationSchema,
+                                                   outcome_ids = outcomeIds,
+                                                   outcome_database_schema = outcomeDatabaseSchema,
+                                                   outcome_table = outcomeTable,
+                                                   outcome_start_date = outcomeStartDate,
+                                                   outcome_id = outcomeId,
+                                                   outcome_person_id = outcomePersonId,
+                                                   first_outcome_only = firstOutcomeOnly,
+                                                   risk_windows_table = riskWindowsTable)
+  DatabaseConnector::executeSql(connection, renderedSql)
+
+  tarStats <- list()
+  tarStats$treatmentTimeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                   "SELECT * FROM #tx_distribution",
+                                                                                   snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #tx_distribution; DROP TABLE #tx_distribution;")
+
+
+  tarStats$timeToOutcomeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                   "SELECT * FROM #time_to_dist",
+                                                                                   snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist; DROP TABLE #time_to_dist;")
+
+  tarStats$timeToOutcomeDistributionExposed <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                          "SELECT * FROM #time_to_dist_exposed",
+                                                                                          snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
+
+  tarStats$timeToOutcomeDistributionUnexposed <- DatabaseConnector::renderTranslateQuerySql(connection,
+                                                                                            "SELECT * FROM #time_to_dist_unex",
+                                                                                            snakeCaseToCamelCase = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
+
+  return(tarStats)
+}
+
 #' @title
 #' Run Self-Controlled Cohort Risk Window Statistics
 #' @description
@@ -165,8 +216,9 @@ runSccRiskWindows <- function(connection,
 #'      -Total population
 #'      -Population that experienced the outcome in the exposed risk window
 #'      -Population that experienced the outcome in the unexposed risk window
+#'
+#' Requires a risk window table to be created first with `runSccRiskWindows`
 #' @inheritParams runSelfControlledCohort
-#' @param createOutcomeIdTempTable          Optionally create a temp table of outcomes (used internally)
 #' @export
 getSccRiskWindowStats <- function(connection,
                                   outcomeDatabaseSchema,
@@ -174,7 +226,6 @@ getSccRiskWindowStats <- function(connection,
                                   oracleTempSchema = NULL,
                                   outcomeIds = NULL,
                                   cdmVersion = 5,
-                                  createOutcomeIdTempTable = TRUE,
                                   outcomeTable = "condition_era",
                                   firstOutcomeOnly = TRUE,
                                   riskWindowsTable = "#risk_windows") {
@@ -182,7 +233,7 @@ getSccRiskWindowStats <- function(connection,
   if (!DatabaseConnector::dbIsValid(connection))
     stop("Invalid connection object")
 
-  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
     tempEmulationSchema <- oracleTempSchema
     warning('OracleTempSchema has been deprecated by DatabaseConnector')
   }
@@ -206,51 +257,23 @@ getSccRiskWindowStats <- function(connection,
     outcomePersonId <- "subject_id"
   }
 
-  if (!is.null(outcomeIds) & createOutcomeIdTempTable) {
+  if (!is.null(outcomeIds)) {
     DatabaseConnector::insertTable(connection = connection,
                                    tableName = "#scc_outcome_ids",
                                    data = data.frame(outcome_id = outcomeIds),
                                    tempTable = TRUE)
   }
 
-  ParallelLogger::logInfo("Computing time at risk distribution statistics")
-  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccRiskWindowStats.sql",
-                                                   packageName = "SelfControlledCohort",
-                                                   dbms = connection@dbms,
-                                                   tempEmulationSchema = tempEmulationSchema,
-                                                   outcome_ids = outcomeIds,
-                                                   outcome_database_schema = outcomeDatabaseSchema,
-                                                   outcome_table = outcomeTable,
-                                                   outcome_start_date = outcomeStartDate,
-                                                   outcome_id = outcomeId,
-                                                   outcome_person_id = outcomePersonId,
-                                                   first_outcome_only = firstOutcomeOnly,
-                                                   risk_windows_table = riskWindowsTable)
-  DatabaseConnector::executeSql(connection, renderedSql)
-
-  tarStats <- list()
-  tarStats$treatmentTimeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                         "SELECT * FROM #tx_distribution",
-                                                         snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #tx_distribution; DROP TABLE #tx_distribution;")
-
-
-  tarStats$timeToOutcomeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                         "SELECT * FROM #time_to_dist",
-                                                         snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist; DROP TABLE #time_to_dist;")
-
-  tarStats$timeToOutcomeDistributionExposed <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                         "SELECT * FROM #time_to_dist_exposed",
-                                                         snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
-
-  tarStats$timeToOutcomeDistributionUnexposed <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                         "SELECT * FROM #time_to_dist_unex",
-                                                         snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
-
-  return(do.call(rbind, tarStats))
+  .getSccRiskWindowStats(connection,
+                         tempEmulationSchema,
+                         outcomeIds,
+                         outcomeDatabaseSchema,
+                         outcomeTable,
+                         outcomeStartDate,
+                         outcomeId,
+                         outcomePersonId,
+                         firstOutcomeOnly,
+                         riskWindowsTable)
 }
 
 #' @title
@@ -369,7 +392,7 @@ getSccRiskWindowStats <- function(connection,
 #'                                      outcomeTable = "condition_era")
 #' }
 #' @export
-runSelfControlledCohort <- function(connectionDetails,
+runSelfControlledCohort <- function(connectionDetails = NULL,
                                     cdmDatabaseSchema,
                                     connection = NULL,
                                     cdmVersion = 5,
@@ -426,7 +449,7 @@ runSelfControlledCohort <- function(connectionDetails,
     outcomePersonId <- "subject_id"
   }
 
-  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
+  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
     tempEmulationSchema <- oracleTempSchema
     warning('OracleTempSchema has been deprecated by DatabaseConnector')
   }
@@ -442,6 +465,9 @@ runSelfControlledCohort <- function(connectionDetails,
 
   # Check if connection already open:
   if (is.null(connection)) {
+    if (is.null(connectionDetails)) {
+      stop("Connection details not set")
+    }
     connection <- DatabaseConnector::connect(connectionDetails)
     on.exit(DatabaseConnector::disconnect(connection))
   } else if (!DatabaseConnector::dbIsValid(connection)) {
@@ -503,15 +529,16 @@ runSelfControlledCohort <- function(connectionDetails,
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (computeTarDistribution) {
-    tarStats <- getSccRiskWindowStats(connection,
-                                      tempEmulationSchema = tempEmulationSchema,
-                                      outcomeIds = outcomeIds,
-                                      outcomeDatabaseSchema = outcomeDatabaseSchema,
-                                      createOutcomeIdTempTable = FALSE,
-                                      outcomeTable = outcomeTable,
-                                      cdmVersion = cdmVersion,
-                                      firstOutcomeOnly = firstOutcomeOnly,
-                                      riskWindowsTable = riskWindowsTable)
+    tarStats <- .getSccRiskWindowStats(connection,
+                                       tempEmulationSchema,
+                                       outcomeIds,
+                                       outcomeDatabaseSchema,
+                                       outcomeTable,
+                                       outcomeStartDate,
+                                       outcomeId,
+                                       outcomePersonId,
+                                       firstOutcomeOnly,
+                                       riskWindowsTable)
   }
 
   # Fetch results from server:
