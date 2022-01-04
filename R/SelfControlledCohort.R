@@ -49,7 +49,7 @@ computeIrrs <- function(estimates) {
 
   estimates$logRr <- log(estimates$irr)
   estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
-  zTest <- pnorm(estimates$logRr / estimates$seLogRr)
+  zTest <- stats::pnorm(estimates$logRr / estimates$seLogRr)
   estimates$p <- 2 * pmin(zTest, 1 - zTest)
   return(estimates)
 }
@@ -434,8 +434,6 @@ batchComputeEstimates <- function(connection,
 #'                                         start.
 #' @param computeThreads                   Number of parallel threads for computing IRRs with exact
 #'                                         confidence intervals.
-#' @param countTableName                   Optional intermediary table to store database counts in
-#'                                         instead of using temp tables. Useful for audit trails
 #' @param postProcessFunction              Callback function to handle batches of data. Useful for
 #'                                         massive result sets that overflow system memory. See example.
 #' @param postProcessArgs                  Arguments for post processing function callback.
@@ -453,10 +451,10 @@ batchComputeEstimates <- function(connection,
 #'                                      outcomeIds = 444382,
 #'                                      outcomeTable = "condition_era")
 #'
-#' #Using a callback function that writes data to a csv file
-#' csvFileName <- "D:/path/to/output.csv
-#' writeSccData <- function(data, position, ) {
-#'   vroom::vroom_write(estimates, csvFileName, delim = ",", append = position != 1, na = "")
+#' # Using a callback function that writes data to a csv file and not store in memory
+#' csvFileName <- "D:/path/to/output.csv"
+#' writeSccData <- function(data, position, csvFileName) {
+#'   vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
 #' }
 #'
 #' runSelfControlledCohort(connectionDetails,

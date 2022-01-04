@@ -5,7 +5,7 @@
 \title{Run self-controlled cohort}
 \usage{
 runSelfControlledCohort(
-  connectionDetails,
+  connectionDetails = NULL,
   cdmDatabaseSchema,
   connection = NULL,
   cdmVersion = 5,
@@ -33,11 +33,12 @@ runSelfControlledCohort(
   washoutPeriod = 0,
   followupPeriod = 0,
   computeTarDistribution = FALSE,
+  computeThreads = 1,
   riskWindowsTable = "#risk_windows",
   resultsTable = "#results",
   resultsDatabaseSchema = NULL,
-  computeThreads = 1,
   postProcessFunction = NULL,
+  postProcessArgs = list(),
   returnEstimates = TRUE
 )
 }
@@ -145,6 +146,9 @@ average absolute time between treatment and outcome. Note,
 may add significant computation time on some database
 engines.}
 
+\item{computeThreads}{Number of parallel threads for computing IRRs with exact
+confidence intervals.}
+
 \item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
 table.}
 
@@ -156,17 +160,13 @@ the values required to calculate rate ratios.}
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}
 
-\item{computeThreads}{Number of parallel threads for computing IRRs with exact
-confidence intervals.}
-
 \item{postProcessFunction}{Callback function to handle batches of data. Useful for
 massive result sets that overflow system memory. See example.}
 
+\item{postProcessArgs}{Arguments for post processing function callback.}
+
 \item{returnEstimates}{Boolean opt to not return estimates, only useful in the case
 where postProcessFunction is used}
-
-\item{countTableName}{Optional intermediary table to store database counts in
-instead of using temp tables. Useful for audit trails}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.
@@ -190,6 +190,21 @@ sccResult <- runSelfControlledCohort(connectionDetails,
                                      exposureIds = c(767410, 1314924, 907879),
                                      outcomeIds = 444382,
                                      outcomeTable = "condition_era")
+
+# Using a callback function that writes data to a csv file and not store in memory
+csvFileName <- "D:/path/to/output.csv"
+writeSccData <- function(data, position, csvFileName) {
+  vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
+}
+
+runSelfControlledCohort(connectionDetails,
+                        cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+                        exposureIds = c(767410, 1314924, 907879),
+                        outcomeIds = 444382,
+                        outcomeTable = "condition_era",
+                        postProcessFunction = writeSccData,
+                        postProcessArgs = list(csvFileName = csvFileName),
+                        returnEstimates = FALSE)
 }
 }
 \references{
