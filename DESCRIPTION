@@ -1,23 +1,22 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-level estimation method  that estimates
-    incidence rate comparison of exposed/unexposed time within an exposed
-    cohort
+Title: Population-level estimation method  that estimates incidence rate comparison of exposed/unexposed time within an exposed cohort
 Version: 1.6.0
 Date: 2021-29-03
 Authors@R: c(
-    person("Jamie", "Gilbert", "jpg@azimov.co.uk", role = c("aut")),
-    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut", "cre")),
-    person("Patrick", "Ryan", role = c("aut", "cre"))
+    person("Jamie", "Gilbert", email = "jpg@azimov.co.uk", role = c("cre", "aut")),
+    person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut")),
+    person("Patrick", "Ryan", role = c("aut")),
+    person("Observational Health Data Science and Informatics", role = c("cph"))
     )
-Author: Patrick Ryan, Martijn Schuemie, Jamie Gilbert
 Maintainer: Jamie Gilbert <jpg@azimov.co.uk>
 Description: This package provides a method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
 URL: https://github.com/OHDSI/SelfControlledCohort
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Depends:
-    DatabaseConnector (>= 4.0.0)
+    DatabaseConnector (>= 5.0.0),
+	R (>= 4.0.0)
 Imports:
     SqlRender (>= 1.4.3),
     ParallelLogger,

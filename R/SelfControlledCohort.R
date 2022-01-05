@@ -28,6 +28,9 @@
 computeIrrs <- function(estimates) {
 
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
+    if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
+      return(c(NA, 0, Inf))
+    }
     test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed,
                                                  numOutcomesUnexposed),
                                            n = c(timeAtRiskExposed,
@@ -43,6 +46,11 @@ computeIrrs <- function(estimates) {
   estimates$irr <- irrs[1,]
   estimates$irrLb95 <- irrs[2,]
   estimates$irrUb95 <- irrs[3,]
+
+  estimates$logRr <- log(estimates$irr)
+  estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
+  zTest <- stats::pnorm(estimates$logRr / estimates$seLogRr)
+  estimates$p <- 2 * pmin(zTest, 1 - zTest)
   return(estimates)
 }
 
@@ -276,6 +284,54 @@ getSccRiskWindowStats <- function(connection,
                          riskWindowsTable)
 }
 
+batchComputeEstimates <- function(connection,
+                                  computeThreads,
+                                  resultsTable,
+                                  tempEmulationSchema,
+                                  postProcessFunction = NULL,
+                                  postProcessArgs = list(),
+                                  returnEstimates = TRUE) {
+  cluster <- ParallelLogger::makeCluster(computeThreads)
+  ParallelLogger::clusterRequire(cluster, "rateratio.test")
+  # Clean up, regardless of status
+  on.exit({
+    ParallelLogger::stopCluster(cluster)
+  }, add = TRUE)
+
+  batchComputeCallBack <- function(data, position, cluster, postProcessFunction, postProcessArgs) {
+    if (nrow(data) > 0) {
+      batches <- ceiling(nrow(data) / 10000)
+      data <- split(data, rep_len(1:batches, nrow(data)))
+      data <- ParallelLogger::clusterApply(cluster, data, computeIrrs, progressBar = FALSE)
+      data <- do.call("rbind", data)
+    }
+
+    if (is.function(postProcessFunction))
+      data <- do.call(postProcessFunction, append(list(data, position), postProcessArgs))
+
+    if (returnEstimates)
+      return(data)
+
+    return(data.frame())
+  }
+
+  # Fetch results from server:
+  args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
+  estimates <- DatabaseConnector::renderTranslateQueryApplyBatched(connection,
+                                                                   "SELECT * FROM @results_table",
+                                                                   results_table = resultsTable,
+                                                                   tempEmulationSchema = tempEmulationSchema,
+                                                                   fun = batchComputeCallBack,
+                                                                   args = args,
+                                                                   snakeCaseToCamelCase = TRUE)
+
+
+  if (returnEstimates) {
+    return(data.frame(estimates))
+  }
+  return(NULL)
+}
+
 #' @title
 #' Run self-controlled cohort
 #'
@@ -378,7 +434,11 @@ getSccRiskWindowStats <- function(connection,
 #'                                         start.
 #' @param computeThreads                   Number of parallel threads for computing IRRs with exact
 #'                                         confidence intervals.
-#'
+#' @param postProcessFunction              Callback function to handle batches of data. Useful for
+#'                                         massive result sets that overflow system memory. See example.
+#' @param postProcessArgs                  Arguments for post processing function callback.
+#' @param returnEstimates                  Boolean opt to not return estimates, only useful in the case
+#'                                         where postProcessFunction is used
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
@@ -390,6 +450,21 @@ getSccRiskWindowStats <- function(connection,
 #'                                      exposureIds = c(767410, 1314924, 907879),
 #'                                      outcomeIds = 444382,
 #'                                      outcomeTable = "condition_era")
+#'
+#' # Using a callback function that writes data to a csv file and not store in memory
+#' csvFileName <- "D:/path/to/output.csv"
+#' writeSccData <- function(data, position, csvFileName) {
+#'   vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
+#' }
+#'
+#' runSelfControlledCohort(connectionDetails,
+#'                         cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+#'                         exposureIds = c(767410, 1314924, 907879),
+#'                         outcomeIds = 444382,
+#'                         outcomeTable = "condition_era",
+#'                         postProcessFunction = writeSccData,
+#'                         postProcessArgs = list(csvFileName = csvFileName),
+#'                         returnEstimates = FALSE)
 #' }
 #' @export
 runSelfControlledCohort <- function(connectionDetails = NULL,
@@ -420,10 +495,13 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
                                     computeTarDistribution = FALSE,
+                                    computeThreads = 1,
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
                                     resultsDatabaseSchema = NULL,
-                                    computeThreads = 1) {
+                                    postProcessFunction = NULL,
+                                    postProcessArgs = list(),
+                                    returnEstimates = TRUE) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -512,6 +590,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
 
   }
 
+  ParallelLogger::logInfo("Retrieving counts from database")
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
                                                    dbms = connection@dbms,
@@ -525,7 +604,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable,
                                                    results_table = resultsTable)
-  ParallelLogger::logInfo("Retrieving counts from database")
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (computeTarDistribution) {
@@ -541,42 +619,14 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                        riskWindowsTable)
   }
 
-  # Fetch results from server:
-  ParallelLogger::logInfo("Fetching results")
-  estimates <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                          "SELECT * FROM @results_table",
-                                                          results_table = resultsTable,
-                                                          tempEmulationSchema = tempEmulationSchema,
-                                                          snakeCaseToCamelCase = TRUE)
-
-  if (nrow(estimates) > 0) {
-    ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-    zeroCountIdx <- estimates$numOutcomesExposed == 0 & estimates$numOutcomesUnexposed == 0
-    if (any(zeroCountIdx)) {
-      zeroCountRows <- estimates[zeroCountIdx,]
-      zeroCountRows$irr <- NA
-      zeroCountRows$irrLb95 <- 0
-      zeroCountRows$irrUb95 <- Inf
-    }
-    if (any(!zeroCountIdx)) {
-      estimates <- estimates[!zeroCountIdx,]
-      batches <- ceiling(nrow(estimates) / 10000)
-      estimates <- split(estimates, rep_len(1:batches, nrow(estimates)))
-      cluster <- ParallelLogger::makeCluster(computeThreads)
-      estimates <- ParallelLogger::clusterApply(cluster, estimates, computeIrrs)
-      ParallelLogger::stopCluster(cluster)
-      estimates <- do.call("rbind", estimates)
-      if (any(zeroCountIdx)) {
-        estimates <- rbind(estimates, zeroCountRows)
-      }
-    } else {
-      if (any(zeroCountIdx)) {
-        estimates <- zeroCountRows
-      }
-    }
-    estimates$logRr <- log(estimates$irr)
-    estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
-  }
+  ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
+  estimates <- batchComputeEstimates(connection = connection,
+                                     computeThreads = computeThreads,
+                                     resultsTable = resultsTable,
+                                     tempEmulationSchema = tempEmulationSchema,
+                                     postProcessFunction = postProcessFunction,
+                                     postProcessArgs = postProcessArgs,
+                                     returnEstimates = returnEstimates)
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",

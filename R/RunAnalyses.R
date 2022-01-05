@@ -180,9 +180,9 @@ summarizeAnalyses <- function(resultsReference, outputFolder) {
 
   # Return consistent column names
   if (nrow(result) == 0) {
-    result <- data.frame(matrix(ncol = 14, nrow = 0))
+    result <- data.frame(matrix(ncol = 15, nrow = 0))
     colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
-                          "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95")
+                          "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95", "p", "analysisId")
   }
   return(result)
 }

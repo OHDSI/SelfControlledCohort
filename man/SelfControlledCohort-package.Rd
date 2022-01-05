@@ -16,11 +16,17 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Martijn Schuemie \email{schuemie@ohdsi.org}
+\strong{Maintainer}: Jamie Gilbert \email{jpg@azimov.co.uk}
 
 Authors:
 \itemize{
-  \item Jamie jpg@azimov.co.uk Gilbert
+  \item Martijn Schuemie \email{schuemie@ohdsi.org}
+  \item Patrick Ryan
+}
+
+Other contributors:
+\itemize{
+  \item Observational Health Data Science and Informatics [copyright holder]
 }
 
 }
