@@ -39,7 +39,7 @@
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
@@ -126,6 +126,14 @@ COHORT_END_DATE.</p></dd>
 <dt>cdmVersion</dt>
 <dd><p>Define the OMOP CDM version used: currently support "4" and
 "5".</p></dd>
+<dt>outputFolder</dt>
+<dd><p>Name of the folder where all the outputs will written to.</p></dd>
+<dt>sccAnalysisList</dt>
+<dd><p>A list of objects of type <code>sccAnalysis</code> as created using the
+<code><a href="createSccAnalysis.html">createSccAnalysis</a></code> function.</p></dd>
+<dt>exposureOutcomeList</dt>
+<dd><p>A list of objects of type <code>exposureOutcome</code> as created using
+the <code><a href="createExposureOutcome.html">createExposureOutcome</a></code> function.</p></dd>
 <dt>analysisThreads</dt>
 <dd><p>The number of parallel threads to use to execute the analyses.</p></dd>
 <dt>computeThreads</dt>
@@ -147,7 +155,7 @@ models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.</p>
 
 
       <footer><div class="copyright">
-  <p></p><p>Developed by Jamie <a href="mailto:jpg@azimov.co.uk" class="email">jpg@azimov.co.uk</a> Gilbert, Martijn Schuemie, Patrick Ryan.</p>
+  <p></p><p>Developed by Jamie Gilbert, Martijn Schuemie, Patrick Ryan.</p>
 </div>
 
 <div class="pkgdown">

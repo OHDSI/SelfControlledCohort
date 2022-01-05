@@ -39,7 +39,7 @@
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
@@ -73,7 +73,6 @@
   oracleTempSchema <span class="op">=</span> <span class="cn">NULL</span>,
   outcomeIds <span class="op">=</span> <span class="cn">NULL</span>,
   cdmVersion <span class="op">=</span> <span class="fl">5</span>,
-  createOutcomeIdTempTable <span class="op">=</span> <span class="cn">TRUE</span>,
   outcomeTable <span class="op">=</span> <span class="st">"condition_era"</span>,
   firstOutcomeOnly <span class="op">=</span> <span class="cn">TRUE</span>,
   riskWindowsTable <span class="op">=</span> <span class="st">"#risk_windows"</span>
@@ -122,9 +121,10 @@ table.</p></dd>
     <p>Returns list of data.frames:
  Time on treatment (for population exposed that experience the outcome)
  Time between outcome and exposure in 3 formats:
-     Total population
-     Population that experienced the outcome in the exposed risk window
-     Population that experienced the outcome in the unexposed risk window</p>
+     -Total population
+     -Population that experienced the outcome in the exposed risk window
+     -Population that experienced the outcome in the unexposed risk window</p>
+<p>Requires a risk window table to be created first with `runSccRiskWindows`</p>
     </div>
 
   </div>
@@ -135,7 +135,7 @@ table.</p></dd>
 
 
       <footer><div class="copyright">
-  <p></p><p>Developed by Jamie <a href="mailto:jpg@azimov.co.uk" class="email">jpg@azimov.co.uk</a> Gilbert, Martijn Schuemie, Patrick Ryan.</p>
+  <p></p><p>Developed by Jamie Gilbert, Martijn Schuemie, Patrick Ryan.</p>
 </div>
 
 <div class="pkgdown">

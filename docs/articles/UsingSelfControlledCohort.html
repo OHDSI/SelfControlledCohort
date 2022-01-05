@@ -19,6 +19,8 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,23 +33,14 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">SelfControlledCohort</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.5.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.6.0</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
 <li>
-  <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
-<li>
   <a href="../reference/index.html">Reference</a>
-</li>
-<li>
-  <a href="../news/index.html">Changelog</a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
@@ -61,14 +54,17 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
 <ul class="nav navbar-nav navbar-right">
 <li>
-  <a href="https://ohdsi.github.io/Hades"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
-  <a href="https://github.com/OHDSI/SelfControlledCohort/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+  <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -82,14 +78,14 @@
 
       
 
-      </header><script src="UsingSelfControlledCohort_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Using SelfControlledCohort</h1>
             
-            <h4 class="date">2021-04-06</h4>
+            <h4 data-toc-skip class="date">2022-01-05</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/OHDSI/SelfControlledCohort/blob/master/vignettes/UsingSelfControlledCohort.Rmd"><code>vignettes/UsingSelfControlledCohort.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/OHDSI/SelfControlledCohort/blob/HEAD/vignettes/UsingSelfControlledCohort.Rmd" class="external-link"><code>vignettes/UsingSelfControlledCohort.Rmd</code></a></small>
       <div class="hidden name"><code>UsingSelfControlledCohort.Rmd</code></div>
 
     </div>
@@ -121,14 +117,14 @@ h1  {
 <p>Each person’s exposure start date is taken as the index date or <em>Time 0</em>. The unexposed risk window is defined prior to Time 0 and represents a duration of time when the person was not exposed but could have experienced the outcome. The exposed risk window is defined as a period of time after the Time 0 and represents a duration of time when the person was exposed and could have experienced the outcome. Both of these time windows must be contained within a continuous period of observation. The details about when the risk windows start and end can be adjusted to meet the analysis specifications.</p>
 <p>The time between the start of the observation period and Time 0 is called the washout period and a minimum allowed washout period can be set when defining the analysis. Similarly the time between Time 0 and the observation period end date is the followup period. A minimum followup period can also be set.</p>
 <p>A common type of exposure is exposure to a drug but an exposure could be any set of characteristics that are captured in your data. We will look at a few different ways to define exposures.</p>
-<div id="tables-used-in-the-analysis" class="section level1">
-<h1 class="hasAnchor">
-<a href="#tables-used-in-the-analysis" class="anchor"></a>Tables used in the analysis</h1>
+<div class="section level1">
+<h1 id="tables-used-in-the-analysis">Tables used in the analysis<a class="anchor" aria-label="anchor" href="#tables-used-in-the-analysis"></a>
+</h1>
 <p>There are two primary tables needed for the self controlled cohort analysis along with a few supporting tables that are part of the OMOP Common Data Model.</p>
 <center>
 <strong>Exposure Table</strong>
 </center>
-<table class="table">
+<table style="width:53%;" class="table">
 <colgroup>
 <col width="29%">
 <col width="23%">
@@ -159,7 +155,7 @@ h1  {
 <center>
 <strong>Outcome Table</strong>
 </center>
-<table class="table">
+<table style="width:53%;" class="table">
 <colgroup>
 <col width="29%">
 <col width="23%">
@@ -185,44 +181,46 @@ h1  {
 </table>
 <p>These tables can be created manually or standard CDM tables can be used. For example by default the drug_era is used as the exposure_table and the condition_era table is used as the outcome_table. Every exposure-outcome combination in these tables will be included in the analysis unless otherwise specified. The additional CDM tables that are required for this analysis are <code>observation_period</code>, necessary for observation start and end dates, and <code>person</code>, necessary for year of birth.</p>
 </div>
-<div id="a-first-example" class="section level1">
-<h1 class="hasAnchor">
-<a href="#a-first-example" class="anchor"></a>A first example</h1>
+<div class="section level1">
+<h1 id="a-first-example">A first example<a class="anchor" aria-label="anchor" href="#a-first-example"></a>
+</h1>
 <p>The SelfControlledCohort package makes it easy to calculate the association between every drug and every condition in a CDM database. The Eunomia package provides a mini CDM that runs entirely within R that we can use for examples.</p>
-<div class="sourceCode" id="cb1"><html><body><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">dplyr</span>)
-<span class="no">result</span>$<span class="no">estimates</span> <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html">arrange</a></span>(<span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html">desc</a></span>(<span class="no">irr</span>)) <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>()
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span>
+<span class="va">result</span><span class="op">$</span><span class="va">estimates</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">irr</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span>
 <span class="co">#&gt;       exposureId outcomeId numPersons numExposures numOutcomesExposed</span>
-<span class="co">#&gt; 1.200     757627    378419          4            4                  4</span>
-<span class="co">#&gt; 1.281    1102527   4237458          2            2                  1</span>
-<span class="co">#&gt; 1.467    1124957   4237458          1            1                  1</span>
-<span class="co">#&gt; 1.671    1177480   4134304          3            3                  1</span>
-<span class="co">#&gt; 1.691    1307863    313217          5            5                  5</span>
-<span class="co">#&gt; 1.753    1310149    313217          5            5                  5</span>
+<span class="co">#&gt; 1.119     705944   4048695         66           66                  1</span>
+<span class="co">#&gt; 1.131     705944   4134304         66           66                  1</span>
+<span class="co">#&gt; 1.139     705944   4230399         66           66                  1</span>
+<span class="co">#&gt; 1.147     705944   4296204         66           66                  1</span>
+<span class="co">#&gt; 1.152     705944  40479768         66           66                  1</span>
+<span class="co">#&gt; 1.538     740275   4146173         42           42                  1</span>
 <span class="co">#&gt;       numOutcomesUnexposed timeAtRiskExposed timeAtRiskUnexposed irr    irrLb95</span>
-<span class="co">#&gt; 1.200                    0       0.010951403           314.84189 Inf 18977.9054</span>
-<span class="co">#&gt; 1.281                    0       0.005475702           124.19713 Inf   581.5769</span>
-<span class="co">#&gt; 1.467                    0       0.002737851            53.37166 Inf   499.8462</span>
-<span class="co">#&gt; 1.671                    0       0.008213552           162.88296 Inf   508.4872</span>
-<span class="co">#&gt; 1.691                    0       0.013689254           292.15058 Inf 19556.5002</span>
-<span class="co">#&gt; 1.753                    0       0.013689254           292.15058 Inf 19556.5002</span>
-<span class="co">#&gt;       irrUb95 logRr seLogRr</span>
-<span class="co">#&gt; 1.200     Inf   Inf     Inf</span>
-<span class="co">#&gt; 1.281     Inf   Inf     Inf</span>
-<span class="co">#&gt; 1.467     Inf   Inf     Inf</span>
-<span class="co">#&gt; 1.671     Inf   Inf     Inf</span>
-<span class="co">#&gt; 1.691     Inf   Inf     Inf</span>
-<span class="co">#&gt; 1.753     Inf   Inf     Inf</span></pre></body></html></div>
+<span class="co">#&gt; 1.119                    0         306.71869            703.4853 Inf 0.05880986</span>
+<span class="co">#&gt; 1.131                    0         306.71869            703.4853 Inf 0.05880986</span>
+<span class="co">#&gt; 1.139                    0         306.71869            703.4853 Inf 0.05880986</span>
+<span class="co">#&gt; 1.147                    0         306.71869            703.4853 Inf 0.05880986</span>
+<span class="co">#&gt; 1.152                    0         306.71869            703.4853 Inf 0.05880986</span>
+<span class="co">#&gt; 1.538                    0          30.78713            703.9316 Inf 0.58626854</span>
+<span class="co">#&gt;       irrUb95 logRr seLogRr   p</span>
+<span class="co">#&gt; 1.119     Inf   Inf     Inf NaN</span>
+<span class="co">#&gt; 1.131     Inf   Inf     Inf NaN</span>
+<span class="co">#&gt; 1.139     Inf   Inf     Inf NaN</span>
+<span class="co">#&gt; 1.147     Inf   Inf     Inf NaN</span>
+<span class="co">#&gt; 1.152     Inf   Inf     Inf NaN</span>
+<span class="co">#&gt; 1.538     Inf   Inf     Inf NaN</span></code></pre></div>
 <p>The result of our analysis is a dataframe with one row per exposure-outcome pair along with all the relevant statistics. Let’s interpret the results for amoxicillin exposure (concept ID 1713332) and the outcome of Chronic sinusitis (concept ID 257012)</p>
-<div class="sourceCode" id="cb2"><html><body><pre class="r"><span class="no">example</span> <span class="kw">&lt;-</span> <span class="no">result</span>$<span class="no">estimates</span> <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span>(<span class="no">exposureId</span> <span class="kw">==</span> <span class="fl">1713332</span>, <span class="no">outcomeId</span> <span class="kw">==</span> <span class="fl">257012</span>)
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">example</span> <span class="op">&lt;-</span> <span class="va">result</span><span class="op">$</span><span class="va">estimates</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">exposureId</span> <span class="op">==</span> <span class="fl">1713332</span>, <span class="va">outcomeId</span> <span class="op">==</span> <span class="fl">257012</span><span class="op">)</span> 
 
-<span class="no">example</span> <span class="kw">%&gt;%</span>
-  <span class="kw pkg">tidyr</span><span class="kw ns">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/gather.html">gather</a></span>() <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html">mutate</a></span>(<span class="kw">value</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html">format</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">value</span>,<span class="fl">1</span>), <span class="kw">scientific</span> <span class="kw">=</span> <span class="no">F</span>)) <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html">rename</a></span>(<span class="kw">column</span> <span class="kw">=</span> <span class="no">key</span>) <span class="kw">%&gt;%</span>
-  <span class="kw pkg">knitr</span><span class="kw ns">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span>(<span class="kw">align</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"lr"</span>))</pre></body></html></div>
+<span class="va">example</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/gather.html" class="external-link">gather</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">value</span>,<span class="fl">1</span><span class="op">)</span>, scientific <span class="op">=</span> <span class="cn">F</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>column <span class="op">=</span> <span class="va">key</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lr"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
 <th align="left">column</th>
@@ -239,51 +237,55 @@ h1  {
 </tr>
 <tr class="odd">
 <td align="left">numPersons</td>
-<td align="right">4.0</td>
+<td align="right">2130.0</td>
 </tr>
 <tr class="even">
 <td align="left">numExposures</td>
-<td align="right">4.0</td>
+<td align="right">2130.0</td>
 </tr>
 <tr class="odd">
 <td align="left">numOutcomesExposed</td>
-<td align="right">0.0</td>
+<td align="right">65.0</td>
 </tr>
 <tr class="even">
 <td align="left">numOutcomesUnexposed</td>
-<td align="right">1.0</td>
+<td align="right">224.0</td>
 </tr>
 <tr class="odd">
 <td align="left">timeAtRiskExposed</td>
-<td align="right">0.0</td>
+<td align="right">277.4</td>
 </tr>
 <tr class="even">
 <td align="left">timeAtRiskUnexposed</td>
-<td align="right">185.0</td>
+<td align="right">45796.0</td>
 </tr>
 <tr class="odd">
 <td align="left">irr</td>
-<td align="right">0.0</td>
+<td align="right">47.9</td>
 </tr>
 <tr class="even">
 <td align="left">irrLb95</td>
-<td align="right">0.0</td>
+<td align="right">35.8</td>
 </tr>
 <tr class="odd">
 <td align="left">irrUb95</td>
-<td align="right">658680.7</td>
+<td align="right">63.4</td>
 </tr>
 <tr class="even">
 <td align="left">logRr</td>
-<td align="right">-Inf</td>
+<td align="right">3.9</td>
 </tr>
 <tr class="odd">
 <td align="left">seLogRr</td>
-<td align="right">Inf</td>
+<td align="right">0.1</td>
+</tr>
+<tr class="even">
+<td align="left">p</td>
+<td align="right">0.0</td>
 </tr>
 </tbody>
 </table>
-<p>We can see that 4 were exposed to amoxicillin. When we add up all the time before the exposure we get 184.9609856 person-years. Similarly when we add up all the time after the exposure, the “Exposed time at risk”, we get 0.0109514 person-years.</p>
+<p>We can see that 2130 were exposed to amoxicillin. When we add up all the time before the exposure we get 4.5796044^{4} person-years. Similarly when we add up all the time after the exposure, the “Exposed time at risk”, we get 277.4428474 person-years.</p>
 <p>The incidence of Chronic sinusitis during the “Unexposed time at risk” is</p>
 <p><span class="math display">\[
 \frac{224 \ \ events}{45796.0 \ \ person \ years} =  0.00489
@@ -294,155 +296,270 @@ h1  {
 \]</span></p>
 <p>The incidence rate ratio is <span class="math display">\[
 \frac{234}{0.00489} = 47.9
-\]</span> with a 95% confidence interval of <span class="math inline">\([35.8, 63.4]\)</span> See <code><a href="https://cran.rstudio.com/web/packages/rateratio.test/vignettes/rateratio.test.pdf">vignette("rateratio.test", package = "rateratio.test")</a></code> for method details.</p>
+\]</span> with a 95% confidence interval of <span class="math inline">\([35.8, 63.4]\)</span> See <code><a href="https://cran.rstudio.com/web/packages/rateratio.test/vignettes/rateratio.test.pdf" class="external-link">vignette("rateratio.test", package = "rateratio.test")</a></code> for method details.</p>
 </div>
-<div id="custom-exposure-outcome-pairs" class="section level1">
-<h1 class="hasAnchor">
-<a href="#custom-exposure-outcome-pairs" class="anchor"></a>Custom exposure-outcome pairs</h1>
+<div class="section level1">
+<h1 id="custom-exposure-outcome-pairs">Custom exposure-outcome pairs<a class="anchor" aria-label="anchor" href="#custom-exposure-outcome-pairs"></a>
+</h1>
 <p>In addition to using all drugs as exposures and all conditions as outcomes we can come up with much more specific definitions of exposures and outcomes using cohorts. A cohort is a set of persons who satisfy one or more inclusion criteria for a duration of time. We can define cohorts using Atlas or by writing SQL code. If we use Atlas then the cohort will be stored in the Atlas “results” schema associated with your CDM database. If you want to write SQL then you will need write access to a schema in your CDM database.</p>
 <p>We will simulate using cohorts created in Atlas by using the pre-built cohorts in Eunomia.</p>
 <p>Suppose we are interested in the exposure of NSAID (cohort #4) and the outcome of GiBleed (cohort #3). Even though this is a drug-condition pair these cohorts could be defined using combinations of data elements from any domain.</p>
-<div class="sourceCode" id="cb3"><html><body><pre class="r"><span class="no">result</span>$<span class="no">estimates</span> <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span>(<span class="no">exposureId</span> <span class="kw">==</span> <span class="fl">4</span>, <span class="no">outcomeId</span> <span class="kw">==</span> <span class="fl">3</span>) <span class="kw">%&gt;%</span>
-  <span class="kw pkg">tidyr</span><span class="kw ns">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/gather.html">gather</a></span>() <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html">mutate</a></span>(<span class="kw">value</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html">format</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">value</span>,<span class="fl">1</span>), <span class="kw">scientific</span> <span class="kw">=</span> <span class="no">F</span>)) <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html">rename</a></span>(<span class="kw">column</span> <span class="kw">=</span> <span class="no">key</span>) <span class="kw">%&gt;%</span>
-  <span class="kw pkg">knitr</span><span class="kw ns">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span>(<span class="kw">align</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"lr"</span>))</pre></body></html></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">result</span><span class="op">$</span><span class="va">estimates</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">exposureId</span> <span class="op">==</span> <span class="fl">4</span>, <span class="va">outcomeId</span> <span class="op">==</span> <span class="fl">3</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/gather.html" class="external-link">gather</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">value</span>,<span class="fl">1</span><span class="op">)</span>, scientific <span class="op">=</span> <span class="cn">F</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>column <span class="op">=</span> <span class="va">key</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lr"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
 <th align="left">column</th>
 <th align="right">value</th>
 </tr></thead>
-<tbody></tbody>
+<tbody>
+<tr class="odd">
+<td align="left">exposureId</td>
+<td align="right">4.0</td>
+</tr>
+<tr class="even">
+<td align="left">outcomeId</td>
+<td align="right">3.0</td>
+</tr>
+<tr class="odd">
+<td align="left">numPersons</td>
+<td align="right">2630.0</td>
+</tr>
+<tr class="even">
+<td align="left">numExposures</td>
+<td align="right">2630.0</td>
+</tr>
+<tr class="odd">
+<td align="left">numOutcomesExposed</td>
+<td align="right">159.0</td>
+</tr>
+<tr class="even">
+<td align="left">numOutcomesUnexposed</td>
+<td align="right">0.0</td>
+</tr>
+<tr class="odd">
+<td align="left">timeAtRiskExposed</td>
+<td align="right">215.7</td>
+</tr>
+<tr class="even">
+<td align="left">timeAtRiskUnexposed</td>
+<td align="right">101570.7</td>
+</tr>
+<tr class="odd">
+<td align="left">irr</td>
+<td align="right">Inf</td>
+</tr>
+<tr class="even">
+<td align="left">irrLb95</td>
+<td align="right">20057.5</td>
+</tr>
+<tr class="odd">
+<td align="left">irrUb95</td>
+<td align="right">Inf</td>
+</tr>
+<tr class="even">
+<td align="left">logRr</td>
+<td align="right">Inf</td>
+</tr>
+<tr class="odd">
+<td align="left">seLogRr</td>
+<td align="right">Inf</td>
+</tr>
+<tr class="even">
+<td align="left">p</td>
+<td align="right">NaN</td>
+</tr>
+</tbody>
 </table>
 <p>In this case the risk of being in the GI Bleed cohort before entering the exposure cohort is zero which means our rate ratio is infinite.</p>
 <p>Even though this example uses a drug-condition pair for the exposure and the outcome, it demonstrates how we can use any cohorts created in Atlas as exposures and outcomes in a self controlled cohort study.</p>
 <p>Let’s demonstrate custom exposure outcome pairs using SQL by asking “Do patients tend to get more measurements in the year after a condition diagnosis than the year before?”</p>
-<div class="sourceCode" id="cb4"><html><body><pre class="r"><span class="no">con</span> <span class="kw">&lt;-</span> <span class="kw pkg">DatabaseConnector</span><span class="kw ns">::</span><span class="fu"><a href="https://rdrr.io/pkg/DatabaseConnector/man/connect.html">connect</a></span>(<span class="no">connectionDetails</span>)
-<span class="co">#&gt; Connecting using SQLite driver</span></pre></body></html></div>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1"></a><span class="co">-- create outcome table</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a><span class="kw">create</span> <span class="kw">table</span> measurement_cohort <span class="kw">as</span> </span>
-<span id="cb5-3"><a href="#cb5-3"></a><span class="kw">select</span> </span>
-<span id="cb5-4"><a href="#cb5-4"></a>  person_id <span class="kw">as</span> subject_id,</span>
-<span id="cb5-5"><a href="#cb5-5"></a>  <span class="dv">1</span> <span class="kw">as</span> cohort_definition_id, <span class="co">-- treat any measurement as the same outcome</span></span>
-<span id="cb5-6"><a href="#cb5-6"></a>  measurement_date <span class="kw">as</span> cohort_start_date,</span>
-<span id="cb5-7"><a href="#cb5-7"></a>  measurement_date <span class="kw">as</span> cohort_end_date</span>
-<span id="cb5-8"><a href="#cb5-8"></a><span class="kw">from</span> measurement</span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1"></a><span class="co">-- create exposure table</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="kw">create</span> <span class="kw">table</span> condition_cohort <span class="kw">as</span> </span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="kw">select</span> </span>
-<span id="cb6-4"><a href="#cb6-4"></a>  person_id <span class="kw">as</span> subject_id,</span>
-<span id="cb6-5"><a href="#cb6-5"></a>  <span class="dv">2</span> <span class="kw">as</span> cohort_definition_id, <span class="co">-- treat any condition as the same exposure</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a>  condition_start_date <span class="kw">as</span> cohort_start_date,</span>
-<span id="cb6-7"><a href="#cb6-7"></a>  condition_end_date <span class="kw">as</span> cohort_end_date</span>
-<span id="cb6-8"><a href="#cb6-8"></a><span class="kw">from</span> condition_occurrence</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">con</span> <span class="op">&lt;-</span> <span class="fu">DatabaseConnector</span><span class="fu">::</span><span class="fu"><a href="https://ohdsi.github.io/DatabaseConnector/reference/connect.html" class="external-link">connect</a></span><span class="op">(</span><span class="va">connectionDetails</span><span class="op">)</span>
+<span class="co">#&gt; Connecting using SQLite driver</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- create outcome table</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">create</span> <span class="kw">table</span> measurement_cohort <span class="kw">as</span> </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">select</span> </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  person_id <span class="kw">as</span> subject_id,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span> <span class="kw">as</span> cohort_definition_id, <span class="co">-- treat any measurement as the same outcome</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  measurement_date <span class="kw">as</span> cohort_start_date,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  measurement_date <span class="kw">as</span> cohort_end_date</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="kw">from</span> measurement</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- create exposure table</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">create</span> <span class="kw">table</span> condition_cohort <span class="kw">as</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">select</span> </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  person_id <span class="kw">as</span> subject_id,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dv">2</span> <span class="kw">as</span> cohort_definition_id, <span class="co">-- treat any condition as the same exposure</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  condition_start_date <span class="kw">as</span> cohort_start_date,</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  condition_end_date <span class="kw">as</span> cohort_end_date</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">from</span> condition_occurrence</span></code></pre></div>
 <p>Using the <code>riskWindow</code> arguments we can set the time at risk to one year before and one year after each condition exposure.</p>
-<div class="sourceCode" id="cb7"><html><body><pre class="r"><span class="no">result</span>$<span class="no">estimates</span> <span class="kw">%&gt;%</span>
-  <span class="kw pkg">tidyr</span><span class="kw ns">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/gather.html">gather</a></span>() <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html">mutate</a></span>(<span class="kw">value</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html">format</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">value</span>,<span class="fl">1</span>), <span class="kw">scientific</span> <span class="kw">=</span> <span class="no">F</span>)) <span class="kw">%&gt;%</span>
-  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html">rename</a></span>(<span class="kw">column</span> <span class="kw">=</span> <span class="no">key</span>) <span class="kw">%&gt;%</span>
-  <span class="kw pkg">knitr</span><span class="kw ns">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span>(<span class="kw">align</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"lr"</span>))</pre></body></html></div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">result</span><span class="op">$</span><span class="va">estimates</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/gather.html" class="external-link">gather</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">value</span>,<span class="fl">1</span><span class="op">)</span>, scientific <span class="op">=</span> <span class="cn">F</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>column <span class="op">=</span> <span class="va">key</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> 
+  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lr"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
 <th align="left">column</th>
 <th align="right">value</th>
 </tr></thead>
-<tbody></tbody>
+<tbody>
+<tr class="odd">
+<td align="left">exposureId</td>
+<td align="right">2.0</td>
+</tr>
+<tr class="even">
+<td align="left">outcomeId</td>
+<td align="right">1.0</td>
+</tr>
+<tr class="odd">
+<td align="left">numPersons</td>
+<td align="right">2689.0</td>
+</tr>
+<tr class="even">
+<td align="left">numExposures</td>
+<td align="right">2689.0</td>
+</tr>
+<tr class="odd">
+<td align="left">numOutcomesExposed</td>
+<td align="right">393.0</td>
+</tr>
+<tr class="even">
+<td align="left">numOutcomesUnexposed</td>
+<td align="right">73.0</td>
+</tr>
+<tr class="odd">
+<td align="left">timeAtRiskExposed</td>
+<td align="right">6153.4</td>
+</tr>
+<tr class="even">
+<td align="left">timeAtRiskUnexposed</td>
+<td align="right">4478.1</td>
+</tr>
+<tr class="odd">
+<td align="left">irr</td>
+<td align="right">3.9</td>
+</tr>
+<tr class="even">
+<td align="left">irrLb95</td>
+<td align="right">3.0</td>
+</tr>
+<tr class="odd">
+<td align="left">irrUb95</td>
+<td align="right">5.1</td>
+</tr>
+<tr class="even">
+<td align="left">logRr</td>
+<td align="right">1.4</td>
+</tr>
+<tr class="odd">
+<td align="left">seLogRr</td>
+<td align="right">0.1</td>
+</tr>
+<tr class="even">
+<td align="left">p</td>
+<td align="right">0.0</td>
+</tr>
+</tbody>
 </table>
 <p>Indeed it does appear that in Eunomia patients tend to get more tests after a diagnosis than before.</p>
 </div>
-<div id="running-multiple-analyses" class="section level1">
-<h1 class="hasAnchor">
-<a href="#running-multiple-analyses" class="anchor"></a>Running multiple analyses</h1>
+<div class="section level1">
+<h1 id="running-multiple-analyses">Running multiple analyses<a class="anchor" aria-label="anchor" href="#running-multiple-analyses"></a>
+</h1>
 <p>The SelfControlledCohort package supports performing multiple analyses at once and provides functions to specify the details of each analysis to be performed.</p>
 <p>Start by creating an sccAnalysis object for each analysis type to be performed. We will create one analysis that uses 30 day exposure windows and another with 365 day exposure windows.</p>
-<div class="sourceCode" id="cb8"><html><body><pre class="r">
-<span class="no">sccArgs1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="../reference/createRunSelfControlledCohortArgs.html">createRunSelfControlledCohortArgs</a></span>(<span class="kw">firstExposureOnly</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">firstOutcomeOnly</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">minAge</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">maxAge</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">studyStartDate</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">studyEndDate</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">addLengthOfExposureExposed</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">riskWindowStartExposed</span> <span class="kw">=</span> <span class="fl">1</span>,
-                                              <span class="kw">riskWindowEndExposed</span> <span class="kw">=</span> <span class="fl">30</span>,
-                                              <span class="kw">addLengthOfExposureUnexposed</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">riskWindowEndUnexposed</span> <span class="kw">=</span> -<span class="fl">1</span>,
-                                              <span class="kw">riskWindowStartUnexposed</span> <span class="kw">=</span> -<span class="fl">30</span>,
-                                              <span class="kw">hasFullTimeAtRisk</span> <span class="kw">=</span> <span class="fl">FALSE</span>,
-                                              <span class="kw">computeTarDistribution</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">washoutPeriod</span> <span class="kw">=</span> <span class="fl">0</span>,
-                                              <span class="kw">followupPeriod</span> <span class="kw">=</span> <span class="fl">0</span>)
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R">    
+<span class="va">sccArgs1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createRunSelfControlledCohortArgs.html">createRunSelfControlledCohortArgs</a></span><span class="op">(</span>firstExposureOnly <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              firstOutcomeOnly <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              minAge <span class="op">=</span> <span class="st">""</span>,
+                                              maxAge <span class="op">=</span> <span class="st">""</span>,
+                                              studyStartDate <span class="op">=</span> <span class="st">""</span>,
+                                              studyEndDate <span class="op">=</span> <span class="st">""</span>,
+                                              addLengthOfExposureExposed <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              riskWindowStartExposed <span class="op">=</span> <span class="fl">1</span>,
+                                              riskWindowEndExposed <span class="op">=</span> <span class="fl">30</span>,
+                                              addLengthOfExposureUnexposed <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              riskWindowEndUnexposed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,
+                                              riskWindowStartUnexposed <span class="op">=</span> <span class="op">-</span><span class="fl">30</span>,
+                                              hasFullTimeAtRisk <span class="op">=</span> <span class="cn">FALSE</span>,
+                                              computeTarDistribution <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              washoutPeriod <span class="op">=</span> <span class="fl">0</span>,
+                                              followupPeriod <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>
 
-<span class="no">sccArgs2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="../reference/createRunSelfControlledCohortArgs.html">createRunSelfControlledCohortArgs</a></span>(<span class="kw">firstExposureOnly</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">firstOutcomeOnly</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">minAge</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">maxAge</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">studyStartDate</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">studyEndDate</span> <span class="kw">=</span> <span class="st">""</span>,
-                                              <span class="kw">addLengthOfExposureExposed</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">riskWindowStartExposed</span> <span class="kw">=</span> <span class="fl">1</span>,
-                                              <span class="kw">riskWindowEndExposed</span> <span class="kw">=</span> <span class="fl">365</span>,
-                                              <span class="kw">addLengthOfExposureUnexposed</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">riskWindowEndUnexposed</span> <span class="kw">=</span> -<span class="fl">1</span>,
-                                              <span class="kw">riskWindowStartUnexposed</span> <span class="kw">=</span> -<span class="fl">365</span>,
-                                              <span class="kw">hasFullTimeAtRisk</span> <span class="kw">=</span> <span class="fl">FALSE</span>,
-                                              <span class="kw">computeTarDistribution</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
-                                              <span class="kw">washoutPeriod</span> <span class="kw">=</span> <span class="fl">0</span>,
-                                              <span class="kw">followupPeriod</span> <span class="kw">=</span> <span class="fl">0</span>)
+<span class="va">sccArgs2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createRunSelfControlledCohortArgs.html">createRunSelfControlledCohortArgs</a></span><span class="op">(</span>firstExposureOnly <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              firstOutcomeOnly <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              minAge <span class="op">=</span> <span class="st">""</span>,
+                                              maxAge <span class="op">=</span> <span class="st">""</span>,
+                                              studyStartDate <span class="op">=</span> <span class="st">""</span>,
+                                              studyEndDate <span class="op">=</span> <span class="st">""</span>,
+                                              addLengthOfExposureExposed <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              riskWindowStartExposed <span class="op">=</span> <span class="fl">1</span>,
+                                              riskWindowEndExposed <span class="op">=</span> <span class="fl">365</span>,
+                                              addLengthOfExposureUnexposed <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              riskWindowEndUnexposed <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,
+                                              riskWindowStartUnexposed <span class="op">=</span> <span class="op">-</span><span class="fl">365</span>,
+                                              hasFullTimeAtRisk <span class="op">=</span> <span class="cn">FALSE</span>,
+                                              computeTarDistribution <span class="op">=</span> <span class="cn">TRUE</span>,
+                                              washoutPeriod <span class="op">=</span> <span class="fl">0</span>,
+                                              followupPeriod <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>
 
-<span class="no">sccAnalysis1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="../reference/createSccAnalysis.html">createSccAnalysis</a></span>(<span class="kw">analysisId</span> <span class="kw">=</span> <span class="fl">1</span>,
-                              <span class="kw">description</span> <span class="kw">=</span> <span class="st">"30 day risk windows"</span>,
-                              <span class="kw">exposureType</span> <span class="kw">=</span> <span class="kw">NULL</span>, <span class="co"># What are the valid values for this argument?</span>
-                              <span class="kw">outcomeType</span> <span class="kw">=</span> <span class="kw">NULL</span>,
-                              <span class="kw">runSelfControlledCohortArgs</span> <span class="kw">=</span> <span class="no">sccArgs1</span>)
+<span class="va">sccAnalysis1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createSccAnalysis.html">createSccAnalysis</a></span><span class="op">(</span>analysisId <span class="op">=</span> <span class="fl">1</span>,
+                              description <span class="op">=</span> <span class="st">"30 day risk windows"</span>,
+                              exposureType <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># What are the valid values for this argument?</span>
+                              outcomeType <span class="op">=</span> <span class="cn">NULL</span>,
+                              runSelfControlledCohortArgs <span class="op">=</span> <span class="va">sccArgs1</span><span class="op">)</span>
 
 
-<span class="no">sccAnalysis2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="../reference/createSccAnalysis.html">createSccAnalysis</a></span>(<span class="kw">analysisId</span> <span class="kw">=</span> <span class="fl">2</span>,
-                              <span class="kw">description</span> <span class="kw">=</span> <span class="st">"365 day risk windows"</span>,
-                              <span class="kw">exposureType</span> <span class="kw">=</span> <span class="kw">NULL</span>,
-                              <span class="kw">outcomeType</span> <span class="kw">=</span> <span class="kw">NULL</span>,
-                              <span class="kw">runSelfControlledCohortArgs</span> <span class="kw">=</span> <span class="no">sccArgs1</span>)
+<span class="va">sccAnalysis2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createSccAnalysis.html">createSccAnalysis</a></span><span class="op">(</span>analysisId <span class="op">=</span> <span class="fl">2</span>,
+                              description <span class="op">=</span> <span class="st">"365 day risk windows"</span>,
+                              exposureType <span class="op">=</span> <span class="cn">NULL</span>,
+                              outcomeType <span class="op">=</span> <span class="cn">NULL</span>,
+                              runSelfControlledCohortArgs <span class="op">=</span> <span class="va">sccArgs1</span><span class="op">)</span>
 
-<span class="no">sccAnalysisList</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="no">sccAnalysis1</span>, <span class="no">sccAnalysis2</span>)</pre></body></html></div>
+<span class="va">sccAnalysisList</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">sccAnalysis1</span>, <span class="va">sccAnalysis2</span><span class="op">)</span></code></pre></div>
 <p>Then create a list with all exposure outcome pairs to be analyzed. These can be concept IDs if you are using the condition_occurrence and drug_era tables or cohort IDs if you are using a cohort table for exposures and outcomes.</p>
-<div class="sourceCode" id="cb9"><html><body><pre class="r">
-<span class="no">exposureOutcomeList</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="fu"><a href="../reference/createExposureOutcome.html">createExposureOutcome</a></span>(<span class="kw">exposureId</span> <span class="kw">=</span> <span class="fl">4</span>, <span class="kw">outcomeId</span> <span class="kw">=</span> <span class="fl">3</span>),
-                            <span class="fu"><a href="../reference/createExposureOutcome.html">createExposureOutcome</a></span>(<span class="kw">exposureId</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">outcomeId</span> <span class="kw">=</span> <span class="fl">3</span>))</pre></body></html></div>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R">
+<span class="va">exposureOutcomeList</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/createExposureOutcome.html">createExposureOutcome</a></span><span class="op">(</span>exposureId <span class="op">=</span> <span class="fl">4</span>, outcomeId <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,
+                            <span class="fu"><a href="../reference/createExposureOutcome.html">createExposureOutcome</a></span><span class="op">(</span>exposureId <span class="op">=</span> <span class="fl">1</span>, outcomeId <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span>
+  </code></pre></div>
 <p>The total number of rate ratios will be <code>length(sccAnalysisList) * length(exposureOutcomesList)</code> since every analysis will be executed for every exposure-outcome pair.</p>
-<div class="sourceCode" id="cb10"><html><body><pre class="r">
-<span class="no">results</span> <span class="kw">&lt;-</span> <span class="fu"><a href="../reference/runSccAnalyses.html">runSccAnalyses</a></span>(<span class="no">connectionDetails</span>,
-                          <span class="kw">cdmDatabaseSchema</span> <span class="kw">=</span> <span class="st">"main"</span>,
-                          <span class="kw">exposureTable</span> <span class="kw">=</span> <span class="st">"cohort"</span>,
-                          <span class="kw">outcomeTable</span> <span class="kw">=</span> <span class="st">"cohort"</span>,
-                          <span class="kw">outputFolder</span> <span class="kw">=</span> <span class="st">"./SelfControlledCohortOutput"</span>,
-                          <span class="kw">sccAnalysisList</span> <span class="kw">=</span> <span class="no">sccAnalysisList</span>,
-                          <span class="kw">exposureOutcomeList</span> <span class="kw">=</span> <span class="no">exposureOutcomeList</span>,
-                          <span class="kw">analysisThreads</span> <span class="kw">=</span> <span class="fl">1</span>,
-                          <span class="kw">computeThreads</span> <span class="kw">=</span> <span class="fl">1</span>)
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R">    
+<span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runSccAnalyses.html">runSccAnalyses</a></span><span class="op">(</span><span class="va">connectionDetails</span>,
+                          cdmDatabaseSchema <span class="op">=</span> <span class="st">"main"</span>,
+                          exposureTable <span class="op">=</span> <span class="st">"cohort"</span>,
+                          outcomeTable <span class="op">=</span> <span class="st">"cohort"</span>,
+                          outputFolder <span class="op">=</span> <span class="st">"./SelfControlledCohortOutput"</span>,
+                          sccAnalysisList <span class="op">=</span> <span class="va">sccAnalysisList</span>,
+                          exposureOutcomeList <span class="op">=</span> <span class="va">exposureOutcomeList</span>,
+                          analysisThreads <span class="op">=</span> <span class="fl">1</span>,
+                          computeThreads <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>
 <span class="co">#&gt; *** Running multiple analysis ***</span>
 
 
-<span class="fu"><a href="../reference/summarizeAnalyses.html">summarizeAnalyses</a></span>(<span class="no">results</span>, <span class="st">"./SelfControlledCohortOutput"</span>)
+<span class="fu"><a href="../reference/summarizeAnalyses.html">summarizeAnalyses</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"./SelfControlledCohortOutput"</span><span class="op">)</span>
 <span class="co">#&gt;  [1] exposureId           outcomeId            numPersons          </span>
-<span class="co">#&gt;  [4] numExposures         numOutcomesExposed   numOutcomesUnexposed</span>
-<span class="co">#&gt;  [7] timeAtRiskExposed    timeAtRiskUnexposed  meanTxTime          </span>
-<span class="co">#&gt; [10] sdTxTime             minTxTime            p10TxTime           </span>
-<span class="co">#&gt; [13] p25TxTime            medianTxTime         p75TxTime           </span>
-<span class="co">#&gt; [16] p90TxTime            maxTxTime            meanTimeToOutcome   </span>
-<span class="co">#&gt; [19] sdTimeToOutcome      minTimeToOutcome     p10TimeToOutcome    </span>
-<span class="co">#&gt; [22] p25TimeToOutcome     medianTimeToOutcome  p75TimeToOutcome    </span>
-<span class="co">#&gt; [25] p90TimeToOutcome     maxTimeToOutcome     irr                 </span>
-<span class="co">#&gt; [28] irrLb95              irrUb95              logRr               </span>
-<span class="co">#&gt; [31] seLogRr             </span>
-<span class="co">#&gt; &lt;0 rows&gt; (or 0-length row.names)</span></pre></body></html></div>
+<span class="co">#&gt;  [4] numExposures         numOutcomesExposed   logRr               </span>
+<span class="co">#&gt;  [7] seLogRr              numOutcomesUnexposed timeAtRiskExposed   </span>
+<span class="co">#&gt; [10] timeAtRiskUnexposed  irr                  irrLb95             </span>
+<span class="co">#&gt; [13] irrUb95              p                    analysisId          </span>
+<span class="co">#&gt; &lt;0 rows&gt; (or 0-length row.names)</span></code></pre></div>
 <p>Analysis result objects are saved to the output folder and are aggregated by the <code>summarizeAnalyses</code> function which returns a results dataframe with one row for each result.</p>
 </div>
-<div id="correcting-bias-with-empiricalcalibration" class="section level1">
-<h1 class="hasAnchor">
-<a href="#correcting-bias-with-empiricalcalibration" class="anchor"></a>Correcting bias with EmpiricalCalibration</h1>
-<p>Effect estimates generated from observational data likely suffer from significant systematic bias. For example, this study design has the flaw that an exposure may look protective due to confounding by indication where patients are commonly exposed to a medication that is used to treat a comorbidity. For this reason, the <code>SelfControlledCohort</code> is often used with the <a href="https://github.com/OHDSI/EmpiricalCalibration"><code>EmpiricalCalibration</code></a> package to adjust effect estimates using negative control cohorts.</p>
-<p>See <a href="https://github.com/OHDSI/MethodEvaulation"><code>MethodEvaulation</code></a> For more details on evaluating algorithms for population-level effect estimation in observational studies.</p>
+<div class="section level1">
+<h1 id="correcting-bias-with-empiricalcalibration">Correcting bias with EmpiricalCalibration<a class="anchor" aria-label="anchor" href="#correcting-bias-with-empiricalcalibration"></a>
+</h1>
+<p>Effect estimates generated from observational data likely suffer from significant systematic bias. For example, this study design has the flaw that an exposure may look protective due to confounding by indication where patients are commonly exposed to a medication that is used to treat a comorbidity. For this reason, the <code>SelfControlledCohort</code> is often used with the <a href="https://github.com/OHDSI/EmpiricalCalibration" class="external-link"><code>EmpiricalCalibration</code></a> package to adjust effect estimates using negative control cohorts.</p>
+<p>See <a href="https://github.com/OHDSI/MethodEvaulation" class="external-link"><code>MethodEvaulation</code></a> For more details on evaluating algorithms for population-level effect estimation in observational studies.</p>
 <div style="margin-bottom:100px;">
 
 </div>
@@ -460,11 +577,13 @@ h1  {
 
 
       <footer><div class="copyright">
-  <p>Developed by Jamie Gilbert, Martijn Schuemie, Patrick Ryan.</p>
+  <p></p>
+<p>Developed by Jamie Gilbert, Martijn Schuemie, Patrick Ryan.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
 </div>
 
       </footer>
@@ -472,6 +591,8 @@ h1  {
 
   
 
+
+  
 
   </body>
 </html>
