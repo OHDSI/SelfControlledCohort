@@ -12,3 +12,5 @@ compare_versions
 _pkgdown.yml
 work/*
 docs/*
+^doc$
+^Meta$

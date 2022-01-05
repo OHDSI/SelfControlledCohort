@@ -5,3 +5,5 @@ renv
 check
 errorReportSql.txt
 .idea
+/doc/
+/Meta/
