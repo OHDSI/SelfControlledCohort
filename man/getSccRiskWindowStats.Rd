@@ -2,7 +2,7 @@
 % Please edit documentation in R/SelfControlledCohort.R
 \name{getSccRiskWindowStats}
 \alias{getSccRiskWindowStats}
-\title{Run Self-Controlled Cohort Risk Window Statistics}
+\title{Get Self-Controlled Cohort Risk Window Statistics}
 \usage{
 getSccRiskWindowStats(
   connection,
@@ -13,6 +13,7 @@ getSccRiskWindowStats(
   cdmVersion = 5,
   outcomeTable = "condition_era",
   firstOutcomeOnly = TRUE,
+  resultsDatabaseSchema = NULL,
   riskWindowsTable = "#risk_windows"
 )
 }
@@ -48,19 +49,43 @@ COHORT_END_DATE.}
 \item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition concept
 id for each person.}
 
+\item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
+riskWindowsTable are temporary.}
+
 \item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
 table.}
+}
+\value{
+list containing data frames:
+         treatmentTimeDistribution,
+         timeToOutcomeDistribution,
+         timeToOutcomeDistributionExposed,
+         timeToOutcomeDistributionUnexposed
 }
 \description{
 Compute statistics from risk windows.
 }
 \details{
-Returns list of data.frames:
- Time on treatment (for population exposed that experience the outcome)
- Time between outcome and exposure in 3 formats:
-     -Total population
-     -Population that experienced the outcome in the exposed risk window
-     -Population that experienced the outcome in the unexposed risk window
-
 Requires a risk window table to be created first with `runSccRiskWindows`
+}
+\examples{
+\dontrun{
+# First, create the risk windows table
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+connection <- DatabaseConnector::connect(connectionDetails)
+riskWindowsTable <- "computed_risk_windows"
+runSccRiskWindows(connection,
+                  cdmDatabaseSchema = "main",
+                  exposureIds = c(1102527, 1125315),
+                  resultsDatabaseSchema = "main", # This is the schema where the results will be stored
+                  riskWindowsTable = riskWindowsTable,
+                  exposureTable = "drug_era")
+# Get stats based on outcomes of interest
+tarStats <- getSccRiskWindowStats(connection,
+                                  outcomeDatabaseSchema = "main",
+                                  resultsDatabaseSchema = "main",
+                                  riskWindowsTable = riskWindowsTable,
+                                  outcomeTable = "condition_era",
+                                  outcomeIds = 192671)
+}
 }

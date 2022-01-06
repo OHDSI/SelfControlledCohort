@@ -1,6 +1,6 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-level estimation method  that estimates incidence rate comparison of exposed/unexposed time within an exposed cohort
+Title: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort
 Version: 1.6.0
 Date: 2022-01-05
 Authors@R: c(
@@ -10,7 +10,7 @@ Authors@R: c(
     person("Observational Health Data Science and Informatics", role = c("cph"))
     )
 Maintainer: Jamie Gilbert <jpg@azimov.co.uk>
-Description: This package provides a method to estimate risk by comparing time
+Description: A method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
 URL: https://github.com/OHDSI/SelfControlledCohort
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues

@@ -114,5 +114,6 @@ table.}
 riskWindowsTable are temporary.}
 }
 \description{
-Compute time at risk exposed and time at risk unexposed for risk window parameters
+Compute time at risk exposed and time at risk unexposed for risk window parameters.
+See `getSccRiskWindowStats` for example usage.
 }

@@ -57,7 +57,9 @@ computeIrrs <- function(estimates) {
 #' @title
 #' Run Self-Controlled Cohort Risk Windows
 #' @description
-#' Compute time at risk exposed and time at risk unexposed for risk window parameters
+#' Compute time at risk exposed and time at risk unexposed for risk window parameters.
+#' See `getSccRiskWindowStats` for example usage.
+#'
 #' @inheritParams runSelfControlledCohort
 #' @export
 runSccRiskWindows <- function(connection,
@@ -214,19 +216,38 @@ runSccRiskWindows <- function(connection,
 }
 
 #' @title
-#' Run Self-Controlled Cohort Risk Window Statistics
+#' Get Self-Controlled Cohort Risk Window Statistics
 #' @description
 #' Compute statistics from risk windows.
 #' @details
-#' Returns list of data.frames:
-#'  Time on treatment (for population exposed that experience the outcome)
-#'  Time between outcome and exposure in 3 formats:
-#'      -Total population
-#'      -Population that experienced the outcome in the exposed risk window
-#'      -Population that experienced the outcome in the unexposed risk window
-#'
 #' Requires a risk window table to be created first with `runSccRiskWindows`
 #' @inheritParams runSelfControlledCohort
+#' @return list containing data frames:
+#'          treatmentTimeDistribution,
+#'          timeToOutcomeDistribution,
+#'          timeToOutcomeDistributionExposed,
+#'          timeToOutcomeDistributionUnexposed
+#'
+#' @examples
+#' \dontrun{
+#' # First, create the risk windows table
+#' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+#' connection <- DatabaseConnector::connect(connectionDetails)
+#' riskWindowsTable <- "computed_risk_windows"
+#' runSccRiskWindows(connection,
+#'                   cdmDatabaseSchema = "main",
+#'                   exposureIds = c(1102527, 1125315),
+#'                   resultsDatabaseSchema = "main", # This is the schema where the results will be stored
+#'                   riskWindowsTable = riskWindowsTable,
+#'                   exposureTable = "drug_era")
+#' # Get stats based on outcomes of interest
+#' tarStats <- getSccRiskWindowStats(connection,
+#'                                   outcomeDatabaseSchema = "main",
+#'                                   resultsDatabaseSchema = "main",
+#'                                   riskWindowsTable = riskWindowsTable,
+#'                                   outcomeTable = "condition_era",
+#'                                   outcomeIds = 192671)
+#'}
 #' @export
 getSccRiskWindowStats <- function(connection,
                                   outcomeDatabaseSchema,
@@ -236,6 +257,7 @@ getSccRiskWindowStats <- function(connection,
                                   cdmVersion = 5,
                                   outcomeTable = "condition_era",
                                   firstOutcomeOnly = TRUE,
+                                  resultsDatabaseSchema = NULL,
                                   riskWindowsTable = "#risk_windows") {
 
   if (!DatabaseConnector::dbIsValid(connection))
@@ -270,6 +292,14 @@ getSccRiskWindowStats <- function(connection,
                                    tableName = "#scc_outcome_ids",
                                    data = data.frame(outcome_id = outcomeIds),
                                    tempTable = TRUE)
+  }
+
+  if (riskWindowsTable != "#risk_windows") {
+    if (is.null(resultsDatabaseSchema))
+      stop("Risk windows table is not temporary and resultsDatabaseSchema is not set")
+    riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
+                                          results_database_schema = resultsDatabaseSchema,
+                                          risk_windows_table = riskWindowsTable)
   }
 
   .getSccRiskWindowStats(connection,
