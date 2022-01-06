@@ -93,25 +93,4 @@ test_that("SCC method runs on Eunomia", {
                                       addLengthOfExposureUnexposed = F),
     "Connection details not set"
   )
-
-  runSccRiskWindows(connection = tConnection,
-                    cdmDatabaseSchema = "main",
-                    exposureTable = "drug_era",
-                    firstExposureOnly = TRUE,
-                    addLengthOfExposureExposed = F,
-                    riskWindowStartExposed = 1,
-                    riskWindowEndExposed = 30,
-                    addLengthOfExposureUnexposed = TRUE,
-                    riskWindowEndUnexposed = -1,
-                    riskWindowStartUnexposed = -30,
-                    hasFullTimeAtRisk = FALSE,
-                    washoutPeriod = 100,
-                    followupPeriod = 0,
-                    riskWindowsTable = "#risk_windows")
-
-  stats <- getSccRiskWindowStats(tConnection, outcomeDatabaseSchema = "main")
-  expect_false(is.null(stats$treatmentTimeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistributionExposed))
-  expect_false(is.null(stats$timeToOutcomeDistributionUnexposed))
 })
