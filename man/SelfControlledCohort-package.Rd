@@ -3,12 +3,9 @@
 \docType{package}
 \name{SelfControlledCohort-package}
 \alias{SelfControlledCohort-package}
-\title{SelfControlledCohort: Population-level estimation method  that estimates
-    incidence rate comparison of exposed/unexposed time within an exposed
-    cohort}
+\title{SelfControlledCohort: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort}
 \description{
-This package provides a method to estimate risk by comparing time
-    exposed with time unexposed among the exposed cohort.
+A method to estimate risk by comparing time exposed with time unexposed among the exposed cohort.
 }
 \seealso{
 Useful links:
@@ -19,12 +16,17 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Martijn Schuemie \email{schuemie@ohdsi.org}
+\strong{Maintainer}: Jamie Gilbert \email{jpg@azimov.co.uk}
 
 Authors:
 \itemize{
-  \item Jamie Gilbert
+  \item Martijn Schuemie \email{schuemie@ohdsi.org}
   \item Patrick Ryan
+}
+
+Other contributors:
+\itemize{
+  \item Observational Health Data Science and Informatics [copyright holder]
 }
 
 }

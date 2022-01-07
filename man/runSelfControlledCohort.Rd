@@ -5,12 +5,14 @@
 \title{Run self-controlled cohort}
 \usage{
 runSelfControlledCohort(
-  connectionDetails,
+  connectionDetails = NULL,
   cdmDatabaseSchema,
+  connection = NULL,
   cdmVersion = 5,
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   oracleTempSchema = NULL,
-  exposureIds,
-  outcomeIds,
+  exposureIds = NULL,
+  outcomeIds = NULL,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -31,7 +33,13 @@ runSelfControlledCohort(
   washoutPeriod = 0,
   followupPeriod = 0,
   computeTarDistribution = FALSE,
-  computeThreads = 1
+  computeThreads = 1,
+  riskWindowsTable = "#risk_windows",
+  resultsTable = "#results",
+  resultsDatabaseSchema = NULL,
+  postProcessFunction = NULL,
+  postProcessArgs = list(),
+  returnEstimates = TRUE
 )
 }
 \arguments{
@@ -42,8 +50,13 @@ the function \code{createConnectionDetails} in the
 \item{cdmDatabaseSchema}{Name of database schema that contains the OMOP CDM and
 vocabulary.}
 
+\item{connection}{DatabaseConnector connection instance}
+
 \item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
 "5".}
+
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
+tables, provide a schema with write privileges where temp tables can be created.}
 
 \item{oracleTempSchema}{For Oracle only: the name of the database schema where you
 want all temporary tables to be managed. Requires
@@ -135,6 +148,25 @@ engines.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}
+
+\item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
+table.}
+
+\item{resultsTable}{String: optionally store the summary results (number exposed/
+unexposed patients per outcome-exposure pair) in a (non-temporary)
+table. Note that this table does not store the rate ratios, only
+the values required to calculate rate ratios.}
+
+\item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
+riskWindowsTable are temporary.}
+
+\item{postProcessFunction}{Callback function to handle batches of data. Useful for
+massive result sets that overflow system memory. See example.}
+
+\item{postProcessArgs}{Arguments for post processing function callback.}
+
+\item{returnEstimates}{Boolean opt to not return estimates, only useful in the case
+where postProcessFunction is used}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.
@@ -158,6 +190,21 @@ sccResult <- runSelfControlledCohort(connectionDetails,
                                      exposureIds = c(767410, 1314924, 907879),
                                      outcomeIds = 444382,
                                      outcomeTable = "condition_era")
+
+# Using a callback function that writes data to a csv file and not store in memory
+csvFileName <- "D:/path/to/output.csv"
+writeSccData <- function(data, position, csvFileName) {
+  vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
+}
+
+runSelfControlledCohort(connectionDetails,
+                        cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+                        exposureIds = c(767410, 1314924, 907879),
+                        outcomeIds = 444382,
+                        outcomeTable = "condition_era",
+                        postProcessFunction = writeSccData,
+                        postProcessArgs = list(csvFileName = csvFileName),
+                        returnEstimates = FALSE)
 }
 }
 \references{

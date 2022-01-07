@@ -1,23 +1,22 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-level estimation method  that estimates
-    incidence rate comparison of exposed/unexposed time within an exposed
-    cohort
-Version: 1.5.1
-Date: 2021-29-03
+Title: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort
+Version: 1.6.0
+Date: 2022-01-05
 Authors@R: c(
-    person("Jamie", "Gilbert", role = c("aut", "cre")),
-    person("Martijn", "Schuemie", , "schuemie@ohdsi.org", role = c("aut")),
-    person("Patrick", "Ryan", role = c("aut"))
+    person("Jamie", "Gilbert", email = "jpg@azimov.co.uk", role = c("cre", "aut")),
+    person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut")),
+    person("Patrick", "Ryan", role = c("aut")),
+    person("Observational Health Data Science and Informatics", role = c("cph"))
     )
-Author: Patrick Ryan, Martijn Schuemie, James Gilbert
 Maintainer: Jamie Gilbert <jpg@azimov.co.uk>
-Description: This package provides a method to estimate risk by comparing time
+Description: A method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
 URL: https://github.com/OHDSI/SelfControlledCohort
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Depends:
-    DatabaseConnector (>= 2.0.0)
+    DatabaseConnector (>= 5.0.0),
+	R (>= 4.0.0)
 Imports:
     SqlRender (>= 1.4.3),
     ParallelLogger,
@@ -29,7 +28,11 @@ Suggests:
     rmarkdown,
     Eunomia,
     DiagrammeR,
-    dplyr
+    dplyr,
+    tidyr,
+    R.utils
+Remotes:
+    ohdsi/Eunomia
 License: Apache License 2.0
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 VignetteBuilder: knitr
