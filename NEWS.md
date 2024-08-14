@@ -1,3 +1,16 @@
+SelfControlledCohort 2.0.0
+==========================
+
+Changes:
+
+- Introduced a results data model definition csv file in line with other OHDSI HADES analytics packages
+- Removal of use of remotes for Eunomia
+- Creation of results data model sql for analysis in database
+- Export of large result sets from database with export managers
+- Calibration of effect estimates now computed with EmpiricalCalibration package
+- Shiny modules for visualization and exploration of results
+- 
+
 SelfControlledCohort 1.6.0
 ==========================
 

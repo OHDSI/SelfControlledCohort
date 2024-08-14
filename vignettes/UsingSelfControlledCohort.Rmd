@@ -430,9 +430,4 @@ to a medication that is used to treat a comorbidity. For this reason, the
 [`EmpiricalCalibration`](https://github.com/OHDSI/EmpiricalCalibration) package
 to adjust effect estimates using negative control cohorts.
 
-See [`MethodEvaulation`](https://github.com/OHDSI/MethodEvaulation) For more details
-on evaluating algorithms for population-level effect estimation in observational
-studies.
-
-<div style="margin-bottom:100px;"></div>
 
