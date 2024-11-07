@@ -15,18 +15,12 @@
 # limitations under the License.
 
 #' Get Null Distribution from EmpiricalCalibration Package
+#' @noRd
 getNullDist <- function(negatives) {
   checkmate::assertDataFrame(negatives, col.names = "named")
   checkmate::assertNames(names(negatives), must.include = c("rr", "seLogRr"))
   negatives <- tidyr::drop_na(negatives)
   EmpiricalCalibration::fitNull(logRr = log(negatives$rr), seLogRr = negatives$seLogRr)
-}
-
-#' Create s3 class that matches EmpiricalCalibration's null
-createNullDist <- function(mean, sd) {
-  null <- c("mean" = mean, "sd" = sd)
-  class(null) <- "null"
-  return(null)
 }
 
 #' @title
@@ -39,15 +33,13 @@ createNullDist <- function(mean, sd) {
 #' @param calibrationType - value stored in calibrated column of table
 #' @return data.frame
 computeCalibratedRows <- function(positives,
-                                  negatives = NULL,
-                                  nullDist = getNullDist(negatives),
+                                  negatives,
                                   idCol = NULL,
                                   keepCols = c("cPt", "cAtRisk", "cCases", "tCases", "tAtRisk"),
                                   calibrationType = 1) {
   checkmate::assertDataFrame(positives, col.names = "named")
   checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols, idCol))
-
-  checkmate::assertClass(nullDist, "null")
+  nullDist <- getNullDist(negatives)
   errorModel <- EmpiricalCalibration::convertNullToErrorModel(nullDist)
   ci <- EmpiricalCalibration::calibrateConfidenceInterval(log(positives$rr), positives$seLogRr, errorModel)
 
