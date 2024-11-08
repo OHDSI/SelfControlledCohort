@@ -23,7 +23,8 @@ Imports:
     rateratio.test,
     checkmate,
     dplyr,
-    EmpiricalCalibration
+    EmpiricalCalibration,
+    ResultModelManager
 Suggests:
     withr,
     testthat,
@@ -32,8 +33,7 @@ Suggests:
     Eunomia,
     DiagrammeR,
     tidyr,
-    R.utils,
-    ResultModelManager
+    R.utils
 License: Apache License 2.0
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr

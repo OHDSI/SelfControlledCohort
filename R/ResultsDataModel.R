@@ -119,8 +119,9 @@ migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = ""
   migrator <- getDataMigrator(connectionDetails = connectionDetails,
                               databaseSchema = databaseSchema,
                               tablePrefix = tablePrefix)
+
+  on.exit(migrator$finalize())
   migrator$executeMigrations()
-  migrator$finalize()
 }
 
 #' Get database migrations instance
@@ -139,7 +140,7 @@ getDataMigrator <- function(connectionDetails, databaseSchema, tablePrefix = "")
     connectionDetails = connectionDetails,
     databaseSchema = databaseSchema,
     tablePrefix = tablePrefix,
-    packageTablePrefix = "cm_",
+    packageTablePrefix = "scc_",
     migrationPath = "migrations",
     packageName = utils::packageName()
   )

@@ -1,18 +1,10 @@
-{DEFAULT @cohort_definition = 'cohort_definition'}
-{DEFAULT @exposure_cohort = 'exposure_cohort'}
-{DEFAULT @outcome_cohort = 'outcome_cohort'}
-{DEFAULT @concept_set_definition = 'concept_set_definition'}
-{DEFAULT @atlas_cohort_reference = 'atlas_cohort_reference'}
-{DEFAULT @cohort_concept_set = 'cohort_concept_set'}
-{DEFAULT @analysis_setting = 'analysis_setting'}
-
-create table @schema.scc_analysis_setting (
+create table @database_schema.scc_analysis_setting (
    analysis_id INT PRIMARY KEY,
    description VARCHAR,
    settings VARCHAR
 );
 
-create table @schema.scc_result (
+create table @database_schema.scc_result (
     database_id VARCHAR NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
@@ -39,12 +31,11 @@ create table @schema.scc_result (
     c_cases NUMERIC,
     num_exposures NUMERIC,
     i_2 NUMERIC,
-    PRIMARY KEY (source_id, analysis_id, outcome_cohort_id, target_cohort_id),
+    PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
 );
 
-drop table IF EXISTS @schema.scc_stat;
-create TABLE @schema.scc_stat (
-    source_id INT NOT NULL,
+create TABLE @database_schema.scc_stat (
+    database_id INT NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
     target_cohort_id BIGINT NOT NULL,
@@ -59,5 +50,16 @@ create TABLE @schema.scc_stat (
     p_90 NUMERIC,
     maximum NUMERIC,
     total NUMERIC,
-    PRIMARY KEY (source_id, analysis_id, outcome_cohort_id, target_cohort_id, stat_type)
+    PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id, stat_type)
 );
+
+create TABLE @database_schema.scc_diagnostics_summary (
+    database_id INT NOT NULL,
+    analysis_id INT NOT NULL,
+    outcome_cohort_id BIGINT NOT NULL,
+    target_cohort_id BIGINT NOT NULL,
+    diagnostic_value NUMERIC,
+    pass INT,
+    diagnostic_name TEXT NOT NULL,
+    PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
+)
