@@ -8,8 +8,7 @@ Changes:
 - Creation of results data model sql for analysis in database
 - Export of large result sets from database with export managers
 - Calibration of effect estimates now computed with EmpiricalCalibration package
-- Shiny modules for visualization and exploration of results
-- 
+
 
 SelfControlledCohort 1.6.0
 ==========================
