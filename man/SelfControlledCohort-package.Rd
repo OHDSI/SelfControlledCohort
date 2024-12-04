@@ -2,6 +2,7 @@
 % Please edit documentation in R/SelfControlledCohort.R
 \docType{package}
 \name{SelfControlledCohort-package}
+\alias{SelfControlledCohort}
 \alias{SelfControlledCohort-package}
 \title{SelfControlledCohort: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort}
 \description{

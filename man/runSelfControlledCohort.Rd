@@ -13,6 +13,8 @@ runSelfControlledCohort(
   oracleTempSchema = NULL,
   exposureIds = NULL,
   outcomeIds = NULL,
+  negativeOutcomeIds = NULL,
+  negativeExposureIds = NULL,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -37,9 +39,11 @@ runSelfControlledCohort(
   riskWindowsTable = "#risk_windows",
   resultsTable = "#results",
   resultsDatabaseSchema = NULL,
-  postProcessFunction = NULL,
-  postProcessArgs = list(),
-  returnEstimates = TRUE
+  resultExportPath = "scc_result",
+  databaseId = NULL,
+  resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
+    = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
+    databaseId)
 )
 }
 \arguments{
@@ -160,13 +164,12 @@ the values required to calculate rate ratios.}
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}
 
-\item{postProcessFunction}{Callback function to handle batches of data. Useful for
-massive result sets that overflow system memory. See example.}
+\item{resultExportPath}{Folder where result files are exported}
 
-\item{postProcessArgs}{Arguments for post processing function callback.}
+\item{databaseId}{Unique identifier for database}
 
-\item{returnEstimates}{Boolean opt to not return estimates, only useful in the case
-where postProcessFunction is used}
+\item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
+an alternative mechanism for exporting results}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.
@@ -190,20 +193,11 @@ sccResult <- runSelfControlledCohort(connectionDetails,
                                      exposureIds = c(767410, 1314924, 907879),
                                      outcomeIds = 444382,
                                      outcomeTable = "condition_era")
-
-# Using a callback function that writes data to a csv file and not store in memory
-csvFileName <- "D:/path/to/output.csv"
-writeSccData <- function(data, position, csvFileName) {
-  vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
-}
-
 runSelfControlledCohort(connectionDetails,
                         cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
                         exposureIds = c(767410, 1314924, 907879),
                         outcomeIds = 444382,
                         outcomeTable = "condition_era",
-                        postProcessFunction = writeSccData,
-                        postProcessArgs = list(csvFileName = csvFileName),
                         returnEstimates = FALSE)
 }
 }

@@ -41,5 +41,5 @@ test_that("computeCalibratedRows function works as expected", {
 
   expect_type(result, "list")  # A tibble is a list
   expect_equal(nrow(result), nrow(sample_positives))  # Expect same number of rows
-  expect_named(result, c("calibrated", "pValue", "ub95", "lb95", "rr", "seLogRr", "cPt", "cAtRisk", "cCases", "tCases", "tAtRisk", "target_cohort_id"))
+  expect_named(result, c("pValue", "ub95", "lb95", "rr", "seLogRr", "cPt", "cAtRisk", "cCases", "tCases", "tAtRisk", "target_cohort_id"))
 })

@@ -14,7 +14,12 @@ getSccRiskWindowStats(
   outcomeTable = "condition_era",
   firstOutcomeOnly = TRUE,
   resultsDatabaseSchema = NULL,
-  riskWindowsTable = "#risk_windows"
+  riskWindowsTable = "#risk_windows",
+  resultExportPath = "scc_result",
+  databaseId = NULL,
+  resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
+    = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
+    databaseId)
 )
 }
 \arguments{
@@ -54,6 +59,13 @@ riskWindowsTable are temporary.}
 
 \item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
 table.}
+
+\item{resultExportPath}{Folder where result files are exported}
+
+\item{databaseId}{Unique identifier for database}
+
+\item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
+an alternative mechanism for exporting results}
 }
 \value{
 list containing data frames:

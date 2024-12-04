@@ -30,13 +30,11 @@ getNullDist <- function(negatives) {
 #' @param positives this is the cohort set that should be calibrated
 #' @param negatives these are the negative control cohort results
 #' @param idCol - either target_cohort_id or outcome_cohort_id, this function is used in p
-#' @param calibrationType - value stored in calibrated column of table
 #' @return data.frame
 computeCalibratedRows <- function(positives,
                                   negatives,
                                   idCol = NULL,
-                                  keepCols = c("cPt", "cAtRisk", "cCases", "tCases", "tAtRisk"),
-                                  calibrationType = 1) {
+                                  keepCols = c("cPt", "cAtRisk", "cCases", "tCases", "tAtRisk")) {
   checkmate::assertDataFrame(positives, col.names = "named")
   checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols, idCol))
   nullDist <- getNullDist(negatives)
@@ -44,8 +42,7 @@ computeCalibratedRows <- function(positives,
   ci <- EmpiricalCalibration::calibrateConfidenceInterval(log(positives$rr), positives$seLogRr, errorModel)
 
   # Row matches fields in the database excluding the ids, used in dplyr, group_by with keep_true
-  result <- tibble::tibble(calibrated = calibrationType,
-                           pValue = EmpiricalCalibration::calibrateP(nullDist, log(positives$rr), positives$seLogRr),
+  result <- tibble::tibble(pValue = EmpiricalCalibration::calibrateP(nullDist, log(positives$rr), positives$seLogRr),
                            ub95 = exp(ci$logUb95Rr),
                            lb95 = exp(ci$logLb95Rr),
                            rr = exp(ci$logRr),
