@@ -48,4 +48,4 @@ scc_diagnostics_summary,outcome_cohort_id,bigint,1,1,0,Identifier for the outcom
 scc_diagnostics_summary,target_cohort_id,bigint,1,1,0,Identifier for the target cohort
 scc_diagnostics_summary,diagnostic_value,float,0,0,0,Value associated with the diagnostic test
 scc_diagnostics_summary,pass,int,0,0,0,Indicator of whether the diagnostic test passed
-scc_diagnostics_summary,diagnostic_name,TEXT,1,1,0,Name of the diagnostic test
+scc_diagnostics_summary,diagnostic_name,varchar,1,1,0,Name of the diagnostic test

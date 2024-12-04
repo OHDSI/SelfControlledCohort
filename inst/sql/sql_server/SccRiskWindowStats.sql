@@ -1,24 +1,22 @@
-/************************************************************************
-Copyright 2022 Observational Health Data Sciences and Informatics
-
-This file is part of SelfControlledCohort
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-************************************************************************/
+--Copyright 2022 Observational Health Data Sciences and Informatics
+--
+--This file is part of SelfControlledCohort
+--
+--Licensed under the Apache License, Version 2.0 (the "License");
+--you may not use this file except in compliance with the License.
+--You may obtain a copy of the License at
+--
+--    http://www.apache.org/licenses/LICENSE-2.0
+--
+--Unless required by applicable law or agreed to in writing, software
+--distributed under the License is distributed on an "AS IS" BASIS,
+--WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--See the License for the specific language governing permissions and
+--limitations under the License.
 
 SELECT
-    exposure_id,
-    outcome_id,
+    exposure_id as target_cohort_id,
+    outcome_id as outcome_cohort_id,
     CASE WHEN outcome_date >= risk_window_start_exposed AND outcome_date <= risk_window_end_exposed
         THEN 1
         ELSE 0
@@ -94,8 +92,8 @@ WITH
 -- Average (absolute) time between exposure and outcome
 time_to_dist AS (
    SELECT
-          o.exposure_id,
-          o.outcome_id,
+          o.exposure_id as target_cohort_id,
+          o.outcome_id as outcome_cohort_id,
           o.mean_time_to_outcome as mean,
           coalesce(o.sd_time_to_outcome, 0) AS sd,
           o.min_time_to_outcome as min,
@@ -172,8 +170,8 @@ SELECT * INTO #time_to_dist_exposed FROM time_to_dist_exposed;
 
 WITH time_to_dist_unex AS (
    SELECT
-          o.exposure_id,
-          o.outcome_id,
+          o.exposure_id as target_cohort_id,
+          o.outcome_id as outcome_cohort_id,
           o.mean_time_to_outcome_exp as mean,
           coalesce(o.sd_time_to_outcome_exp, 0) AS sd,
           o.min_time_to_outcome_exp as min,

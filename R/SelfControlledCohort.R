@@ -174,7 +174,8 @@ runSccRiskWindows <- function(connection,
                                    outcomeId,
                                    outcomePersonId,
                                    firstOutcomeOnly,
-                                   riskWindowsTable) {
+                                   riskWindowsTable,
+                                   resultExportManager) {
   ParallelLogger::logInfo("Computing time at risk distribution statistics")
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccRiskWindowStats.sql",
                                                    packageName = "SelfControlledCohort",
@@ -189,30 +190,38 @@ runSccRiskWindows <- function(connection,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable)
   DatabaseConnector::executeSql(connection, renderedSql)
+  exportManager$exportQuery(connection,
+                            "SELECT * FROM #tx_distribution",
+                            "scc_stat",
+                            append = FALSE)
 
-  tarStats <- list()
-  tarStats$treatmentTimeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                                                   "SELECT * FROM #tx_distribution",
-                                                                                   snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #tx_distribution; DROP TABLE #tx_distribution;")
+  DatabaseConnector::renderTranslateExecuteSql(connection,
+                                               "TRUNCATE TABLE #tx_distribution; DROP TABLE #tx_distribution;")
+
+  exportManager$exportQuery(connection,
+                            "SELECT * FROM #time_to_dist",
+                            "scc_stat",
+                            append = TRUE)
+  DatabaseConnector::renderTranslateExecuteSql(connection,
+                                               "TRUNCATE TABLE #time_to_dist; DROP TABLE #time_to_dist;")
+
+  exportManager$exportQuery(connection,
+                            "SELECT * FROM #time_to_dist_exposed",
+                            "scc_stat",
+                            append = FALSE)
+
+  DatabaseConnector::renderTranslateExecuteSql(connection,
+                                               "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
+
+  exportManager$exportQuery(connection,
+                            "SELECT * FROM #time_to_dist_unex",
+                            "scc_stat",
+                            append = TRUE)
+
+  DatabaseConnector::renderTranslateExecuteSql(connection,
+                                               "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
 
 
-  tarStats$timeToOutcomeDistribution <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                                                   "SELECT * FROM #time_to_dist",
-                                                                                   snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist; DROP TABLE #time_to_dist;")
-
-  tarStats$timeToOutcomeDistributionExposed <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                                                          "SELECT * FROM #time_to_dist_exposed",
-                                                                                          snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
-
-  tarStats$timeToOutcomeDistributionUnexposed <- DatabaseConnector::renderTranslateQuerySql(connection,
-                                                                                            "SELECT * FROM #time_to_dist_unex",
-                                                                                            snakeCaseToCamelCase = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
-
-  return(tarStats)
 }
 
 #' @title
@@ -258,7 +267,14 @@ getSccRiskWindowStats <- function(connection,
                                   outcomeTable = "condition_era",
                                   firstOutcomeOnly = TRUE,
                                   resultsDatabaseSchema = NULL,
-                                  riskWindowsTable = "#risk_windows") {
+                                  riskWindowsTable = "#risk_windows",
+                                  resultExportPath = "scc_result",
+                                  databaseId = NULL,
+                                  resultExportManager = ResultModelManager::createResultExportManager(
+                                    tableSpecification = getResultsDataModelSpecifications(),
+                                    exportDir = resultExportPath,
+                                    databaseId = databaseId
+                                  )) {
 
   if (!DatabaseConnector::dbIsValid(connection))
     stop("Invalid connection object")
@@ -311,16 +327,15 @@ getSccRiskWindowStats <- function(connection,
                          outcomeId,
                          outcomePersonId,
                          firstOutcomeOnly,
-                         riskWindowsTable)
+                         riskWindowsTable,
+                         resultExportManager)
 }
 
 batchComputeEstimates <- function(connection,
                                   computeThreads,
                                   resultsTable,
                                   tempEmulationSchema,
-                                  postProcessFunction = NULL,
-                                  postProcessArgs = list(),
-                                  returnEstimates = TRUE) {
+                                  resultExportManager) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
   # Clean up, regardless of status
@@ -328,7 +343,11 @@ batchComputeEstimates <- function(connection,
     ParallelLogger::stopCluster(cluster)
   }, add = TRUE)
 
-  batchComputeCallBack <- function(data, position, cluster, postProcessFunction, postProcessArgs) {
+
+
+
+
+  batchComputeCallBack <- function(data, position, cluster) {
     if (nrow(data) > 0) {
       batches <- ceiling(nrow(data) / 10000)
       data <- split(data, rep_len(1:batches, nrow(data)))
@@ -336,8 +355,6 @@ batchComputeEstimates <- function(connection,
       data <- do.call("rbind", data)
     }
 
-    if (is.function(postProcessFunction))
-      data <- do.call(postProcessFunction, append(list(data, position), postProcessArgs))
 
     if (returnEstimates)
       return(data)
@@ -345,20 +362,37 @@ batchComputeEstimates <- function(connection,
     return(data.frame())
   }
 
+  if (!is.null(negativeOutcomeIds)) {
+
+    negativeOutcomes <- DatabaseConnector::renderTranslateQuerySql(connection, )
+
+    result <- computeCalibratedRows(positives = estimates[!estimates$outcomeCohortId %in% negativeExposureIds,],
+                                    negatives = estimates[estimates$outcomeCohortId %in% negativeExposureIds,],
+                                    idCol = "targetCohortId")
+    result$exposureCalibrated <- 0
+  }
+
+  if (!is.null(negativeExposureIds)) {
+    result <- computeCalibratedRows(positives = estimates[!estimates$targetCohortId %in% negativeExposureIds,],
+                                    negatives = estimates[estimates$targetCohortId %in% negativeExposureIds,],
+                                    idCol = "outcomeCohortId")
+
+    result$exposureCalibrated <- 1
+  }
+
+
   # Fetch results from server:
   args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
-  estimates <- DatabaseConnector::renderTranslateQueryApplyBatched(connection,
-                                                                   "SELECT * FROM @results_table",
-                                                                   results_table = resultsTable,
-                                                                   tempEmulationSchema = tempEmulationSchema,
-                                                                   fun = batchComputeCallBack,
-                                                                   args = args,
-                                                                   snakeCaseToCamelCase = TRUE)
+
+  resultExportManager$exportQuery(connection,
+                                  "SELECT * FROM @results_table",
+                                  "scc_result",
+                                  results_table = resultsTable,
+                                  transformFunction = transformation,
+                                  transformFunctionArgs = args,
+                                  append = FALSE)
 
 
-  if (returnEstimates) {
-    return(data.frame(estimates))
-  }
   return(NULL)
 }
 
@@ -464,11 +498,11 @@ batchComputeEstimates <- function(connection,
 #'                                         start.
 #' @param computeThreads                   Number of parallel threads for computing IRRs with exact
 #'                                         confidence intervals.
-#' @param postProcessFunction              Callback function to handle batches of data. Useful for
-#'                                         massive result sets that overflow system memory. See example.
-#' @param postProcessArgs                  Arguments for post processing function callback.
-#' @param returnEstimates                  Boolean opt to not return estimates, only useful in the case
-#'                                         where postProcessFunction is used
+#' @param resultExportPath                 Folder where result files are exported
+#' @param databaseId                       Unique identifier for database
+#' @param resultExportManager              ResultModelManager::ResultExportManager instance - customize this to implement
+#'                                         an alternative mechanism for exporting results
+#'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
@@ -480,20 +514,11 @@ batchComputeEstimates <- function(connection,
 #'                                      exposureIds = c(767410, 1314924, 907879),
 #'                                      outcomeIds = 444382,
 #'                                      outcomeTable = "condition_era")
-#'
-#' # Using a callback function that writes data to a csv file and not store in memory
-#' csvFileName <- "D:/path/to/output.csv"
-#' writeSccData <- function(data, position, csvFileName) {
-#'   vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
-#' }
-#'
 #' runSelfControlledCohort(connectionDetails,
 #'                         cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
 #'                         exposureIds = c(767410, 1314924, 907879),
 #'                         outcomeIds = 444382,
 #'                         outcomeTable = "condition_era",
-#'                         postProcessFunction = writeSccData,
-#'                         postProcessArgs = list(csvFileName = csvFileName),
 #'                         returnEstimates = FALSE)
 #' }
 #' @export
@@ -531,9 +556,13 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
                                     resultsDatabaseSchema = NULL,
-                                    postProcessFunction = NULL,
-                                    postProcessArgs = list(),
-                                    returnEstimates = TRUE) {
+                                    resultExportPath = "scc_result",
+                                    databaseId = NULL,
+                                    resultExportManager = ResultModelManager::createResultExportManager(
+                                      tableSpecification = getResultsDataModelSpecifications(),
+                                      exportDir = resultExportPath,
+                                      databaseId = databaseId
+                                    )) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -558,6 +587,11 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
     }
     outcomePersonId <- "subject_id"
   }
+
+  checkmate::assertR6(resultExportManager, "ResultExportManager")
+
+  checkmate::assertNumeric(negativeOutcomeIds, null.ok = TRUE)
+  checkmate::assertNumeric(negativeExposureIds, null.ok = TRUE)
 
   if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
     tempEmulationSchema <- oracleTempSchema
@@ -648,17 +682,19 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                        outcomeId,
                                        outcomePersonId,
                                        firstOutcomeOnly,
-                                       riskWindowsTable)
+                                       riskWindowsTable,
+                                       resultExportManager)
   }
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  estimates <- batchComputeEstimates(connection = connection,
-                                     computeThreads = computeThreads,
-                                     resultsTable = resultsTable,
-                                     tempEmulationSchema = tempEmulationSchema,
-                                     postProcessFunction = postProcessFunction,
-                                     postProcessArgs = postProcessArgs,
-                                     returnEstimates = returnEstimates)
+
+  batchComputeEstimates(connection = connection,
+                        computeThreads = computeThreads,
+                        resultsTable = resultsTable,
+                        tempEmulationSchema = tempEmulationSchema,
+                        resultExportManager = resultExportManager,
+                        negativeOutcomeIds = negativeOutcomeIds,
+                        negativeExposureIds = negativeExposureIds)
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",
@@ -670,31 +706,12 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                            results_table = resultsTable)
   DatabaseConnector::executeSql(connection, sql)
 
+  exportManger$writeManifest(packageName = utils::packageName(),
+                             packageVersion = packageVersion(utils::packageName()))
+
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
 
-  result <- list(estimates = estimates,
-                 exposureIds = exposureIds,
-                 outcomeIds = outcomeIds,
-                 call = match.call())
-
-  if (computeTarDistribution) {
-    result$tarStats <- tarStats
-  }
-
-  class(result) <- "sccResults"
-  return(result)
+  return(invisible())
 }
 
-#' @export
-print.sccResults <- function(x, ...) {
-  writeLines("sccResults object")
-  writeLines("")
-  writeLines(paste("Exposure ID(s):", paste(x$exposureIds, collapse = ",")))
-  writeLines(paste("Outcome ID(s):", x$outcomeIds))
-}
-
-#' @export
-summary.sccResults <- function(object, ...) {
-  object$estimates
-}
