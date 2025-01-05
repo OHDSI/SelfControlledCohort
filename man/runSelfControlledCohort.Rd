@@ -13,8 +13,8 @@ runSelfControlledCohort(
   oracleTempSchema = NULL,
   exposureIds = NULL,
   outcomeIds = NULL,
-  negativeOutcomeIds = NULL,
-  negativeExposureIds = NULL,
+  negativeControlPairs = NULL,
+  controlType = "outccome",
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -40,6 +40,7 @@ runSelfControlledCohort(
   resultsTable = "#results",
   resultsDatabaseSchema = NULL,
   resultExportPath = "scc_result",
+  outputFolder = "scc_work",
   databaseId = NULL,
   resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
     = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
@@ -73,6 +74,10 @@ all exposures in the exposure table will be included.}
 \item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
 outcomes of interest. If empty, all the outcomes in the
 outcome table will be included.}
+
+\item{negativeControlPairs}{A list of vectors for pairs of negative control}
+
+\item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 
 \item{exposureDatabaseSchema}{The name of the database schema that is the location where
 the exposure data used to define the exposure cohorts is
@@ -165,6 +170,8 @@ the values required to calculate rate ratios.}
 riskWindowsTable are temporary.}
 
 \item{resultExportPath}{Folder where result files are exported}
+
+\item{outputFolder}{Folder where intermediate files are stored}
 
 \item{databaseId}{Unique identifier for database}
 

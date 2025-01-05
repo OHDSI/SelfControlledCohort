@@ -8,7 +8,6 @@ runSccAnalyses(
   connectionDetails,
   cdmDatabaseSchema,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-  oracleTempSchema = NULL,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -17,6 +16,7 @@ runSccAnalyses(
   outputFolder = "./SelfControlledCohortOutput",
   sccAnalysisList,
   exposureOutcomeList,
+  controlType = "outcome",
   analysisThreads = 1,
   computeThreads = 1
 )
@@ -31,10 +31,6 @@ vocabulary.}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
-
-\item{oracleTempSchema}{For Oracle only: the name of the database schema where you
-want all temporary tables to be managed. Requires
-create/insert permissions to this database.}
 
 \item{exposureDatabaseSchema}{The name of the database schema that is the location where
 the exposure data used to define the exposure cohorts is
@@ -69,6 +65,8 @@ COHORT_END_DATE.}
 
 \item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
 the \code{\link{createExposureOutcome}} function.}
+
+\item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 
 \item{analysisThreads}{The number of parallel threads to use to execute the analyses.}
 

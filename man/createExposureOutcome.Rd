@@ -4,7 +4,7 @@
 \alias{createExposureOutcome}
 \title{Create exposure-outcome combinations.}
 \usage{
-createExposureOutcome(exposureId, outcomeId)
+createExposureOutcome(exposureId, outcomeId, trueEffectSize = NA)
 }
 \arguments{
 \item{exposureId}{A concept ID indentifying the drug of interest in the exposure table. If
@@ -18,6 +18,8 @@ multiple strategies for picking the outcome will be tested in the analysis, a
 named list of numbers can be provided instead. In the analysis, the name of the
 number to be used can be specified using the #' \code{outcomeType} parameter in
 the \code{\link{createSccAnalysis}} function.}
+
+\item{trueEffectSize}{Should this be set to 1 this will be considererd a negative control}
 }
 \description{
 Create exposure-outcome combinations.
