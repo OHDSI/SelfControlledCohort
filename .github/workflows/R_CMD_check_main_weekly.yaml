@@ -1,7 +1,7 @@
 on:
   schedule:
     - cron: '0 10 * * 6'
-    
+
 name: 'R check'
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: macOS-latest, r: 'release'}
+          - { os: macOS-latest, r: 'release' }
 
     env:
       GITHUB_PAT: ${{ secrets.GH_TOKEN }}
@@ -67,6 +67,5 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran")'
-          build_args: 'c("--compact-vignettes=both")'
           error-on: '"warning"'
           check-dir: '"check"'
