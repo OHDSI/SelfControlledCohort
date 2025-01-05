@@ -30,12 +30,12 @@
 #' @param exposureOutcomeList      A list of objects of type \code{exposureOutcome} as created using
 #'                                 the \code{\link{createExposureOutcome}} function.
 #' @param analysisThreads          The number of parallel threads to use to execute the analyses.
+#' @param controlType              Calibrate effect estimates with outcome (default) or exposure controls
 #'
 #' @export
 runSccAnalyses <- function(connectionDetails,
                            cdmDatabaseSchema,
                            tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-                           oracleTempSchema = NULL,
                            exposureDatabaseSchema = cdmDatabaseSchema,
                            exposureTable = "drug_era",
                            outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -44,19 +44,23 @@ runSccAnalyses <- function(connectionDetails,
                            outputFolder = "./SelfControlledCohortOutput",
                            sccAnalysisList,
                            exposureOutcomeList,
+                           controlType = "outcome",
                            analysisThreads = 1,
                            computeThreads = 1) {
+
+  # Get negative controls
+
+  checkmate::assertChoice(controlType, c("outcome", "exposure"))
+  negatives <- list()
   for (exposureOutcome in exposureOutcomeList) {
     stopifnot(class(exposureOutcome) == "exposureOutcome")
+    if (isTRUE(exposureOutcome$trueEffectSize == 1)) {
+      negatives[[length(negatives) + 1]] <- c(exposureOutcome$exposureId, exposureOutcome$outcomeId)
+    }
   }
 
   for (sccAnalysis in sccAnalysisList) {
     stopifnot(class(sccAnalysis) == "sccAnalysis")
-  }
-
-  if (all(!is.null(oracleTempSchema), is.null(tempEmulationSchema))) {
-    tempEmulationSchema <- oracleTempSchema
-    warning('OracleTempSchema has been deprecated by DatabaseConnector')
   }
 
   uniqueOutcomeList <- unique(ParallelLogger::selectFromList(exposureOutcomeList, "outcomeId"))
@@ -76,15 +80,13 @@ runSccAnalyses <- function(connectionDetails,
     for (outcome in uniqueOutcomeList) {
       outcomeId <- .selectByType(sccAnalysis$outcomeType, outcome$outcomeId, "outcome")
       exposures <- ParallelLogger::matchInList(exposureOutcomeList, outcome)
-      sccResultsFile <- .createSccResultsFileName(analysisId = sccAnalysis$analysisId,
-                                                  outcomeId = outcomeId)
+      sccResultsRef <- .createSccResultsRef(analysisId = sccAnalysis$analysisId)
       for (exposure in exposures) {
         exposureId <- .selectByType(sccAnalysis$exposureType, exposure$exposureId, "exposure")
         resultsReferenceRow <- data.frame(analysisId = sccAnalysis$analysisId,
                                           exposureId = exposureId,
                                           outcomeId = outcomeId,
-                                          sccResultsFile = sccResultsFile,
-                                          stringsAsFactors = FALSE)
+                                          sccResultsRef = sccResultsRef)
         resultsReference <- rbind(resultsReference, resultsReferenceRow)
       }
     }
@@ -93,53 +95,49 @@ runSccAnalyses <- function(connectionDetails,
   saveRDS(resultsReference, file.path(outputFolder, "resultsReference.rds"))
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
-  objectsToCreate <- list()
+  executionArgList <- list()
 
-  for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
-    if (!file.exists(file.path(outputFolder, sccResultsFile))) {
-      refRow <- resultsReference[resultsReference$sccResultsFile == sccResultsFile, ][1, ]
-      analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
-                                              list(analysisId = refRow$analysisId))[[1]]
-      getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
+  for (sccResultsRef in unique(resultsReference$sccResultsRef)) {
+    refRow <- resultsReference[resultsReference$sccResultsRef == sccResultsRef,][1,]
+    analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
+                                               list(analysisId = refRow$analysisId))[[1]]
+    getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
 
-      getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
+    getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
 
-      exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsFile == sccResultsFile])
-      outcomeId <- unique(resultsReference$outcomeId[resultsReference$sccResultsFile == sccResultsFile])
+    exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsRef == sccResultsRef])
+    outcomeId <- unique(resultsReference$outcomeId[resultsReference$sccResultsRef == sccResultsRef])
 
-      args <- list(connectionDetails = connectionDetails,
-                   cdmDatabaseSchema = cdmDatabaseSchema,
-                   exposureDatabaseSchema = exposureDatabaseSchema,
-                   exposureTable = exposureTable,
-                   outcomeDatabaseSchema = outcomeDatabaseSchema,
-                   outcomeTable = outcomeTable,
-                   cdmVersion = cdmVersion,
-                   exposureIds = exposureIds,
-                   outcomeIds = outcomeId,
-                   tempEmulationSchema = tempEmulationSchema,
-                   computeThreads = computeThreads)
-      args <- append(args, getrunSelfControlledCohortArgs)
-      objectsToCreate[[length(objectsToCreate) + 1]] <- list(args = args,
-                                                             sccResultsFile = file.path(outputFolder, sccResultsFile))
-    }
-  }
-  createSccResultsObject <- function(params) {
-    sccResults <- do.call("runSelfControlledCohort", params$args)
-    saveRDS(sccResults, params$sccResultsFile)
+    args <- list(connectionDetails = connectionDetails,
+                 cdmDatabaseSchema = cdmDatabaseSchema,
+                 exposureDatabaseSchema = exposureDatabaseSchema,
+                 exposureTable = exposureTable,
+                 outcomeDatabaseSchema = outcomeDatabaseSchema,
+                 outcomeTable = outcomeTable,
+                 cdmVersion = cdmVersion,
+                 exposureIds = exposureIds,
+                 outcomeIds = outcomeId,
+                 controlType = controlType,
+                 analysisId = analysisId,
+                 tempEmulationSchema = tempEmulationSchema,
+                 resultExportPath = file.path(outputFolder, paste0("A_", analysisId)),
+                 computeThreads = computeThreads)
+    args <- append(args, getrunSelfControlledCohortArgs)
+    executionArgList[[length(objectsToCreate) + 1]] <- args
   }
 
-  if (length(objectsToCreate) != 0) {
+  if (length(executionArgList) != 0) {
     cluster <- ParallelLogger::makeCluster(analysisThreads)
     ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
-    dummy <- ParallelLogger::clusterApply(cluster, objectsToCreate, createSccResultsObject)
+    dummy <- ParallelLogger::clusterApply(cluster, executionArgList, runSelfControlledCohort)
     ParallelLogger::stopCluster(cluster)
   }
 
   invisible(resultsReference)
 }
 
-.createSccResultsFileName <- function(analysisId, outcomeId) {
-  name <- paste("SccResults_a", analysisId, "_o", outcomeId, ".rds", sep = "")
+.createSccResultsRef <- function(analysisId) {
+  name <- paste("SccResults_a", analysisId, sep = "")
   return(name)
 }
 
@@ -168,10 +166,10 @@ runSccAnalyses <- function(connectionDetails,
 #' @export
 summarizeAnalyses <- function(resultsReference, outputFolder) {
   result <- data.frame()
-  for (sccResultsFile in unique(resultsReference$sccResultsFile)) {
-    sccResults <- readRDS(file.path(outputFolder, sccResultsFile))$estimates
+  for (sccResultsFile in unique(resultsReference$sccResultsRef)) {
+    sccResults <- readRDS(file.path(outputFolder, sccResultsRef))$estimates
     if (nrow(sccResults) > 0) {
-      analysisId <- resultsReference$analysisId[resultsReference$sccResultsFile == sccResultsFile][1]
+      analysisId <- resultsReference$analysisId[resultsReference$sccResultsRef == sccResultsRef][1]
       sccResults$analysisId <- analysisId
     }
 

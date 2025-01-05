@@ -29,8 +29,9 @@ getNullDist <- function(negatives) {
 #' Actual calibration is performed here in a dplyr friendly way
 #' @param positives this is the cohort set that should be calibrated
 #' @param negatives these are the negative control cohort results
-#' @param idCol - either target_cohort_id or outcome_cohort_id, this function is used in p
+#' @param idCol - either target_cohort_id or outcome_cohort_id - to keep
 #' @return data.frame
+#' @noRd
 computeCalibratedRows <- function(positives,
                                   negatives,
                                   idCol = NULL,

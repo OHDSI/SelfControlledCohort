@@ -24,7 +24,8 @@ Imports:
     checkmate,
     dplyr,
     EmpiricalCalibration,
-    ResultModelManager
+    ResultModelManager,
+    Andromeda
 Suggests:
     withr,
     testthat,

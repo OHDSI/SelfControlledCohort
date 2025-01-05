@@ -32,6 +32,7 @@ IF OBJECT_ID('tempdb..#scc_outcome_summary', 'U') IS NOT NULL
 
 -- Summarize risk windows
 SELECT exposure_id,
+    @analysis_id as analysis_id,
 	COUNT(DISTINCT person_id) AS num_persons,
 	COUNT(*) AS num_exposures,
 	SUM(time_at_risk_exposed) / 365.25 AS time_at_risk_exposed,

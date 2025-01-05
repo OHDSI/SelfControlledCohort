@@ -4,7 +4,7 @@ test_that("multiple analyses", {
   # Analysis.R is checked elsewhere
   exposureOutcome1 <- createExposureOutcome(701322, 28060)
   exposureOutcome2 <- createExposureOutcome(715997, 4294548)
-  exposureOutcome3 <- createExposureOutcome(701322, 4043241)
+  exposureOutcome3 <- createExposureOutcome(701322, 4043241, trueEffectSize = 1)
   exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
 
   runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE, computeTarDistribution = TRUE)

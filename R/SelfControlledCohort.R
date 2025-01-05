@@ -39,10 +39,11 @@ computeIrrs <- function(estimates) {
   }
 
   irrs <- mapply(computeIrr,
-                 numOutcomesExposed = estimates$numOutcomesExposed,
-                 numOutcomesUnexposed = estimates$numOutcomesUnexposed,
-                 timeAtRiskExposed = estimates$timeAtRiskExposed,
-                 timeAtRiskUnexposed = estimates$timeAtRiskUnexposed)
+                 numOutcomesExposed = estimates$num_outcomes_exposed,
+                 numOutcomesUnexposed = estimates$num_outcomes_unexposed,
+                 timeAtRiskExposed = estimates$time_at_risk_exposed,
+                 timeAtRiskUnexposed = estimates$time_at_risk_unexposed)
+
   estimates$irr <- irrs[1,]
   estimates$irrLb95 <- irrs[2,]
   estimates$irrUb95 <- irrs[3,]
@@ -66,7 +67,6 @@ runSccRiskWindows <- function(connection,
                               cdmDatabaseSchema,
                               cdmVersion = 5,
                               tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-                              oracleTempSchema = NULL,
                               exposureIds = NULL,
                               exposureDatabaseSchema = cdmDatabaseSchema,
                               exposureTable = "drug_era",
@@ -111,11 +111,6 @@ runSccRiskWindows <- function(connection,
       exposureId <- "cohort_definition_id"
     }
     exposurePersonId <- "subject_id"
-  }
-
-  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
-    tempEmulationSchema <- oracleTempSchema
-    warning('OracleTempSchema has been deprecated by DatabaseConnector')
   }
 
   if (!is.null(exposureIds)) {
@@ -173,9 +168,10 @@ runSccRiskWindows <- function(connection,
                                    outcomeStartDate,
                                    outcomeId,
                                    outcomePersonId,
+                                   analysisId,
                                    firstOutcomeOnly,
                                    riskWindowsTable,
-                                   resultExportManager) {
+                                   exportManager) {
   ParallelLogger::logInfo("Computing time at risk distribution statistics")
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "SccRiskWindowStats.sql",
                                                    packageName = "SelfControlledCohort",
@@ -187,6 +183,7 @@ runSccRiskWindows <- function(connection,
                                                    outcome_start_date = outcomeStartDate,
                                                    outcome_id = outcomeId,
                                                    outcome_person_id = outcomePersonId,
+                                                   analysis_id = analysisId,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable)
   DatabaseConnector::executeSql(connection, renderedSql)
@@ -269,6 +266,7 @@ getSccRiskWindowStats <- function(connection,
                                   resultsDatabaseSchema = NULL,
                                   riskWindowsTable = "#risk_windows",
                                   resultExportPath = "scc_result",
+                                  analysisId = 1,
                                   databaseId = NULL,
                                   resultExportManager = ResultModelManager::createResultExportManager(
                                     tableSpecification = getResultsDataModelSpecifications(),
@@ -326,6 +324,7 @@ getSccRiskWindowStats <- function(connection,
                          outcomeStartDate,
                          outcomeId,
                          outcomePersonId,
+                         analysisId,
                          firstOutcomeOnly,
                          riskWindowsTable,
                          resultExportManager)
@@ -334,64 +333,95 @@ getSccRiskWindowStats <- function(connection,
 batchComputeEstimates <- function(connection,
                                   computeThreads,
                                   resultsTable,
-                                  tempEmulationSchema,
-                                  resultExportManager) {
+                                  resultExportManager,
+                                  negativeControlPairs,
+                                  controlType) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
+  andromeda <- Andromeda::andromeda()
   # Clean up, regardless of status
   on.exit({
     ParallelLogger::stopCluster(cluster)
+    close(Andromeda)
   }, add = TRUE)
 
+  batchComputeCallBack <- function(rows, position, cluster, andromeda) {
+    if (nrow(rows) > 0) {
+      batches <- ceiling(nrow(rows) / 10000)
+      rows <- split(rows, rep_len(1:batches, nrow(rows)))
+      rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
+      rows <- do.call(rbind, rows)
 
-
-
-
-  batchComputeCallBack <- function(data, position, cluster) {
-    if (nrow(data) > 0) {
-      batches <- ceiling(nrow(data) / 10000)
-      data <- split(data, rep_len(1:batches, nrow(data)))
-      data <- ParallelLogger::clusterApply(cluster, data, computeIrrs, progressBar = FALSE)
-      data <- do.call("rbind", data)
+      if (position == 1) {
+        andromeda$estimates <- rows
+      } else {
+        Andromeda::appendToTable(andromeda$estimates, rows)
+      }
     }
 
-
-    if (returnEstimates)
-      return(data)
-
-    return(data.frame())
+    return(rows)
   }
-
-  if (!is.null(negativeOutcomeIds)) {
-
-    negativeOutcomes <- DatabaseConnector::renderTranslateQuerySql(connection, )
-
-    result <- computeCalibratedRows(positives = estimates[!estimates$outcomeCohortId %in% negativeExposureIds,],
-                                    negatives = estimates[estimates$outcomeCohortId %in% negativeExposureIds,],
-                                    idCol = "targetCohortId")
-    result$exposureCalibrated <- 0
-  }
-
-  if (!is.null(negativeExposureIds)) {
-    result <- computeCalibratedRows(positives = estimates[!estimates$targetCohortId %in% negativeExposureIds,],
-                                    negatives = estimates[estimates$targetCohortId %in% negativeExposureIds,],
-                                    idCol = "outcomeCohortId")
-
-    result$exposureCalibrated <- 1
-  }
-
 
   # Fetch results from server:
-  args <- list(cluster = cluster, postProcessFunction = postProcessFunction, postProcessArgs = postProcessArgs)
-
+  args <- list(cluster = cluster, andromeda = andromeda)
   resultExportManager$exportQuery(connection,
-                                  "SELECT * FROM @results_table",
-                                  "scc_result",
+                                  "SELECT * FROM @results_table", # Query
+                                  "scc_result", # output csv file
                                   results_table = resultsTable,
-                                  transformFunction = transformation,
+                                  transformFunction = batchComputeCallBack,
                                   transformFunctionArgs = args,
                                   append = FALSE)
 
+  if (length(negativeControlPairs) > 0) {
+    ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
+      data.frame(targetCohortId = eo[[1]], outcomeCohortId = eo[[2]])
+    }))
+
+    if (controlType == "outcome") {
+      ncParirsDf |>
+        dplyr::group_by(.data$targetCohortId) |>
+        dplyr::group_map(function(data, targetCohortId) {
+
+          estimates <- andromeda$estimates |>
+            dplyr::filter(.data$targetCohortId == targetCohortId)
+
+          postives <- estimates |>
+            dplyr::filter(!.data$outcomeCohortId %in% data$outcomeCohortId)
+
+          negatives <- estimates |>
+            dplyr::filter(.data$outcomeCohortId %in% data$outcomeCohortId)
+
+          calibratedEstimates <- computeCalibratedRows(positives = positives,
+                                                       negatives = negatives,
+                                                       idCol = "targetCohortId")
+
+          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = TRUE)
+        })
+    }
+
+    if (controlType == "exposure") {
+      ncParirsDf |>
+        dplyr::group_by(.data$outcomeCohortId) |>
+        dplyr::group_map(function(data, outcomeCohortId) {
+
+          estimates <- andromeda$estimates |>
+            dplyr::filter(.data$outcomeCohortId == outcomeCohortId)
+
+          postives <- estimates |>
+            dplyr::filter(!.data$targetCohortId %in% data$targetCohortId)
+
+          negatives <- estimates |>
+            dplyr::filter(.data$targetCohortId %in% data$targetCohortId)
+
+          calibratedEstimates <- computeCalibratedRows(positives = positives,
+                                                       negatives = negatives,
+                                                       idCol = "outcomeCohortId")
+          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = TRUE)
+        })
+    }
+
+
+  }
 
   return(NULL)
 }
@@ -432,6 +462,10 @@ batchComputeEstimates <- function(connection,
 #' @param outcomeIds                       The condition_concept_ids or cohort_definition_ids of the
 #'                                         outcomes of interest. If empty, all the outcomes in the
 #'                                         outcome table will be included.
+#'
+#' @param negativeControlPairs             A list of vectors for pairs of negative control
+#' @param controlType                      Calibrate effect estimates with outcome (default) or exposure controls
+#'
 #' @param exposureDatabaseSchema           The name of the database schema that is the location where
 #'                                         the exposure data used to define the exposure cohorts is
 #'                                         available. If exposureTable = DRUG_ERA,
@@ -499,6 +533,7 @@ batchComputeEstimates <- function(connection,
 #' @param computeThreads                   Number of parallel threads for computing IRRs with exact
 #'                                         confidence intervals.
 #' @param resultExportPath                 Folder where result files are exported
+#' @param outputFolder                     Folder where intermediate files are stored
 #' @param databaseId                       Unique identifier for database
 #' @param resultExportManager              ResultModelManager::ResultExportManager instance - customize this to implement
 #'                                         an alternative mechanism for exporting results
@@ -530,8 +565,8 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     oracleTempSchema = NULL,
                                     exposureIds = NULL,
                                     outcomeIds = NULL,
-                                    negativeOutcomeIds = NULL,
-                                    negativeExposureIds = NULL,
+                                    negativeControlPairs = NULL,
+                                    controlType = "outccome",
                                     exposureDatabaseSchema = cdmDatabaseSchema,
                                     exposureTable = "drug_era",
                                     outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -557,6 +592,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     resultsTable = "#results",
                                     resultsDatabaseSchema = NULL,
                                     resultExportPath = "scc_result",
+                                    outputFolder = "scc_work",
                                     databaseId = NULL,
                                     resultExportManager = ResultModelManager::createResultExportManager(
                                       tableSpecification = getResultsDataModelSpecifications(),
@@ -590,12 +626,11 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
 
   checkmate::assertR6(resultExportManager, "ResultExportManager")
 
-  checkmate::assertNumeric(negativeOutcomeIds, null.ok = TRUE)
-  checkmate::assertNumeric(negativeExposureIds, null.ok = TRUE)
+  checkmate::assertList(negativeControlPairs, null.ok = TRUE)
+  checkmate::assertChoice(controlType, choices = c("outcome", "exposures"))
 
-  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
-    tempEmulationSchema <- oracleTempSchema
-    warning('OracleTempSchema has been deprecated by DatabaseConnector')
+  if (!dir.exists(outputFolder)) {
+    dir.create(outputFolder)
   }
 
   if (resultsTable != "#results") {
@@ -666,6 +701,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                                    outcome_table = outcomeTable,
                                                    outcome_start_date = outcomeStartDate,
                                                    outcome_id = outcomeId,
+                                                   analysis_id = analysisId,
                                                    outcome_person_id = outcomePersonId,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable,
@@ -673,17 +709,18 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (computeTarDistribution) {
-    tarStats <- .getSccRiskWindowStats(connection,
-                                       tempEmulationSchema,
-                                       outcomeIds,
-                                       outcomeDatabaseSchema,
-                                       outcomeTable,
-                                       outcomeStartDate,
-                                       outcomeId,
-                                       outcomePersonId,
-                                       firstOutcomeOnly,
-                                       riskWindowsTable,
-                                       resultExportManager)
+    .getSccRiskWindowStats(connection,
+                           tempEmulationSchema,
+                           outcomeIds,
+                           outcomeDatabaseSchema,
+                           outcomeTable,
+                           outcomeStartDate,
+                           outcomeId,
+                           outcomePersonId,
+                           analysisId,
+                           firstOutcomeOnly,
+                           riskWindowsTable,
+                           resultExportManager)
   }
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
@@ -691,10 +728,9 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   batchComputeEstimates(connection = connection,
                         computeThreads = computeThreads,
                         resultsTable = resultsTable,
-                        tempEmulationSchema = tempEmulationSchema,
                         resultExportManager = resultExportManager,
-                        negativeOutcomeIds = negativeOutcomeIds,
-                        negativeExposureIds = negativeExposureIds)
+                        negativeControlPairs = negativeControlPairs,
+                        controlType = controlType)
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",

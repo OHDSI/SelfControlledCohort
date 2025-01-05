@@ -22,8 +22,7 @@ test_that("General test + errors and warnings", {
                                      washoutPeriod = 100,
                                      followupPeriod = 0,
                                      riskWindowsTable = "#risk_windows",
-                                     tempEmulationSchema = NULL,
-                                     oracleTempSchema = Sys.getenv("CDM5_ORACLE_OHDSI_SCHEMA")))
+                                     tempEmulationSchema = NULL))
   } else {
     runSccRiskWindows(connection = connection,
                       cdmDatabaseSchema = cdmDatabaseSchema,

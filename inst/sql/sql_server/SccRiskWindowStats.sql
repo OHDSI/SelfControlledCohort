@@ -15,8 +15,8 @@
 --limitations under the License.
 
 SELECT
-    exposure_id as target_cohort_id,
-    outcome_id as outcome_cohort_id,
+    exposure_id,
+    outcome_id,
     CASE WHEN outcome_date >= risk_window_start_exposed AND outcome_date <= risk_window_end_exposed
         THEN 1
         ELSE 0
@@ -127,7 +127,7 @@ time_to_dist AS (
    ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
    GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome, o.max_time_to_outcome, o.mean_time_to_outcome, o.sd_time_to_outcome
 )
-SELECT * INTO #time_to_dist FROM time_to_dist;
+SELECT *, @analysis_id as analysis_id INTO #time_to_dist FROM time_to_dist;
 
 WITH time_to_dist_exposed AS (
    SELECT
@@ -166,7 +166,7 @@ WITH time_to_dist_exposed AS (
    ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
    GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome_exp, o.max_time_to_outcome_exp, o.mean_time_to_outcome_exp, o.sd_time_to_outcome_exp
 )
-SELECT * INTO #time_to_dist_exposed FROM time_to_dist_exposed;
+SELECT *, @analysis_id as analysis_id  INTO #time_to_dist_exposed FROM time_to_dist_exposed;
 
 WITH time_to_dist_unex AS (
    SELECT
@@ -205,7 +205,7 @@ WITH time_to_dist_unex AS (
    ) s on (o.exposure_id = s.exposure_id and o.outcome_id = s.outcome_id)
    GROUP BY o.exposure_id, o.outcome_id, o.total, o.min_time_to_outcome_exp, o.max_time_to_outcome_exp, o.mean_time_to_outcome_exp, o.sd_time_to_outcome_exp
 )
-SELECT * INTO #time_to_dist_unex FROM time_to_dist_unex;
+SELECT *, @analysis_id as analysis_id INTO #time_to_dist_unex FROM time_to_dist_unex;
 
 TRUNCATE TABLE #treatment_times;
 DROP TABLE #treatment_times;
