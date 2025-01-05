@@ -38,7 +38,6 @@ createSccAnalysis <- function(analysisId = 1,
                               description = "",
                               exposureType = NULL,
                               outcomeType = NULL,
-                              useOutcomeControls = TRUE,
                               runSelfControlledCohortArgs) {
   # First: get the default values:
   analysis <- list()
