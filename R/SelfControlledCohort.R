@@ -56,7 +56,6 @@ computeIrrs <- function(estimates) {
 }
 
 
-
 batchComputeEstimates <- function(connection,
                                   computeThreads,
                                   resultsTable,
@@ -79,12 +78,12 @@ batchComputeEstimates <- function(connection,
       rows <- split(rows, rep_len(1:batches, nrow(rows)))
       rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
       rows <- do.call(rbind, rows)
+    }
 
-      if (position == 1) {
-        andromeda$estimates <- rows
-      } else {
-        Andromeda::appendToTable(andromeda$estimates, rows)
-      }
+    if (position == 1) {
+      andromeda$estimates <- rows
+    } else {
+      Andromeda::appendToTable(andromeda$estimates, rows)
     }
 
     return(rows)
@@ -99,6 +98,11 @@ batchComputeEstimates <- function(connection,
                                   transformFunction = batchComputeCallBack,
                                   transformFunctionArgs = args,
                                   append = FALSE)
+
+  if (is.null(andromeda$estimates)) {
+    ParallelLogger::logInfo("No effect estimates produced")
+    return(NULL)
+  }
 
   if (length(negativeControlPairs) > 0) {
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
@@ -131,7 +135,7 @@ batchComputeEstimates <- function(connection,
       ncPairsDf |>
         dplyr::group_by(.data$outcomeCohortId) |>
         dplyr::group_map(function(data, outcomeCohortId) {
-
+          browser()
           estimates <- andromeda$estimates |>
             dplyr::filter(.data$outcomeCohortId == outcomeCohortId)
 
@@ -472,7 +476,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   DatabaseConnector::executeSql(connection, sql)
 
   resultExportManager$writeManifest(packageName = utils::packageName(),
-                             packageVersion = packageVersion(utils::packageName()))
+                                    packageVersion = packageVersion(utils::packageName()))
 
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))

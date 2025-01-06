@@ -49,7 +49,6 @@ runSccAnalyses <- function(connectionDetails,
                            computeThreads = 1) {
 
   # Get negative controls
-
   checkmate::assertChoice(controlType, c("outcome", "exposure"))
   negatives <- list()
   for (exposureOutcome in exposureOutcomeList) {
@@ -123,13 +122,18 @@ runSccAnalyses <- function(connectionDetails,
                  resultExportPath = file.path(outputFolder, paste0("A_", refRow$analysisId)),
                  computeThreads = computeThreads)
     args <- append(args, getrunSelfControlledCohortArgs)
-    executionArgList[[length(executionArgList) + 1]] <- args
+    executionArgList[[length(executionArgList) + 1]] <- list(args = args)
+  }
+
+  exececuteScc <- function(params) {
+    sccResults <- do.call("runSelfControlledCohort", params$args)
   }
 
   if (length(executionArgList) != 0) {
     cluster <- ParallelLogger::makeCluster(analysisThreads)
     ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
-    dummy <- ParallelLogger::clusterApply(cluster, executionArgList, runSelfControlledCohort)
+
+    dummy <- ParallelLogger::clusterApply(cluster, executionArgList, exececuteScc)
     ParallelLogger::stopCluster(cluster)
   }
 
