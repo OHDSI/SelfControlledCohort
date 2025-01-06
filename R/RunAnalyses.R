@@ -118,9 +118,9 @@ runSccAnalyses <- function(connectionDetails,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeId,
                  controlType = controlType,
-                 analysisId = analysisId,
+                 analysisId = refRow$analysisId,
                  tempEmulationSchema = tempEmulationSchema,
-                 resultExportPath = file.path(outputFolder, paste0("A_", analysisId)),
+                 resultExportPath = file.path(outputFolder, paste0("A_", refRow$analysisId)),
                  computeThreads = computeThreads)
     args <- append(args, getrunSelfControlledCohortArgs)
     executionArgList[[length(objectsToCreate) + 1]] <- args

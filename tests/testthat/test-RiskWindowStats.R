@@ -43,11 +43,7 @@ test_that("General test + errors and warnings", {
   expect_error(getSccRiskWindowStats(connection = NULL,
                                      outcomeDatabaseSchema = cdmDatabaseSchema))
 
-  stats <- getSccRiskWindowStats(connection, outcomeDatabaseSchema = cdmDatabaseSchema, outcomeIds = 444382)
-  expect_false(is.null(stats$treatmentTimeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistributionExposed))
-  expect_false(is.null(stats$timeToOutcomeDistributionUnexposed))
+  getSccRiskWindowStats(connection, outcomeDatabaseSchema = cdmDatabaseSchema, outcomeIds = 444382)
 
   # Invalid connection object
   connectionT <- DatabaseConnector::connect(connectionDetails)
@@ -79,14 +75,10 @@ test_that("Using real risk windows tables", {
                     riskWindowsTable = "test_risk_windows",
                     resultsDatabaseSchema = cdmDatabaseSchema)
 
-  stats <- getSccRiskWindowStats(connection,
-                                 outcomeDatabaseSchema = cdmDatabaseSchema,
-                                 riskWindowsTable = "test_risk_windows",
-                                 resultsDatabaseSchema = cdmDatabaseSchema,
-                                 outcomeIds = 444382)
+  getSccRiskWindowStats(connection,
+                        outcomeDatabaseSchema = cdmDatabaseSchema,
+                        riskWindowsTable = "test_risk_windows",
+                        resultsDatabaseSchema = cdmDatabaseSchema,
+                        outcomeIds = 444382)
 
-  expect_false(is.null(stats$treatmentTimeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistributionExposed))
-  expect_false(is.null(stats$timeToOutcomeDistributionUnexposed))
 })

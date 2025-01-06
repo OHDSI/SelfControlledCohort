@@ -69,9 +69,10 @@ batchComputeEstimates <- function(connection,
   # Clean up, regardless of status
   on.exit({
     ParallelLogger::stopCluster(cluster)
-    close(Andromeda)
+    close(andromeda)
   }, add = TRUE)
 
+  # Writes both to CSV and andromeda object for later calibrated results
   batchComputeCallBack <- function(rows, position, cluster, andromeda) {
     if (nrow(rows) > 0) {
       batches <- ceiling(nrow(rows) / 10000)
@@ -321,6 +322,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     resultExportPath = "scc_result",
                                     outputFolder = "scc_work",
                                     databaseId = NULL,
+                                    analysisId = 1,
                                     resultExportManager = ResultModelManager::createResultExportManager(
                                       tableSpecification = getResultsDataModelSpecifications(),
                                       exportDir = resultExportPath,
