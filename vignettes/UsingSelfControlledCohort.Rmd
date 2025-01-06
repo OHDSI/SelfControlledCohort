@@ -177,11 +177,11 @@ example %>%
   knitr::kable(align = c("lr"))
 ```
 
-We can see that `r example$numPersons` were exposed to amoxicillin. When
+We can see that `example$numPersons` were exposed to amoxicillin. When
 we add up all the time before the exposure we get
-`r example$timeAtRiskUnexposed` person-years. Similarly when we add up
+`example$timeAtRiskUnexposed` person-years. Similarly when we add up
 all the time after the exposure, the "Exposed time at risk", we get
-`r example$timeAtRiskExposed` person-years.
+`example$timeAtRiskExposed` person-years.
 
 The incidence of Chronic sinusitis during the "Unexposed time at risk"
 is
@@ -267,29 +267,9 @@ diagnosis than the year before?"
 con <- DatabaseConnector::connect(connectionDetails)
 ```
 
-```{sql connection=con}
--- create outcome table
-create table measurement_cohort as 
-select 
-  person_id as subject_id,
-  1 as cohort_definition_id, -- treat any measurement as the same outcome
-  measurement_date as cohort_start_date,
-  measurement_date as cohort_end_date
-from measurement
-```
 
-```{sql connection=con}
--- create exposure table
-create table condition_cohort as 
-select 
-  person_id as subject_id,
-  2 as cohort_definition_id, -- treat any condition as the same exposure
-  condition_start_date as cohort_start_date,
-  condition_end_date as cohort_end_date
-from condition_occurrence
-```
 
-```{r, include=FALSE}
+```{r, eval=F, include=FALSE}
 runSelfControlledCohort(
   connectionDetails = connectionDetails,
   cdmDatabaseSchema = "main",
