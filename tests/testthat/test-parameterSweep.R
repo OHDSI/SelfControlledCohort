@@ -27,23 +27,29 @@ testAllParams <- function(connectionDetails,
                 studyStartDate <- ""
                 studyEndDate <- ""
               }
-              sccResult <- runSelfControlledCohort(connection = conn,
-                                                   cdmDatabaseSchema = cdmDatabaseSchema,
-                                                   cdmVersion = cdmVersion,
-                                                   exposureIds = c(767410, 1314924, 907879),
-                                                   exposureTable = exposureTable,
-                                                   outcomeIds = 444382,
-                                                   outcomeTable = outcomeTable,
-                                                   minAge = minAge,
-                                                   maxAge = maxAge,
-                                                   studyStartDate = studyStartDate,
-                                                   studyEndDate = studyEndDate,
-                                                   addLengthOfExposureExposed = addLengthOfExposure,
-                                                   addLengthOfExposureUnexposed = addLengthOfExposure,
-                                                   hasFullTimeAtRisk = hasFullTimeAtRisk,
-                                                   computeTarDistribution = computeTarDistribution)
-              expect_equal(class(sccResult), "sccResults")
-              expect_equal(class(summary(sccResult)), "data.frame")
+
+              resultPath <- tempfile()
+              dir.create(resultPath)
+              runSelfControlledCohort(connection = conn,
+                                      cdmDatabaseSchema = cdmDatabaseSchema,
+                                      cdmVersion = cdmVersion,
+                                      exposureIds = c(767410, 1314924, 907879),
+                                      exposureTable = exposureTable,
+                                      outcomeIds = 444382,
+                                      outcomeTable = outcomeTable,
+                                      negativeControlPairs = list(c(767410, 444382)),
+                                      controlType = "exposure",
+                                      minAge = minAge,
+                                      maxAge = maxAge,
+                                      studyStartDate = studyStartDate,
+                                      studyEndDate = studyEndDate,
+                                      addLengthOfExposureExposed = addLengthOfExposure,
+                                      addLengthOfExposureUnexposed = addLengthOfExposure,
+                                      hasFullTimeAtRisk = hasFullTimeAtRisk,
+                                      computeTarDistribution = computeTarDistribution,
+                                      resultExportPath = resultPath)
+
+              expect_file_exists(file.path(resultPath, "scc_result.csv"))
             }
           }
         }
