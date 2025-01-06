@@ -356,7 +356,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   checkmate::assertR6(resultExportManager, "ResultExportManager")
 
   checkmate::assertList(negativeControlPairs, null.ok = TRUE)
-  checkmate::assertChoice(controlType, choices = c("outcome", "exposures"))
+  checkmate::assertChoice(controlType, choices = c("outcome", "exposure"))
 
   if (!dir.exists(outputFolder)) {
     dir.create(outputFolder)

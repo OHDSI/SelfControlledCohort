@@ -49,7 +49,7 @@ testAllParams <- function(connectionDetails,
                                       computeTarDistribution = computeTarDistribution,
                                       resultExportPath = resultPath)
 
-              expect_file_exists(file.path(resultPath, "scc_result.csv"))
+              checkmate::expect_file_exists(file.path(resultPath, "scc_result.csv"))
             }
           }
         }
