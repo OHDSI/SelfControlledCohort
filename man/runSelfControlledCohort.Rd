@@ -14,7 +14,7 @@ runSelfControlledCohort(
   exposureIds = NULL,
   outcomeIds = NULL,
   negativeControlPairs = NULL,
-  controlType = "outccome",
+  controlType = "outcome",
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -42,6 +42,7 @@ runSelfControlledCohort(
   resultExportPath = "scc_result",
   outputFolder = "scc_work",
   databaseId = NULL,
+  analysisId = 1,
   resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
     = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
     databaseId)

@@ -19,3 +19,6 @@ Instance of ResultModelManager::DataMigrationManager that has interface for conv
 \description{
 Returns ResultModelManager DataMigrationsManager instance.
 }
+\seealso{
+[ResultModelManager::DataMigrationManager] which this function is a utility for.
+}
