@@ -69,7 +69,7 @@ batchComputeEstimates <- function(connection,
   # Clean up, regardless of status
   on.exit({
     ParallelLogger::stopCluster(cluster)
-    close(andromeda)
+    Andromeda::close(andromeda)
   }, add = TRUE)
 
   # Writes both to CSV and andromeda object for later calibrated results

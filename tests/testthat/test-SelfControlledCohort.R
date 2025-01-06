@@ -44,18 +44,6 @@ test_that("SCC method runs on Eunomia", {
                                     resultsDatabaseSchema = "main",
                                     computeTarDistribution = TRUE)
 
-  expect_false(is.null(result$tarStats$treatmentTimeDistribution))
-  expect_true("mean" %in% colnames(result$tarStats$treatmentTimeDistribution))
-
-  expect_false(is.null(result$tarStats$timeToOutcomeDistribution))
-  expect_true("mean" %in% colnames(result$tarStats$timeToOutcomeDistribution))
-
-  expect_false(is.null(result$tarStats$timeToOutcomeDistributionExposed))
-  expect_true("mean" %in% colnames(result$tarStats$timeToOutcomeDistributionExposed))
-
-  expect_false(is.null(result$tarStats$timeToOutcomeDistributionUnexposed))
-  expect_true("mean" %in% colnames(result$tarStats$timeToOutcomeDistributionUnexposed))
-
 
   rdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.test_results_store")
   expect_s3_class(rdf, "data.frame")

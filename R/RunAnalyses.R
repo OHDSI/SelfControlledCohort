@@ -123,7 +123,7 @@ runSccAnalyses <- function(connectionDetails,
                  resultExportPath = file.path(outputFolder, paste0("A_", refRow$analysisId)),
                  computeThreads = computeThreads)
     args <- append(args, getrunSelfControlledCohortArgs)
-    executionArgList[[length(objectsToCreate) + 1]] <- args
+    executionArgList[[length(executionArgList) + 1]] <- args
   }
 
   if (length(executionArgList) != 0) {
