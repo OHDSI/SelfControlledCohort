@@ -9,7 +9,6 @@ createSccAnalysis(
   description = "",
   exposureType = NULL,
   outcomeType = NULL,
-  useOutcomeControls = TRUE,
   runSelfControlledCohortArgs
 )
 }

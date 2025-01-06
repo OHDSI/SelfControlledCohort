@@ -1,4 +1,4 @@
 library(testthat)
 library(SelfControlledCohort)
-options(dbms = "oracle")
+options(dbms = "spark")
 test_check("SelfControlledCohort")
