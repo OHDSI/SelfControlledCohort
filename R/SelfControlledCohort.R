@@ -128,7 +128,7 @@ batchComputeEstimates <- function(connection,
     }
 
     if (controlType == "exposure") {
-      ncParirsDf |>
+      ncPairsDf |>
         dplyr::group_by(.data$outcomeCohortId) |>
         dplyr::group_map(function(data, outcomeCohortId) {
 
