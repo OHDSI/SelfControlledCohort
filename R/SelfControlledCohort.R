@@ -471,7 +471,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                            results_table = resultsTable)
   DatabaseConnector::executeSql(connection, sql)
 
-  exportManger$writeManifest(packageName = utils::packageName(),
+  resultExportManager$writeManifest(packageName = utils::packageName(),
                              packageVersion = packageVersion(utils::packageName()))
 
   delta <- Sys.time() - start
