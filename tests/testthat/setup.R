@@ -44,18 +44,15 @@ if (dbms == "sql server") {
   cdmDatabaseSchema <- Sys.getenv("CDM5_SQL_SERVER_CDM_SCHEMA")
   cdmVersion <- 5
 }
-if (dbms == "oracle") {
-  DatabaseConnector::downloadJdbcDrivers("oracle", pathToDriver = jdbcDriverFolder)
-  connectionDetails <- createConnectionDetails(dbms = "oracle",
-                                               user = Sys.getenv("CDM5_ORACLE_USER"),
-                                               password = URLdecode(Sys.getenv("CDM5_ORACLE_PASSWORD")),
-                                               server = Sys.getenv("CDM5_ORACLE_SERVER"),
-                                               pathToDriver = jdbcDriverFolder)
-  cdmDatabaseSchema <- Sys.getenv("CDM5_ORACLE_CDM_SCHEMA")
 
-  # Restore temp schema setting after tests complete
-  oldTempSchema <- getOption("sqlRenderTempEmulationSchema")
-  withr::defer(options("sqlRenderTempEmulationSchema" = oldTempSchema), testthat::teardown_env())
-  options("sqlRenderTempEmulationSchema" = Sys.getenv("CDM5_ORACLE_OHDSI_SCHEMA"))
+if (dbms == "spark") {
+  DatabaseConnector::downloadJdbcDrivers("spark", pathToDriver = jdbcDriverFolder)
+  connectionDetails <- createConnectionDetails(dbms = "spark",
+                                               user = Sys.getenv("CDM5_SPARK_USER"),
+                                               password = URLdecode(Sys.getenv("CDM5_SPARK_PASSWORD")),
+                                               connectionString = Sys.getenv("CDM5_SPARK_CONNECTION_STRING"),
+                                               pathToDriver = jdbcDriverFolder)
+  cdmDatabaseSchema <- Sys.getenv("CDM5_SPARK_CDM_SCHEMA")
+  options("sqlRenderTempEmulationSchema" = Sys.getenv("CDM5_SPARK_OHDSI_SCHEMA"))
   cdmVersion <- 5
 }
