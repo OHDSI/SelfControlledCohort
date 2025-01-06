@@ -127,7 +127,10 @@ runSccAnalyses <- function(connectionDetails,
   }
 
   if (length(executionArgList) != 0) {
-   lapply(executionArgList, runSelfControlledCohort)
+    cluster <- ParallelLogger::makeCluster(analysisThreads)
+    ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
+    dummy <- ParallelLogger::clusterApply(cluster, executionArgList, runSelfControlledCohort)
+    ParallelLogger::stopCluster(cluster)
   }
 
   invisible(resultsReference)
