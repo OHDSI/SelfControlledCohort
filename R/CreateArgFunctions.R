@@ -15,8 +15,8 @@
 #'                                       is 'yyyymmdd'.
 #' @param studyEndDate                   Date for maximum allowable data for index exposure. Dateformat
 #'                                       is 'yyyymmdd'.
-#' @param addLengthOfExposureExposed     If TRUE, use the duration from drugEraStart -> drugEraEnd
-#'                                       as part of timeAtRisk.
+#' @param addLengthOfExposureExposed     If TRUE, use the duration from drugEraStart -> drugEraEnd as
+#'                                       part of timeAtRisk.
 #' @param riskWindowStartExposed         Integer of days to add to drugEraStart for start oftimeAtRisk
 #'                                       (0 to include index date, 1 to start the dayafter).
 #' @param riskWindowEndExposed           Additional window to add to end of exposure period
@@ -33,10 +33,10 @@
 #'                                       and unexposed.
 #' @param washoutPeriod                  Integer to define required time observed before exposurestart.
 #' @param followupPeriod                 Integer to define required time observed after exposurestart.
-#' @param computeTarDistribution         If TRUE, computer the distribution of time-at-risk and
-#'                                       average absolute time between treatment and outcome. Note,
-#'                                       may add significant computation time on some database
-#'                                       engines. If set true in one analysis will default to true for all others.
+#' @param computeTarDistribution         If TRUE, computer the distribution of time-at-risk and average
+#'                                       absolute time between treatment and outcome. Note, may add
+#'                                       significant computation time on some database engines. If set
+#'                                       true in one analysis will default to true for all others.
 #'
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,

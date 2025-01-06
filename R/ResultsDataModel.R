@@ -128,7 +128,7 @@ migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = ""
 #' @description
 #'
 #' Returns ResultModelManager DataMigrationsManager instance.
-# '@seealso [ResultModelManager::DataMigrationManager] which this function is a utility for.
+#' @seealso [ResultModelManager::DataMigrationManager] which this function is a utility for.
 #'
 #' @param connectionDetails             DatabaseConnector connection details object
 #' @param databaseSchema                String schema where database schema lives

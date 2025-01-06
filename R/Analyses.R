@@ -95,21 +95,23 @@ loadSccAnalysisList <- function(file) {
 #' @details
 #' Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
 #'
-#' @param exposureId        A concept ID indentifying the drug of interest in the exposure table. If
-#'                          multiple strategies for picking the exposure will be tested in the analysis, a
-#'                          named list of numbers can be provided instead. In the analysis, the name of the
-#'                          number to be used can be specified using the \code{exposureType} parameter in
-#'                          the \code{\link{createSccAnalysis}} function.
-#' @param outcomeId         A concept ID indentifying the outcome of interest in the outcome table. If
-#'                          multiple strategies for picking the outcome will be tested in the analysis, a
-#'                          named list of numbers can be provided instead. In the analysis, the name of the
-#'                          number to be used can be specified using the #' \code{outcomeType} parameter in
-#'                          the \code{\link{createSccAnalysis}} function.
-#' @param trueEffectSize    Should this be set to 1 this will be considererd a negative control
+#' @param exposureId       A concept ID indentifying the drug of interest in the exposure table. If
+#'                         multiple strategies for picking the exposure will be tested in the analysis,
+#'                         a named list of numbers can be provided instead. In the analysis, the name
+#'                         of the number to be used can be specified using the \code{exposureType}
+#'                         parameter in the \code{\link{createSccAnalysis}} function.
+#' @param outcomeId        A concept ID indentifying the outcome of interest in the outcome table. If
+#'                         multiple strategies for picking the outcome will be tested in the analysis,
+#'                         a named list of numbers can be provided instead. In the analysis, the name
+#'                         of the number to be used can be specified using the #' \code{outcomeType}
+#'                         parameter in the \code{\link{createSccAnalysis}} function.
+#' @param trueEffectSize   Should this be set to 1 this will be considererd a negative control
 #'
 #' @export
-createExposureOutcome <- function(exposureId, outcomeId,  trueEffectSize = NA) {
-  exposureOutcome <- list(exposureId = exposureId, outcomeId = outcomeId, trueEffectSize = trueEffectSize)
+createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
+  exposureOutcome <- list(exposureId = exposureId,
+                          outcomeId = outcomeId,
+                          trueEffectSize = trueEffectSize)
   class(exposureOutcome) <- "exposureOutcome"
   return(exposureOutcome)
 }

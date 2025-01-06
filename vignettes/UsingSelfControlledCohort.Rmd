@@ -139,7 +139,7 @@ association between every drug and every condition in a CDM database.
 The Eunomia package provides a mini CDM that runs entirely within R that
 we can use for examples.
 
-```{r, include=FALSE}
+```{r, include=FALSE, eval=F}
 library(SelfControlledCohort)
 library(Eunomia)
 
@@ -149,13 +149,14 @@ result <- runSelfControlledCohort(
   connectionDetails = connectionDetails,
   cdmDatabaseSchema = "main",
   exposureIds = '', # include all drugs as exposures
-  outcomeIds = '' # include all conditions as outcomes
+  outcomeIds = '', # include all conditions as outcomes
+  resultExportPath = "scc_result"
 )
 ```
 
-```{r, message=F}
+```{r, eval=F, message=F}
 library(dplyr)
-result$estimates %>% 
+estimates %>%
   arrange(desc(irr)) %>% 
   head()
 ```
@@ -165,8 +166,8 @@ exposure-outcome pair along with all the relevant statistics. Let's
 interpret the results for amoxicillin exposure (concept ID 1713332) and
 the outcome of Chronic sinusitis (concept ID 257012)
 
-```{r}
-example <- result$estimates %>% 
+```{r eval=F}
+example <- estimates %>%
   filter(exposureId == 1713332, outcomeId == 257012) 
 
 example %>% 
@@ -217,7 +218,7 @@ schema in your CDM database.
 We will simulate using cohorts created in Atlas by using the pre-built
 cohorts in Eunomia.
 
-```{r, include=FALSE}
+```{r, eval=F, include=FALSE}
 Eunomia::createCohorts(connectionDetails)
 ```
 
@@ -226,19 +227,22 @@ outcome of GiBleed (cohort \#3). Even though this is a drug-condition
 pair these cohorts could be defined using combinations of data elements
 from any domain.
 
-```{r, include=FALSE}
+```{r, eval=F, include=FALSE}
 
-result <- runSelfControlledCohort(
+runSelfControlledCohort(
   connectionDetails = connectionDetails,
   cdmDatabaseSchema = "main",
   exposureIds = c(1,4), # The NSAIDs cohort #4 and the Celecoxib cohort #1
   outcomeIds = 3, # The GiBleed cohort #3
   exposureTable = "cohort",
   outcomeTable = "cohort",
+  resultExportPath = "scc_result"
 )
+
+estimates <- read.csv("results/scc_result")
 ```
 
-```{r}
+```{r eval=F}
 result$estimates %>% 
   filter(exposureId == 4, outcomeId == 3) %>% 
   tidyr::gather() %>% 
@@ -259,7 +263,7 @@ Let's demonstrate custom exposure outcome pairs using SQL by asking "Do
 patients tend to get more measurements in the year after a condition
 diagnosis than the year before?"
 
-```{r}
+```{r eval=F}
 con <- DatabaseConnector::connect(connectionDetails)
 ```
 
@@ -286,7 +290,7 @@ from condition_occurrence
 ```
 
 ```{r, include=FALSE}
-result <- runSelfControlledCohort(
+runSelfControlledCohort(
   connectionDetails = connectionDetails,
   cdmDatabaseSchema = "main",
   exposureIds = '', # use all rows in exposure table
@@ -299,14 +303,15 @@ result <- runSelfControlledCohort(
   riskWindowEndExposed = 365,
   riskWindowEndUnexposed = -1,
   riskWindowStartUnexposed = -365,
+  resultExportPath = "scc_result"
 )
 ```
 
 Using the `riskWindow` arguments we can set the time at risk to one year
 before and one year after each condition exposure.
 
-```{r}
-result$estimates %>% 
+```{r eval=F}
+estimates %>% 
   tidyr::gather() %>% 
   mutate(value = format(round(value,1), scientific = F)) %>% 
   rename(column = key) %>% 
@@ -328,7 +333,7 @@ We will create one analysis that uses 30 day exposure windows and another with
 365 day exposure windows.
 
 
-```{r}
+```{r eval=F}
 	
 sccArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
                                               firstOutcomeOnly = TRUE,
@@ -387,7 +392,7 @@ be concept IDs if you are using the condition_occurrence and drug_era tables or
 cohort IDs if you are using a cohort table for exposures and outcomes. 
 
 
-```{r}
+```{r eval=F}
 
 exposureOutcomeList <- list(createExposureOutcome(exposureId = 4, outcomeId = 3),
                             createExposureOutcome(exposureId = 1, outcomeId = 3))
@@ -398,7 +403,7 @@ exposureOutcomeList <- list(createExposureOutcome(exposureId = 4, outcomeId = 3)
 The total number of rate ratios will be `length(sccAnalysisList) * length(exposureOutcomesList)`
 since every analysis will be executed for every exposure-outcome pair.
 
-```{r}
+```{r eval=F}
 	
 results <- runSccAnalyses(connectionDetails,
                           cdmDatabaseSchema = "main",
