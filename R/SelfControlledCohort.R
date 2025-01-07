@@ -117,7 +117,7 @@ batchComputeEstimates <- function(connection,
           estimates <- andromeda$estimates |>
             dplyr::filter(.data$targetCohortId == targetCohortId)
 
-          postives <- estimates |>
+          positives <- estimates |>
             dplyr::filter(!.data$outcomeCohortId %in% data$outcomeCohortId)
 
           negatives <- estimates |>
@@ -138,7 +138,7 @@ batchComputeEstimates <- function(connection,
           estimates <- andromeda$estimates |>
             dplyr::filter(.data$outcomeCohortId == outcomeCohortId)
 
-          postives <- estimates |>
+          positives <- estimates |>
             dplyr::filter(!.data$targetCohortId %in% data$targetCohortId)
 
           negatives <- estimates |>
