@@ -31,6 +31,7 @@ testAllParams <- function(connectionDetails,
               resultPath <- tempfile()
               dir.create(resultPath)
               runSelfControlledCohort(connection = conn,
+                                      databaseId = 99,
                                       cdmDatabaseSchema = cdmDatabaseSchema,
                                       cdmVersion = cdmVersion,
                                       exposureIds = c(767410, 1314924, 907879),

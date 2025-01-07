@@ -43,7 +43,7 @@ test_that("General test + errors and warnings", {
   expect_error(getSccRiskWindowStats(connection = NULL,
                                      outcomeDatabaseSchema = cdmDatabaseSchema))
 
-  getSccRiskWindowStats(connection, outcomeDatabaseSchema = cdmDatabaseSchema, outcomeIds = 444382)
+  getSccRiskWindowStats(connection, outcomeDatabaseSchema = cdmDatabaseSchema, databaseId = 99, outcomeIds = 444382)
 
   # Invalid connection object
   connectionT <- DatabaseConnector::connect(connectionDetails)
@@ -76,6 +76,7 @@ test_that("Using real risk windows tables", {
                     resultsDatabaseSchema = cdmDatabaseSchema)
 
   getSccRiskWindowStats(connection,
+                        databaseId = 99,
                         outcomeDatabaseSchema = cdmDatabaseSchema,
                         riskWindowsTable = "test_risk_windows",
                         resultsDatabaseSchema = cdmDatabaseSchema,
