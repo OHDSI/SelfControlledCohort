@@ -18,6 +18,7 @@ test_that("SCC method runs on Eunomia", {
                                        cdmDatabaseSchema = "main",
                                        exposureIds = '',
                                        outcomeIds = '',
+                                       databaseId = 1,
                                        riskWindowEndExposed = 1,
                                        riskWindowStartExposed = 30,
                                        addLengthOfExposureExposed = F),

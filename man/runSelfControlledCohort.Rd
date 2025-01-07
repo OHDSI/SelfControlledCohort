@@ -41,7 +41,7 @@ runSelfControlledCohort(
   resultsDatabaseSchema = NULL,
   resultExportPath = "scc_result",
   outputFolder = "scc_work",
-  databaseId = NULL,
+  databaseId,
   analysisId = 1,
   resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
     = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
@@ -174,7 +174,7 @@ riskWindowsTable are temporary.}
 
 \item{outputFolder}{Folder where intermediate files are stored}
 
-\item{databaseId}{Unique identifier for database}
+\item{databaseId}{Unique identifier for database - required}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}

@@ -44,13 +44,13 @@ computeIrrs <- function(estimates) {
                  timeAtRiskExposed = estimates$time_at_risk_exposed,
                  timeAtRiskUnexposed = estimates$time_at_risk_unexposed)
 
-  estimates$irr <- irrs[1,]
-  estimates$irrLb95 <- irrs[2,]
-  estimates$irrUb95 <- irrs[3,]
+  estimates$rr <- irrs[1,]
+  estimates$irr_lb_95 <- irrs[2,]
+  estimates$irr_ub_95 <- irrs[3,]
 
-  estimates$logRr <- log(estimates$irr)
-  estimates$seLogRr <- (log(estimates$irrUb95) - log(estimates$irrLb95)) / (2 * qnorm(0.975))
-  zTest <- stats::pnorm(estimates$logRr / estimates$seLogRr)
+  estimates$log_rr <- log(estimates$rr)
+  estimates$se_log_rr <- (log(estimates$irr_ub_95) - log(estimates$irr_lb_95)) / (2 * qnorm(0.975))
+  zTest <- stats::pnorm(estimates$log_rr / estimates$se_log_rr)
   estimates$p <- 2 * pmin(zTest, 1 - zTest)
   return(estimates)
 }
@@ -135,7 +135,6 @@ batchComputeEstimates <- function(connection,
       ncPairsDf |>
         dplyr::group_by(.data$outcomeCohortId) |>
         dplyr::group_map(function(data, outcomeCohortId) {
-          browser()
           estimates <- andromeda$estimates |>
             dplyr::filter(.data$outcomeCohortId == outcomeCohortId)
 
@@ -266,7 +265,7 @@ batchComputeEstimates <- function(connection,
 #'                                         confidence intervals.
 #' @param resultExportPath                 Folder where result files are exported
 #' @param outputFolder                     Folder where intermediate files are stored
-#' @param databaseId                       Unique identifier for database
+#' @param databaseId                       Unique identifier for database - required
 #' @param resultExportManager              ResultModelManager::ResultExportManager instance - customize this to implement
 #'                                         an alternative mechanism for exporting results
 #'
@@ -325,7 +324,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     resultsDatabaseSchema = NULL,
                                     resultExportPath = "scc_result",
                                     outputFolder = "scc_work",
-                                    databaseId = NULL,
+                                    databaseId,
                                     analysisId = 1,
                                     resultExportManager = ResultModelManager::createResultExportManager(
                                       tableSpecification = getResultsDataModelSpecifications(),

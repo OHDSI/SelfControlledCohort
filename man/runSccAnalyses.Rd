@@ -16,6 +16,7 @@ runSccAnalyses(
   outputFolder = "./SelfControlledCohortOutput",
   sccAnalysisList,
   exposureOutcomeList,
+  databaseId,
   controlType = "outcome",
   analysisThreads = 1,
   computeThreads = 1
@@ -65,6 +66,8 @@ COHORT_END_DATE.}
 
 \item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
 the \code{\link{createExposureOutcome}} function.}
+
+\item{databaseId}{Unique identifier for database - required}
 
 \item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 

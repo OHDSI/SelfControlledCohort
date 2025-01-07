@@ -19,12 +19,11 @@ scc_result,calibrated_lb_95,float,0,0,0,Lower bound of the 95% confidence interv
 scc_result,calibrated_ub_95,float,0,0,0,Upper bound of the 95% confidence interval for calibrated results
 scc_result,calibrated_p_value,float,0,0,0,P-value for calibrated results
 scc_result,exposure_calibrated,int,0,0,0,Is the result calibrated with exposure negative controls or outcomes?
-scc_result,c_pt,float,0,0,0,Unexposed pt
-scc_result,t_pt,float,0,0,0,Exposed pt
-scc_result,t_at_risk,float,0,0,0,Time at risk exposed
-scc_result,c_at_risk,float,0,0,0,Time at risk unexposed
-scc_result,t_cases,float,0,0,1,Cases while exposed
-scc_result,c_cases,float,0,0,1,Cases while unexposed
+scc_result,num_persons,float,0,0,0,person count
+scc_result,time_at_risk_exposed,float,0,0,0,Time at risk exposed
+scc_result,time_at_risk_unexposed,float,0,0,0,Time at risk unexposed
+scc_result,num_outcomes_exposed,float,0,0,1,Cases while exposed
+scc_result,num_outcomes_unexposed,float,0,0,1,Cases while unexposed
 scc_result,num_exposures,float,0,0,1,Number of exposures
 scc_result,i_2,float,0,0,0,I² statistic for heterogeneity
 scc_stat,database_id,int,1,1,0,Unique identifier for the database

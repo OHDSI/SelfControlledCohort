@@ -63,7 +63,7 @@ table.}
 
 \item{resultExportPath}{Folder where result files are exported}
 
-\item{databaseId}{Unique identifier for database}
+\item{databaseId}{Unique identifier for database - required}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}

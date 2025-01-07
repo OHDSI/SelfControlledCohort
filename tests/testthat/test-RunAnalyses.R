@@ -21,6 +21,7 @@ test_that("multiple analyses", {
                          sccAnalysisList = sccAnalysisList,
                          exposureOutcomeList = exposureOutcomeList,
                          outputFolder = outputFolder,
+                         databaseId = 1,
                          computeThreads = 1)
 
     expect_s3_class(rr, "data.frame")

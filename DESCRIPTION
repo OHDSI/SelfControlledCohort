@@ -35,6 +35,8 @@ Suggests:
     DiagrammeR,
     tidyr,
     R.utils
+Remotes:
+    OHDSI/ResultModelManager@big_int_type_check
 License: Apache License 2.0
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
