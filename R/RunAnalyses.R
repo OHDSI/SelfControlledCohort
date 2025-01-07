@@ -163,30 +163,3 @@ runSccAnalyses <- function(connectionDetails,
     return(value[type])
   }
 }
-
-#' Create a summary report of the analyses
-#'
-#' @param resultsReference   A data.frame as created by the \code{\link{runSccAnalyses}} function.
-#' @param outputFolder       Name of the folder where all the outputs have been written to.
-#'
-#' @export
-summarizeAnalyses <- function(resultsReference, outputFolder) {
-  result <- data.frame()
-  for (sccResultsFile in unique(resultsReference$sccResultsRef)) {
-    sccResults <- readRDS(file.path(outputFolder, sccResultsRef))$estimates
-    if (nrow(sccResults) > 0) {
-      analysisId <- resultsReference$analysisId[resultsReference$sccResultsRef == sccResultsRef][1]
-      sccResults$analysisId <- analysisId
-    }
-
-    result <- rbind(result, sccResults)
-  }
-
-  # Return consistent column names
-  if (nrow(result) == 0) {
-    result <- data.frame(matrix(ncol = 15, nrow = 0))
-    colnames(result) <- c("exposureId", "outcomeId", "numPersons", "numExposures", "numOutcomesExposed", "logRr", "seLogRr",
-                          "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "irr", "irrLb95", "irrUb95", "p", "analysisId")
-  }
-  return(result)
-}

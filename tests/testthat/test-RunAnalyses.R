@@ -30,9 +30,6 @@ test_that("multiple analyses", {
       expect_true(file.exists(file.path(outputFolder, item["sccResultsFile"])))
     })
 
-    result <- summarizeAnalyses(rr, outputFolder)
-    expect_s3_class(result, "data.frame")
-    expect_equal(ncol(result), 15)
   })
 })
 

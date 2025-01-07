@@ -104,8 +104,6 @@ rr <- runSccAnalyses(connectionDetails = connectionDetails,
 
 rr <- readRDS(file.path(outputFolder, "resultsReference.rds"))
 
-res <- summarizeAnalyses(rr)
-
 
 
 
