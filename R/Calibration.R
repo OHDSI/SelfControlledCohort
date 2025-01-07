@@ -17,7 +17,6 @@
 #' Get Null Distribution from EmpiricalCalibration Package
 #' @noRd
 getNullDist <- function(negatives) {
-  checkmate::assertDataFrame(negatives, col.names = "named")
   checkmate::assertNames(names(negatives), must.include = c("rr", "seLogRr"))
   negatives <- tidyr::drop_na(negatives)
   EmpiricalCalibration::fitNull(logRr = log(negatives$rr), seLogRr = negatives$seLogRr)
@@ -35,7 +34,6 @@ getNullDist <- function(negatives) {
 #' @noRd
 computeCalibratedRows <- function(positives, negatives, idCol = NULL, keepCols = c("cPt", "cAtRisk",
   "cCases", "tCases", "tAtRisk")) {
-  checkmate::assertDataFrame(positives, col.names = "named")
   checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols, idCol))
   nullDist <- getNullDist(negatives)
   errorModel <- EmpiricalCalibration::convertNullToErrorModel(nullDist)

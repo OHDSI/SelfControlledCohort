@@ -110,7 +110,7 @@ batchComputeEstimates <- function(connection,
     }))
 
     if (controlType == "outcome") {
-      ncParirsDf |>
+      ncPairsDf |>
         dplyr::group_by(.data$targetCohortId) |>
         dplyr::group_map(function(data, targetCohortId) {
 

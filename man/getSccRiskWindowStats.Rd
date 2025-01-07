@@ -7,6 +7,7 @@
 getSccRiskWindowStats(
   connection,
   outcomeDatabaseSchema,
+  databaseId,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   oracleTempSchema = NULL,
   outcomeIds = NULL,
@@ -17,7 +18,6 @@ getSccRiskWindowStats(
   riskWindowsTable = "#risk_windows",
   resultExportPath = "scc_result",
   analysisId = 1,
-  databaseId = NULL,
   resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
     = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
     databaseId)
@@ -31,6 +31,8 @@ the data used to define the outcome cohorts is available. If
 exposureTable = CONDITION_ERA, exposureDatabaseSchema is not
 used by assumed to be cdmSchema.  Requires read permissions
 to this database.}
+
+\item{databaseId}{Unique identifier for database - required}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
@@ -62,8 +64,6 @@ riskWindowsTable are temporary.}
 table.}
 
 \item{resultExportPath}{Folder where result files are exported}
-
-\item{databaseId}{Unique identifier for database - required}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}
