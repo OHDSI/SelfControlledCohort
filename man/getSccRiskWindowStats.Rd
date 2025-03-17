@@ -9,7 +9,6 @@ getSccRiskWindowStats(
   outcomeDatabaseSchema,
   databaseId,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-  oracleTempSchema = NULL,
   outcomeIds = NULL,
   cdmVersion = 5,
   outcomeTable = "condition_era",
@@ -37,10 +36,6 @@ to this database.}
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
 
-\item{oracleTempSchema}{For Oracle only: the name of the database schema where you
-want all temporary tables to be managed. Requires
-create/insert permissions to this database.}
-
 \item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
 outcomes of interest. If empty, all the outcomes in the
 outcome table will be included.}
@@ -64,6 +59,8 @@ riskWindowsTable are temporary.}
 table.}
 
 \item{resultExportPath}{Folder where result files are exported}
+
+\item{analysisId}{An integer unique to this analysis}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}

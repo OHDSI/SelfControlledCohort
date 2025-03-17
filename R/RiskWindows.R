@@ -202,7 +202,6 @@ getSccRiskWindowStats <- function(connection,
                                   outcomeDatabaseSchema,
                                   databaseId,
                                   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-                                  oracleTempSchema = NULL,
                                   outcomeIds = NULL,
                                   cdmVersion = 5,
                                   outcomeTable = "condition_era",
@@ -219,11 +218,6 @@ getSccRiskWindowStats <- function(connection,
 
   if (!DatabaseConnector::dbIsValid(connection))
     stop("Invalid connection object")
-
-  if (!is.null(oracleTempSchema) & is.null(tempEmulationSchema)) {
-    tempEmulationSchema <- oracleTempSchema
-    warning('OracleTempSchema has been deprecated by DatabaseConnector')
-  }
 
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {

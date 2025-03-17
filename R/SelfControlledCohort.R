@@ -181,9 +181,6 @@ batchComputeEstimates <- function(connection,
 #'                                         vocabulary.
 #' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
 #'                                         "5".
-#' @param oracleTempSchema                 For Oracle only: the name of the database schema where you
-#'                                         want all temporary tables to be managed. Requires
-#'                                         create/insert permissions to this database.
 #' @param tempEmulationSchema              Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 #'                                         tables, provide a schema with write privileges where temp tables can be created.
 
@@ -268,6 +265,7 @@ batchComputeEstimates <- function(connection,
 #' @param databaseId                       Unique identifier for database - required
 #' @param resultExportManager              ResultModelManager::ResultExportManager instance - customize this to implement
 #'                                         an alternative mechanism for exporting results
+#' @param analysisId                       An integer unique to this analysis
 #'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
@@ -293,7 +291,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     connection = NULL,
                                     cdmVersion = 5,
                                     tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-                                    oracleTempSchema = NULL,
                                     exposureIds = NULL,
                                     outcomeIds = NULL,
                                     negativeControlPairs = NULL,

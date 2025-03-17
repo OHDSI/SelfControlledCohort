@@ -10,7 +10,6 @@ runSelfControlledCohort(
   connection = NULL,
   cdmVersion = 5,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-  oracleTempSchema = NULL,
   exposureIds = NULL,
   outcomeIds = NULL,
   negativeControlPairs = NULL,
@@ -63,10 +62,6 @@ vocabulary.}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
-
-\item{oracleTempSchema}{For Oracle only: the name of the database schema where you
-want all temporary tables to be managed. Requires
-create/insert permissions to this database.}
 
 \item{exposureIds}{A vector containing the drug_concept_ids or
 cohort_definition_ids of the exposures of interest. If empty,
@@ -175,6 +170,8 @@ riskWindowsTable are temporary.}
 \item{outputFolder}{Folder where intermediate files are stored}
 
 \item{databaseId}{Unique identifier for database - required}
+
+\item{analysisId}{An integer unique to this analysis}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}

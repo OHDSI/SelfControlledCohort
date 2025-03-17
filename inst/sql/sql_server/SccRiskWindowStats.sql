@@ -14,6 +14,12 @@
 --See the License for the specific language governing permissions and
 --limitations under the License.
 
+DROP TABLE IF EXISTS #tx_distribution;
+DROP TABLE IF EXISTS #treatment_times;
+DROP TABLE IF EXISTS #time_to_dist;
+DROP TABLE IF EXISTS #time_to_dist_exposed;
+DROP TABLE IF EXISTS #time_to_dist_unex;
+
 SELECT
     exposure_id,
     outcome_id,
