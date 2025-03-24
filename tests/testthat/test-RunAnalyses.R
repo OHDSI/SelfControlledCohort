@@ -25,11 +25,8 @@ test_that("multiple analyses", {
                          computeThreads = 1)
 
     expect_s3_class(rr, "data.frame")
-    expect_true(file.exists(file.path(outputFolder, "resultsReference.rds")))
-    apply(rr, 1, function(item) {
-      expect_true(file.exists(file.path(outputFolder, item["sccResultsFile"])))
-    })
-
+    checkmate::expect_file_exists(file.path(outputFolder, "resultsReference.rds"))
+    checkmate::expect_file_exists(file.path(outputFolder, rr$sccResultsRef))
   })
 })
 

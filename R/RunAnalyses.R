@@ -143,7 +143,7 @@ runSccAnalyses <- function(connectionDetails,
 }
 
 .createSccResultsRef <- function(analysisId) {
-  name <- paste("SccResults_a", analysisId, sep = "")
+  name <- file.path(paste("A_", analysisId, sep = ""), "scc_result.csv")
   return(name)
 }
 
