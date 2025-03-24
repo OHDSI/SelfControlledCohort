@@ -99,7 +99,7 @@ batchComputeEstimates <- function(connection,
                                   transformFunctionArgs = args,
                                   append = FALSE)
 
-  if (is.null(andromeda$estimates)) {
+  if (is.null(andromeda$estimates) || andromeda$estimates |> dplyr::count() |> dplyr::pull() == 0){
     ParallelLogger::logInfo("No effect estimates produced")
     return(NULL)
   }
@@ -112,10 +112,11 @@ batchComputeEstimates <- function(connection,
     if (controlType == "outcome") {
       ncPairsDf |>
         dplyr::group_by(.data$targetCohortId) |>
-        dplyr::group_map(function(data, targetCohortId) {
+        dplyr::group_map(function(data, grp) {
 
           estimates <- andromeda$estimates |>
-            dplyr::filter(.data$targetCohortId == targetCohortId)
+            dplyr::filter(.data$targetCohortId == grp$targetCohortId) |>
+            dplyr::collect()
 
           positives <- estimates |>
             dplyr::filter(!.data$outcomeCohortId %in% data$outcomeCohortId)
@@ -134,9 +135,11 @@ batchComputeEstimates <- function(connection,
     if (controlType == "exposure") {
       ncPairsDf |>
         dplyr::group_by(.data$outcomeCohortId) |>
-        dplyr::group_map(function(data, outcomeCohortId) {
+        dplyr::group_map(function(data, grp) {
+
           estimates <- andromeda$estimates |>
-            dplyr::filter(.data$outcomeCohortId == outcomeCohortId)
+            dplyr::filter(.data$outcomeCohortId == grp$outcomeCohortId) |>
+            dplyr::collect()
 
           positives <- estimates |>
             dplyr::filter(!.data$targetCohortId %in% data$targetCohortId)
