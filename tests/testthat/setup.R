@@ -10,10 +10,10 @@ withr::defer({
 
 
 dbms <- getOption("dbms", default = "sqlite")
+cdmVersion <- 5
 if (dbms == "sqlite") {
   connectionDetails <- Eunomia::getEunomiaConnectionDetails()
   cdmDatabaseSchema <- "main"
-  cdmVersion <- 5
 }
 if (dbms == "postgresql") {
   DatabaseConnector::downloadJdbcDrivers("postgresql", pathToDriver = jdbcDriverFolder)
@@ -24,7 +24,6 @@ if (dbms == "postgresql") {
                                                pathToDriver = jdbcDriverFolder)
 
   cdmDatabaseSchema <- Sys.getenv("CDM5_POSTGRESQL_CDM_SCHEMA")
-  cdmVersion <- 5
 }
 if (dbms == "redshift") {
   DatabaseConnector::downloadJdbcDrivers("redshift", pathToDriver = jdbcDriverFolder)
@@ -35,7 +34,6 @@ if (dbms == "redshift") {
                                                pathToDriver = jdbcDriverFolder)
 
   cdmDatabaseSchema <- Sys.getenv("CDM5_REDSHIFT_CDM_SCHEMA")
-  cdmVersion <- 5
 }
 if (dbms == "sql server") {
   DatabaseConnector::downloadJdbcDrivers("sql server", pathToDriver = jdbcDriverFolder)
@@ -45,7 +43,6 @@ if (dbms == "sql server") {
                                                server = Sys.getenv("CDM5_SQL_SERVER_SERVER"),
                                                pathToDriver = jdbcDriverFolder)
   cdmDatabaseSchema <- Sys.getenv("CDM5_SQL_SERVER_CDM_SCHEMA")
-  cdmVersion <- 5
 }
 
 if (dbms == "spark") {
@@ -57,5 +54,4 @@ if (dbms == "spark") {
                                                pathToDriver = jdbcDriverFolder)
   cdmDatabaseSchema <- Sys.getenv("CDM5_SPARK_CDM_SCHEMA")
   options("sqlRenderTempEmulationSchema" = Sys.getenv("CDM5_SPARK_OHDSI_SCHEMA"))
-  cdmVersion <- 5
 }

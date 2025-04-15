@@ -120,7 +120,7 @@ migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = ""
                               databaseSchema = databaseSchema,
                               tablePrefix = tablePrefix)
 
-  on.exit(migrator$finalize())
+  on.exit(migrator$closeConnection())
   migrator$executeMigrations()
 }
 

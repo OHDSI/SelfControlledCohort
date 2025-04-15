@@ -78,15 +78,17 @@ batchComputeEstimates <- function(connection,
       rows <- split(rows, rep_len(1:batches, nrow(rows)))
       rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
       rows <- do.call(rbind, rows)
-    }
 
-    if (position == 1) {
-      andromeda$estimates <- rows
-    } else {
-      Andromeda::appendToTable(andromeda$estimates, rows)
-    }
 
-    return(rows)
+      if (position == 1) {
+        andromeda$estimates <- rows
+      } else {
+        Andromeda::appendToTable(andromeda$estimates, rows)
+      }
+
+      return(rows)
+    }
+    data.frame()
   }
 
   # Fetch results from server:
@@ -99,7 +101,9 @@ batchComputeEstimates <- function(connection,
                                   transformFunctionArgs = args,
                                   append = FALSE)
 
-  if (is.null(andromeda$estimates) || andromeda$estimates |> dplyr::count() |> dplyr::pull() == 0){
+  if (is.null(andromeda$estimates) || andromeda$estimates |>
+    dplyr::count() |>
+    dplyr::pull() == 0) {
     ParallelLogger::logInfo("No effect estimates produced")
     return(NULL)
   }
