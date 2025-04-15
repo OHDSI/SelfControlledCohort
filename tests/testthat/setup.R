@@ -12,11 +12,11 @@ withr::defer({
 dbms <- getOption("dbms", default = "sqlite")
 cdmVersion <- 5
 if (dbms == "sqlite") {
-  datasetName <- "Synthea27Nj"
+  datasetName <- "GiBleed"
   #Eunomia::downloadEunomiaData(datasetName = datasetName)
   dbFile <- tempfile(fileext = paste0(datasetName, ".sqlite"))
   Eunomia::getDatabaseFile(datasetName,
-                           cdmVersion = "5.4",
+                           cdmVersion = "5.3",
                            dbms = "sqlite",
                            databaseFile = dbFile,
                            inputFormat = "csv",
