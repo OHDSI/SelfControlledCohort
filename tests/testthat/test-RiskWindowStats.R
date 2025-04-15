@@ -53,12 +53,6 @@ test_that("General test + errors and warnings", {
   expect_error(runSccRiskWindows(connection = connectionT,
                                  cdmDatabaseSchema = cdmDatabaseSchema))
 
-})
-
-test_that("Using real risk windows tables", {
-  # Not all test platforms provide a schema we can create tables in, only sqlite will be used
-  skip_if_not(dbms == "sqlite", "Test not available on db platform")
-
   runSccRiskWindows(connection = connection,
                     cdmDatabaseSchema = cdmDatabaseSchema,
                     exposureTable = "drug_era",

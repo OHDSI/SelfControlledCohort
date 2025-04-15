@@ -15,15 +15,13 @@ if (dbms == "sqlite") {
   datasetName <- "Synthea27Nj"
   #Eunomia::downloadEunomiaData(datasetName = datasetName)
   dbFile <- tempfile(fileext = paste0(datasetName, ".sqlite"))
-  Eunomia::getDatabaseFile(
-    datasetName,
-    cdmVersion = "5.4",
-    dbms = "sqlite",
-    databaseFile = dbFile,
-    inputFormat = "csv",
-    verbose = FALSE,
-    overwrite = TRUE
-  )
+  Eunomia::getDatabaseFile(datasetName,
+                           cdmVersion = "5.4",
+                           dbms = "sqlite",
+                           databaseFile = dbFile,
+                           inputFormat = "csv",
+                           verbose = FALSE,
+                           overwrite = FALSE)
 
   connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "sqlite", server = dbFile)
   cdmDatabaseSchema <- "main"
