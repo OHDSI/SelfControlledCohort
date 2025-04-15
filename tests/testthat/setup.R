@@ -12,7 +12,20 @@ withr::defer({
 dbms <- getOption("dbms", default = "sqlite")
 cdmVersion <- 5
 if (dbms == "sqlite") {
-  connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+  datasetName <- "Synthea27Nj"
+  #Eunomia::downloadEunomiaData(datasetName = datasetName)
+  dbFile <- tempfile(fileext = paste0(datasetName, ".sqlite"))
+  Eunomia::getDatabaseFile(
+    datasetName,
+    cdmVersion = "5.4",
+    dbms = "sqlite",
+    databaseFile = dbFile,
+    inputFormat = "csv",
+    verbose = FALSE,
+    overwrite = TRUE
+  )
+
+  connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "sqlite", server = dbFile)
   cdmDatabaseSchema <- "main"
 }
 if (dbms == "postgresql") {
