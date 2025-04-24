@@ -25,10 +25,8 @@ test_that("multiple analyses", {
                                  computeThreads = 1)
 
     checkmate::expect_data_frame(resultsRef)
-    checkmate::expect_file_exists(file.path(outputFolder, "A_1", "manifest.json"))
-    checkmate::expect_file_exists(file.path(outputFolder, "A_2", "manifest.json"))
-    checkmate::expect_file_exists(file.path(outputFolder, "A_2", "scc_result.csv"))
-    checkmate::expect_file_exists(file.path(outputFolder, "A_2", "scc_result.csv"))
+    checkManifestFiles(file.path(outputFolder, "A_1"))
+    checkManifestFiles(file.path(outputFolder, "A_2"))
   })
 })
 

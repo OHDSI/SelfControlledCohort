@@ -11,3 +11,12 @@ if (Sys.getenv("DEVTOOLS_LOAD") == "true" & .Platform$OS.type == "unix") {
     withr::defer(unlink(linkPath), testthat::teardown_env())
   }
 }
+
+checkManifestFiles <- function(rootDir) {
+  checkmate::expect_file_exists(file.path(rootDir, "manifest.json"))
+  manifest <- jsonlite::read_json(file.path(rootDir, "manifest.json"))
+
+  for (file in manifest$files) {
+    checkmate::assertFileExists(file.path(rootDir, file))
+  }
+}
