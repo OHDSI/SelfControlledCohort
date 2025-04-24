@@ -79,7 +79,7 @@ batchComputeEstimates <- function(connection,
       rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
       rows <- do.call(rbind, rows)
 
-
+      colnames(rows) <- SqlRender::snakeCaseToCamelCase(colnames(rows))
       if (position == 1) {
         andromeda$estimates <- rows
       } else {

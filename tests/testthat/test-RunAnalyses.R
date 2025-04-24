@@ -16,17 +16,19 @@ test_that("multiple analyses", {
   sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
 
   withr::with_tempfile("outputFolder", {
-    rr <- runSccAnalyses(connectionDetails = connectionDetails,
-                         cdmDatabaseSchema = cdmDatabaseSchema,
-                         sccAnalysisList = sccAnalysisList,
-                         exposureOutcomeList = exposureOutcomeList,
-                         outputFolder = outputFolder,
-                         databaseId = 1,
-                         computeThreads = 1)
+    resultsRef <- runSccAnalyses(connectionDetails = connectionDetails,
+                                 cdmDatabaseSchema = cdmDatabaseSchema,
+                                 sccAnalysisList = sccAnalysisList,
+                                 exposureOutcomeList = exposureOutcomeList,
+                                 outputFolder = outputFolder,
+                                 databaseId = 1,
+                                 computeThreads = 1)
 
-    expect_s3_class(rr, "data.frame")
-    checkmate::expect_file_exists(file.path(outputFolder, "resultsReference.rds"))
-    checkmate::expect_file_exists(file.path(outputFolder, rr$sccResultsRef))
+    checkmate::expect_data_frame(resultsRef)
+    checkmate::expect_file_exists(file.path(outputFolder, "A_1", "manifest.json"))
+    checkmate::expect_file_exists(file.path(outputFolder, "A_2", "manifest.json"))
+    checkmate::expect_file_exists(file.path(outputFolder, "A_2", "scc_result.csv"))
+    checkmate::expect_file_exists(file.path(outputFolder, "A_2", "scc_result.csv"))
   })
 })
 

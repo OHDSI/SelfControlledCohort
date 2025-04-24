@@ -19,6 +19,14 @@
 getNullDist <- function(negatives) {
   checkmate::assertNames(names(negatives), must.include = c("rr", "seLogRr"))
   negatives <- tidyr::drop_na(negatives)
+
+  if (nrow(negatives) == 0) {
+    # This is just to prevent warnings in unit tests
+    naNull <- c(NA, NA)
+    names(naNull) <- c("mean", "sd")
+    class(naNull) <- "null" # This is a null distribution not a NULL reference
+    return(naNull)
+  }
   EmpiricalCalibration::fitNull(logRr = log(negatives$rr), seLogRr = negatives$seLogRr)
 }
 
@@ -32,8 +40,8 @@ getNullDist <- function(negatives) {
 #' @return
 #' data.frame
 #' @noRd
-computeCalibratedRows <- function(positives, negatives, idCol = NULL, keepCols = c("cPt", "cAtRisk",
-  "cCases", "tCases", "tAtRisk")) {
+computeCalibratedRows <- function(positives, negatives, idCol = NULL, keepCols = c("numExposures", "numPersons",
+  "numOutcomesExposed", "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed")) {
   checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols, idCol))
   nullDist <- getNullDist(negatives)
   errorModel <- EmpiricalCalibration::convertNullToErrorModel(nullDist)

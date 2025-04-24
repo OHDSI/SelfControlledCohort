@@ -7,12 +7,13 @@ sample_negatives <- data.frame(
 sample_positives <- data.frame(
   rr = c(1.5, 0.9, 1.1),
   seLogRr = c(0.2, 0.1, 0.3),
-  cPt = c(100, 150, 200),
-  cAtRisk = c(1000, 1500, 2000),
-  cCases = c(10, 20, 30),
-  tCases = c(15, 25, 35),
-  tAtRisk = c(950, 1450, 1950),
-  target_cohort_id = c(1, 2, 3)
+  numPersons = c(100, 150, 200),
+  numExposures = c(1000, 1500, 2000),
+  numOutcomesExposed = c(10, 20, 30),
+  numOutcomesUnexposed = c(15, 25, 35),
+  timeAtRiskExposed = c(950, 1450, 1950),
+  timeAtRiskUnexposed = c(950, 1450, 1950),
+  targetCohortId = c(1, 2, 3)
 )
 
 test_that("getNullDist function works as expected", {
@@ -35,11 +36,13 @@ test_that("computeCalibratedRows function works as expected", {
   expect_error(computeCalibratedRows(sample_positives, sample_negatives, idCol = "non_existent_id"))
 
   # Valid call
+
   result <- computeCalibratedRows(positives = sample_positives,
                                   negatives = sample_negatives,
-                                  idCol = "target_cohort_id")
+                                  idCol = "targetCohortId")
 
   expect_type(result, "list")  # A tibble is a list
   expect_equal(nrow(result), nrow(sample_positives))  # Expect same number of rows
-  expect_named(result, c("pValue", "ub95", "lb95", "rr", "seLogRr", "cPt", "cAtRisk", "cCases", "tCases", "tAtRisk", "target_cohort_id"))
+
+  expect_named(result, c("pValue", "ub95", "lb95", "rr", "seLogRr", "numExposures", "numPersons", "numOutcomesExposed", "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "targetCohortId"))
 })
