@@ -35,7 +35,8 @@ Suggests:
     duckdb,
     DiagrammeR,
     tidyr,
-    R.utils
+    R.utils,
+    jsonlite
 Remotes:
     OHDSI/ResultModelManager@develop
 License: Apache License 2.0
