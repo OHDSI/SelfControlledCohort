@@ -38,7 +38,7 @@ Suggests:
     R.utils,
     jsonlite
 Remotes:
-    OHDSI/ResultModelManager@develop
+    OHDSI/ResultModelManager@fix-finalize
 License: Apache License 2.0
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
