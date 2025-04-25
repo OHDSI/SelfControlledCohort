@@ -15,7 +15,6 @@ testAllParams <- function(connectionDetails,
       for (restrictAgeAndYear in c(TRUE, FALSE)) {
         for (addLengthOfExposure in c(TRUE, FALSE)) {
           for (hasFullTimeAtRisk in c(TRUE, FALSE)) {
-            for (computeTarDistribution in c(TRUE, FALSE)) {
               if (restrictAgeAndYear) {
                 minAge <- "21"
                 maxAge <- "65"
@@ -47,11 +46,9 @@ testAllParams <- function(connectionDetails,
                                       addLengthOfExposureExposed = addLengthOfExposure,
                                       addLengthOfExposureUnexposed = addLengthOfExposure,
                                       hasFullTimeAtRisk = hasFullTimeAtRisk,
-                                      computeTarDistribution = computeTarDistribution,
                                       resultExportPath = resultPath)
 
               checkManifestFiles(resultPath)
-            }
           }
         }
       }

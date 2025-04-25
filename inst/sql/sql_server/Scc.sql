@@ -48,7 +48,8 @@ FROM (
 GROUP BY exposure_id;
 
 -- Summarize outcomes in risk windows
-SELECT exposure_id,
+SELECT @analysis_id as analysis_id,
+    exposure_id,
 	outcome_id,
 	SUM(
 		CASE WHEN
@@ -95,6 +96,7 @@ GROUP BY exposure_id,
 --Create final summary table
 SELECT full_grid.exposure_id as target_cohort_id,
 	full_grid.outcome_id as outcome_cohort_id,
+	@analysis_id as analysis_id,
 	num_persons,
 	num_exposures,
 	CASE WHEN outcome_summary.num_outcomes_exposed IS NULL THEN 0 ELSE outcome_summary.num_outcomes_exposed END AS num_outcomes_exposed,

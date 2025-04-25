@@ -130,38 +130,36 @@ runSccRiskWindows <- function(connection,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable)
   DatabaseConnector::executeSql(connection, renderedSql)
-  exportManager$exportQuery(connection,
-                            "SELECT * FROM #tx_distribution",
-                            "scc_stat",
-                            append = FALSE)
 
-  DatabaseConnector::renderTranslateExecuteSql(connection,
-                                               "TRUNCATE TABLE #tx_distribution; DROP TABLE #tx_distribution;")
+  resultQuery <- "
+  SELECT @analysis_id as analysis_id,
+        EXPOSURE_ID as target_cohort_id,
+        OUTCOME_ID as outcome_cohort_id,
+        MEAN,
+        SD,
+        MIN as minimum,
+        P10,
+        P25,
+        MEDIAN,
+        P75,
+        P90,
+        MAX as maximum,
+        TOTAL,
+        STAT_TYPE
+  FROM @table"
 
-  exportManager$exportQuery(connection,
-                            "SELECT * FROM #time_to_dist",
-                            "scc_stat",
-                            append = TRUE)
-  DatabaseConnector::renderTranslateExecuteSql(connection,
-                                               "TRUNCATE TABLE #time_to_dist; DROP TABLE #time_to_dist;")
+  tables <- c("#tx_distribution", "#time_to_dist", "#time_to_dist_exposed", "#time_to_dist_unex")
+  lapply(tables, function(table) {
+    exportManager$exportQuery(connection,
+                              resultQuery,
+                              "scc_stat",
+                              table = table,
+                              analysis_id = analysisId,
+                              append = table != "#tx_distribution")
 
-  exportManager$exportQuery(connection,
-                            "SELECT * FROM #time_to_dist_exposed",
-                            "scc_stat",
-                            append = FALSE)
+    DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE @table; DROP TABLE @table", table = table)
 
-  DatabaseConnector::renderTranslateExecuteSql(connection,
-                                               "TRUNCATE TABLE #time_to_dist_exposed; DROP TABLE #time_to_dist_exposed;")
-
-  exportManager$exportQuery(connection,
-                            "SELECT * FROM #time_to_dist_unex",
-                            "scc_stat",
-                            append = TRUE)
-
-  DatabaseConnector::renderTranslateExecuteSql(connection,
-                                               "TRUNCATE TABLE #time_to_dist_unex; DROP TABLE #time_to_dist_unex;")
-
-
+  })
 }
 
 #' @title

@@ -102,9 +102,6 @@ runSccAnalyses <- function(connectionDetails,
     analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                                list(analysisId = refRow$analysisId))[[1]]
     getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
-
-    getrunSelfControlledCohortArgs$computeTarDistribution <- computeTarDist
-
     exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsRef == sccResultsRef])
     outcomeId <- unique(resultsReference$outcomeId[resultsReference$sccResultsRef == sccResultsRef])
 
@@ -128,7 +125,7 @@ runSccAnalyses <- function(connectionDetails,
   }
 
   exececuteScc <- function(params) {
-    sccResults <- do.call("runSelfControlledCohort", params$args)
+    sccResults <- do.call(runSelfControlledCohort, params$args)
   }
 
   if (length(executionArgList) != 0) {
@@ -143,17 +140,14 @@ runSccAnalyses <- function(connectionDetails,
 }
 
 .createSccResultsRef <- function(analysisId) {
-  name <- file.path(paste("A_", analysisId, sep = ""), "scc_result.csv")
+  name <- file.path(paste0("A_", analysisId), "scc_result.csv")
   return(name)
 }
 
 .selectByType <- function(type, value, label) {
   if (is.null(type)) {
     if (is.list(value)) {
-      stop(paste("Multiple ",
-                 label,
-                 "s specified, but none selected in analyses (comparatorType).",
-                 sep = ""))
+      stop(paste0("Multiple ", label, "s specified, but none selected in analyses (comparatorType)."))
     }
     return(value)
   } else {

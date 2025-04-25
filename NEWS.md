@@ -8,7 +8,7 @@ Changes:
 - Creation of results data model sql for analysis in database
 - Export of large result sets from database with export managers
 - Calibration of effect estimates now computed with EmpiricalCalibration package
-
+- Storing risk window statistics is no longer an optional parameter
 
 SelfControlledCohort 1.6.0
 ==========================

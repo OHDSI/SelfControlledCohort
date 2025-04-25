@@ -1,5 +1,30 @@
 library(testthat)
 
+# Create test results file
+exposureOutcome1 <- createExposureOutcome(1, 3)
+exposureOutcome2 <- createExposureOutcome(2, 3)
+exposureOutcome3 <- createExposureOutcome(1, 4, trueEffectSize = 1)
+exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
+
+runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE)
+runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE)
+sccAnalysis1 <- createSccAnalysis(analysisId = 1,
+                                  runSelfControlledCohortArgs = runSelfControlledCohortArgs1)
+sccAnalysis2 <- createSccAnalysis(analysisId = 2,
+                                  runSelfControlledCohortArgs = runSelfControlledCohortArgs2)
+sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
+runSccAnalyses(connectionDetails = connectionDetails,
+               cdmDatabaseSchema = cdmDatabaseSchema,
+               sccAnalysisList = sccAnalysisList,
+               exposureOutcomeList = exposureOutcomeList,
+               exposureTable = "cohort",
+               outcomeDatabaseSchema = cdmDatabaseSchema,
+               outcomeTable = "cohort",
+               outputFolder = outputFolder,
+               databaseId = "eunomia",
+               computeThreads = 1)
+
+
 test_that("model spec conforms to standard", {
 
   df <- getResultsDataModelSpecifications()
@@ -97,43 +122,54 @@ test_that("Create schema", {
   testCreateSchema(connectionDetails = sqliteConnectionDetails,
                    resultsDatabaseSchema = sqliteResultsDatabaseSchema)
 })
-#
-# testUploadResults <- function(connectionDetails, resultsDatabaseSchema) {
-#   uploadResults(
-#     connectionDetails = connectionDetails,
-#     schema = resultsDatabaseSchema,
-#     zipFileName = system.file("Results_Eunomia.zip", package = "CohortMethod"),
-#     purgeSiteDataBeforeUploading = FALSE)
-#
-#   # Check if there's data:
-#   connection <- DatabaseConnector::connect(connectionDetails)
-#   on.exit(DatabaseConnector::disconnect(connection))
-#
-#   specifications <- getResultsDataModelSpecifications()
-#   for (tableName in unique(specifications$tableName)) {
-#     primaryKey <- specifications %>%
-#       dplyr::filter(tableName == !!tableName &
-#                       primaryKey == "Yes") %>%
-#       dplyr::select(columnName) %>%
-#       dplyr::pull()
-#
-#     if ("database_id" %in% primaryKey) {
-#       sql <- "SELECT COUNT(*) FROM @database_schema.@table_name WHERE database_id = '@database_id';"
-#       databaseIdCount <- DatabaseConnector::renderTranslateQuerySql(
-#         connection = connection,
-#         sql = sql,
-#         database_schema = resultsDatabaseSchema,
-#         table_name = tableName,
-#         database_id = "Eunomia"
-#       )[, 1]
-#       expect_true(databaseIdCount >= 0)
-#     }
-#   }
-# }
-#
+
+testUploadResults <- function(connectionDetails, resultsDatabaseSchema) {
+
+
+
+
+  resultsZip <- "result.zip"
+
+  uploadResults(
+    connectionDetails = connectionDetails,
+    schema = resultsDatabaseSchema,
+    zipFileName = resultsZip,
+    purgeSiteDataBeforeUploading = FALSE
+  )
+
+  # Check if there's data:
+  connection <- DatabaseConnector::connect(connectionDetails)
+  on.exit(DatabaseConnector::disconnect(connection))
+
+  specifications <- getResultsDataModelSpecifications()
+  for (tableName in unique(specifications$tableName)) {
+    primaryKey <- specifications %>%
+      dplyr::filter(tableName == !!tableName &
+                      primaryKey == "Yes") %>%
+      dplyr::select(columnName) %>%
+      dplyr::pull()
+
+    if ("database_id" %in% primaryKey) {
+      sql <- "SELECT COUNT(*) FROM @database_schema.@table_name WHERE database_id = '@database_id';"
+      databaseIdCount <- DatabaseConnector::renderTranslateQuerySql(
+        connection = connection,
+        sql = sql,
+        database_schema = resultsDatabaseSchema,
+        table_name = tableName,
+        database_id = "Eunomia"
+      )[, 1]
+      expect_true(databaseIdCount >= 0)
+    }
+  }
+}
+
 # test_that("Results upload", {
-#   testUploadResults(connectionDetails = postgresConnectionDetails,
-#                     resultsDatabaseSchema = postgresResultsDatabaseSchema)
 #   testUploadResults(connectionDetails = sqliteConnectionDetails,
 #                     resultsDatabaseSchema = sqliteResultsDatabaseSchema)
+# })
+#
+# test_that("Results upload postgers", {
+#     skip_if(Sys.getenv("CDM5_POSTGRESQL_SERVER") == "")
+#     testUploadResults(connectionDetails = postgresConnectionDetails,
+#                       resultsDatabaseSchema = postgresResultsDatabaseSchema)
 # })

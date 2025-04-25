@@ -25,7 +25,6 @@ scc_result,time_at_risk_unexposed,float,0,0,0,Time at risk unexposed
 scc_result,num_outcomes_exposed,float,0,0,1,Cases while exposed
 scc_result,num_outcomes_unexposed,float,0,0,1,Cases while unexposed
 scc_result,num_exposures,float,0,0,1,Number of exposures
-scc_result,i_2,float,0,0,0,I² statistic for heterogeneity
 scc_stat,database_id,int,1,1,0,Unique identifier for the database
 scc_stat,analysis_id,int,1,1,0,Identifier for the associated analysis
 scc_stat,outcome_cohort_id,bigint,1,1,0,Identifier for the outcome cohort
@@ -34,11 +33,11 @@ scc_stat,stat_type,varchar,0,0,0,Type of statistical measure
 scc_stat,mean,float,0,0,0,Mean value of the statistic
 scc_stat,sd,float,0,0,0,Standard deviation of the statistic
 scc_stat,minimum,float,0,0,0,Minimum value in the dataset
-scc_stat,p_10,float,0,0,0,10th percentile value
-scc_stat,p_25,float,0,0,0,25th percentile value
+scc_stat,p10,float,0,0,0,10th percentile value
+scc_stat,p25,float,0,0,0,25th percentile value
 scc_stat,median,float,0,0,0,Median value
-scc_stat,p_75,float,0,0,0,75th percentile value
-scc_stat,p_90,float,0,0,0,90th percentile value
+scc_stat,p75,float,0,0,0,75th percentile value
+scc_stat,p90,float,0,0,0,90th percentile value
 scc_stat,maximum,float,0,0,0,Maximum value in the dataset
 scc_stat,total,float,0,0,0,Total count or total value of the statistic
 scc_diagnostics_summary,database_id,bigint,1,1,0,Unique identifier for the database

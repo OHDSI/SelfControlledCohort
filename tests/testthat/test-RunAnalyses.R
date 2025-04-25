@@ -7,7 +7,7 @@ test_that("multiple analyses", {
   exposureOutcome3 <- createExposureOutcome(701322, 4043241, trueEffectSize = 1)
   exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
 
-  runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE, computeTarDistribution = TRUE)
+  runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE)
   runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE)
   sccAnalysis1 <- createSccAnalysis(analysisId = 1,
                                     runSelfControlledCohortArgs = runSelfControlledCohortArgs1)

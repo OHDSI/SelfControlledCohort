@@ -98,8 +98,8 @@ WITH
 -- Average (absolute) time between exposure and outcome
 time_to_dist AS (
    SELECT
-          o.exposure_id as target_cohort_id,
-          o.outcome_id as outcome_cohort_id,
+          o.exposure_id,
+          o.outcome_id,
           o.mean_time_to_outcome as mean,
           coalesce(o.sd_time_to_outcome, 0) AS sd,
           o.min_time_to_outcome as min,
@@ -176,8 +176,8 @@ SELECT *, @analysis_id as analysis_id  INTO #time_to_dist_exposed FROM time_to_d
 
 WITH time_to_dist_unex AS (
    SELECT
-          o.exposure_id as target_cohort_id,
-          o.outcome_id as outcome_cohort_id,
+          o.exposure_id,
+          o.outcome_id,
           o.mean_time_to_outcome_exp as mean,
           coalesce(o.sd_time_to_outcome_exp, 0) AS sd,
           o.min_time_to_outcome_exp as min,

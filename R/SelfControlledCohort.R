@@ -45,13 +45,13 @@ computeIrrs <- function(estimates) {
                  timeAtRiskUnexposed = estimates$time_at_risk_unexposed)
 
   estimates$rr <- irrs[1,]
-  estimates$irr_lb_95 <- irrs[2,]
-  estimates$irr_ub_95 <- irrs[3,]
+  estimates$lb_95 <- irrs[2,]
+  estimates$ub_95 <- irrs[3,]
 
   estimates$log_rr <- log(estimates$rr)
-  estimates$se_log_rr <- (log(estimates$irr_ub_95) - log(estimates$irr_lb_95)) / (2 * qnorm(0.975))
+  estimates$se_log_rr <- (log(estimates$ub_95) - log(estimates$lb_95)) / (2 * qnorm(0.975))
   zTest <- stats::pnorm(estimates$log_rr / estimates$se_log_rr)
-  estimates$p <- 2 * pmin(zTest, 1 - zTest)
+  estimates$p_value <- 2 * pmin(zTest, 1 - zTest)
   return(estimates)
 }
 
@@ -61,7 +61,8 @@ batchComputeEstimates <- function(connection,
                                   resultsTable,
                                   resultExportManager,
                                   negativeControlPairs,
-                                  controlType) {
+                                  controlType,
+                                  tempEmulationSchema) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
   andromeda <- Andromeda::andromeda()
@@ -78,28 +79,23 @@ batchComputeEstimates <- function(connection,
       rows <- split(rows, rep_len(1:batches, nrow(rows)))
       rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
       rows <- do.call(rbind, rows)
-
-      colnames(rows) <- SqlRender::snakeCaseToCamelCase(colnames(rows))
       if (position == 1) {
         andromeda$estimates <- rows
       } else {
         Andromeda::appendToTable(andromeda$estimates, rows)
       }
-
-      return(rows)
     }
-    data.frame()
+    NULL
   }
 
   # Fetch results from server:
   args <- list(cluster = cluster, andromeda = andromeda)
-  resultExportManager$exportQuery(connection,
-                                  "SELECT * FROM @results_table", # Query
-                                  "scc_result", # output csv file
-                                  results_table = resultsTable,
-                                  transformFunction = batchComputeCallBack,
-                                  transformFunctionArgs = args,
-                                  append = FALSE)
+  DatabaseConnector::renderTranslateQueryApplyBatched(connection,
+                                                      "SELECT * FROM @results_table", # Query
+                                                      results_table = resultsTable,
+                                                      fun = batchComputeCallBack,
+                                                      tempEmulationSchema = tempEmulationSchema,
+                                                      args = args)
 
   if (is.null(andromeda$estimates) || andromeda$estimates |>
     dplyr::count() |>
@@ -132,7 +128,7 @@ batchComputeEstimates <- function(connection,
                                                        negatives = negatives,
                                                        idCol = "targetCohortId")
 
-          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = TRUE)
+          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = FALSE)
         })
     }
 
@@ -154,11 +150,24 @@ batchComputeEstimates <- function(connection,
           calibratedEstimates <- computeCalibratedRows(positives = positives,
                                                        negatives = negatives,
                                                        idCol = "outcomeCohortId")
-          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = TRUE)
+          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = FALSE)
         })
     }
-
-
+  } else {
+    # Just extract results table from andromeda
+    first <- TRUE
+    writeBatch <- function(batch) {
+      # Add empty columns to  silence RMM warning
+      cols <- c("calibrated_rr", "calibrated_se_log_rr", "calibrated_log_rr", "calibrated_lb_95", "calibrated_ub_95", "calibrated_p_value", "exposure_calibrated")
+      for (name in cols) {
+        batch[[name]] <- NA
+      }
+      resultExportManager$exportDataFrame(batch, "scc_result", append = first)
+      first <<- FALSE
+      # we don't want to return anything, just write the result to disk
+      return(invisible(NULL))
+    }
+    Andromeda::batchApply(andromeda$estimates, writeBatch)
   }
 
   return(NULL)
@@ -249,10 +258,6 @@ batchComputeEstimates <- function(connection,
 #'                                         end date, else add to exposure start date).
 #' @param hasFullTimeAtRisk                If TRUE, restrict to people who have full time-at-risk
 #'                                         exposed and unexposed.
-#' @param computeTarDistribution           If TRUE, computer the distribution of time-at-risk and
-#'                                         average absolute time between treatment and outcome. Note,
-#'                                         may add significant computation time on some database
-#'                                         engines.
 #' @param riskWindowsTable                 String: optionally store the risk windows in a (non-temporary)
 #'                                         table.
 #' @param resultsTable                     String: optionally store the summary results (number exposed/
@@ -321,7 +326,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
-                                    computeTarDistribution = FALSE,
                                     computeThreads = 1,
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
@@ -419,7 +423,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                     followupPeriod = followupPeriod,
                     riskWindowsTable = riskWindowsTable,
                     resultsDatabaseSchema = resultsDatabaseSchema)
-
   if (riskWindowsTable != "#risk_windows") {
     riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
                                           results_database_schema = resultsDatabaseSchema,
@@ -443,21 +446,19 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                                    risk_windows_table = riskWindowsTable,
                                                    results_table = resultsTable)
   DatabaseConnector::executeSql(connection, renderedSql)
+  .getSccRiskWindowStats(connection,
+                         tempEmulationSchema,
+                         outcomeIds,
+                         outcomeDatabaseSchema,
+                         outcomeTable,
+                         outcomeStartDate,
+                         outcomeId,
+                         outcomePersonId,
+                         analysisId,
+                         firstOutcomeOnly,
+                         riskWindowsTable,
+                         resultExportManager)
 
-  if (computeTarDistribution) {
-    .getSccRiskWindowStats(connection,
-                           tempEmulationSchema,
-                           outcomeIds,
-                           outcomeDatabaseSchema,
-                           outcomeTable,
-                           outcomeStartDate,
-                           outcomeId,
-                           outcomePersonId,
-                           analysisId,
-                           firstOutcomeOnly,
-                           riskWindowsTable,
-                           resultExportManager)
-  }
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
 
@@ -466,7 +467,8 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                         resultsTable = resultsTable,
                         resultExportManager = resultExportManager,
                         negativeControlPairs = negativeControlPairs,
-                        controlType = controlType)
+                        controlType = controlType,
+                        tempEmulationSchema = tempEmulationSchema)
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",

@@ -45,6 +45,7 @@ getTestDatabaseConnectionDetails <- function(dbms = getOption("dbms", default = 
                              overwrite = FALSE)
 
     connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "sqlite", server = dbFile)
+    Eunomia::createCohorts(connectionDetails)
   }
   if (dbms == "postgresql") {
     DatabaseConnector::downloadJdbcDrivers("postgresql", pathToDriver = jdbcDriverFolder)

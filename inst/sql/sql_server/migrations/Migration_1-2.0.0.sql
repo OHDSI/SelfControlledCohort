@@ -30,7 +30,6 @@ create table @database_schema.scc_result (
     t_cases NUMERIC,
     c_cases NUMERIC,
     num_exposures NUMERIC,
-    i_2 NUMERIC,
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
 );
 
@@ -43,11 +42,11 @@ create TABLE @database_schema.scc_stat (
     mean NUMERIC,
     sd NUMERIC,
     minimum NUMERIC,
-    p_10 NUMERIC,
-    p_25 NUMERIC,
+    p10 NUMERIC,
+    p25 NUMERIC,
     median NUMERIC,
-    p_75 NUMERIC,
-    p_90 NUMERIC,
+    p75 NUMERIC,
+    p90 NUMERIC,
     maximum NUMERIC,
     total NUMERIC,
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id, stat_type)

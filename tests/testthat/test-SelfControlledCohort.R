@@ -57,8 +57,7 @@ test_that("SCC method runs on Eunomia", {
                                     outcomeTable = 'condition_occurrence',
                                     resultsTable = "test_results_store",
                                     riskWindowsTable = "risk_window",
-                                    resultsDatabaseSchema = "main",
-                                    computeTarDistribution = TRUE)
+                                    resultsDatabaseSchema = "main")
 
 
   rdf <- DatabaseConnector::renderTranslateQuerySql(tConnection, "SELECT * from main.test_results_store")
@@ -74,8 +73,7 @@ test_that("SCC method runs on Eunomia", {
                                       databaseId = 1,
                                       exposureTable = 'drug_exposure',
                                       outcomeTable = 'condition_occurrence',
-                                      resultsTable = "resultsTable",
-                                      computeTarDistribution = TRUE),
+                                      resultsTable = "resultsTable"),
     "Results table"
   )
 
@@ -87,8 +85,7 @@ test_that("SCC method runs on Eunomia", {
                                       databaseId = 1,
                                       exposureTable = 'drug_exposure',
                                       outcomeTable = 'condition_occurrence',
-                                      riskWindowsTable = "risk_window",
-                                      computeTarDistribution = TRUE),
+                                      riskWindowsTable = "risk_window"),
     "Risk windows table"
   )
 
