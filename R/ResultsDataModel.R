@@ -18,7 +18,7 @@
 #' Get specifications for CohortMethod results data model
 #'
 #' @return
-#' A tibble data frame object with specifications
+#' A data frame object with specifications
 #'
 #' @export
 getResultsDataModelSpecifications <- function() {

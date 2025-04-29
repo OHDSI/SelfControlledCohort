@@ -83,7 +83,7 @@ riskWindowsTable <- "computed_risk_windows"
 runSccRiskWindows(connection,
                   cdmDatabaseSchema = "main",
                   exposureIds = c(1102527, 1125315),
-                  resultsDatabaseSchema = "main", # This is the schema where the results will be stored
+                  resultsDatabaseSchema = "main",
                   riskWindowsTable = riskWindowsTable,
                   exposureTable = "drug_era")
 # Get stats based on outcomes of interest

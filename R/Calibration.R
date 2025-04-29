@@ -54,11 +54,11 @@ computeCalibratedRows <- function(positives,
                                                           errorModel)
   pvalue <- EmpiricalCalibration::calibrateP(nullDist, log(positives$rr), positives$seLogRr)
   # Row matches fields in the database excluding the ids, used in dplyr, group_by with keep_true
-  result <- tibble::tibble(calibratedPValue = pvalue,
-                           calibratedUb95 = exp(ci$logUb95Rr),
-                           calibratedLb95 = exp(ci$logLb95Rr),
-                           calibratedRr = exp(ci$logRr),
-                           calibratedSeLogRr = ci$seLogRr)
+  result <- data.frame(calibratedPValue = pvalue,
+                       calibratedUb95 = exp(ci$logUb95Rr),
+                       calibratedLb95 = exp(ci$logLb95Rr),
+                       calibratedRr = exp(ci$logRr),
+                       calibratedSeLogRr = ci$seLogRr)
 
   keptColumns <- positives |>
     dplyr::select(dplyr::all_of(c(keepCols, idCol)))

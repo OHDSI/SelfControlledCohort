@@ -25,7 +25,8 @@ Imports:
     dplyr,
     EmpiricalCalibration,
     ResultModelManager,
-    Andromeda
+    Andromeda,
+    readr
 Suggests:
     withr,
     testthat,

@@ -21,6 +21,7 @@
 #' NULL SelfControlledCohort-package
 #'
 #' @importFrom stats qnorm
+#' @importFrom rlang .data
 #' @import DatabaseConnector
 #'
 "_PACKAGE"
@@ -470,7 +471,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   DatabaseConnector::executeSql(connection, sql)
 
   resultExportManager$writeManifest(packageName = utils::packageName(),
-                                    packageVersion = packageVersion(utils::packageName()))
+                                    packageVersion = utils::packageVersion(utils::packageName()))
 
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))

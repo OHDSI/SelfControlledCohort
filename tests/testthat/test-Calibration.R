@@ -44,8 +44,8 @@ test_that("computeCalibratedRows function works as expected", {
                                   negatives = sample_negatives,
                                   idCol = "targetCohortId")
 
-  expect_type(result, "list")  # A tibble is a list
-  expect_equal(nrow(result), nrow(sample_positives))  # Expect same number of rows
+  expect_type(result, "data.frame")
+  expect_equal(nrow(result), nrow(sample_positives))
 
   checkmate::expect_names(names(result),
                           must.include = c("pValue", "ub95", "lb95", "rr", "seLogRr", "numExposures", "numPersons",
