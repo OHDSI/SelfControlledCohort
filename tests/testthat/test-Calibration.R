@@ -13,7 +13,10 @@ sample_positives <- data.frame(
   numOutcomesUnexposed = c(15, 25, 35),
   timeAtRiskExposed = c(950, 1450, 1950),
   timeAtRiskUnexposed = c(950, 1450, 1950),
-  targetCohortId = c(1, 2, 3)
+  targetCohortId = c(1, 2, 3),
+  pValue = 0.05,
+  ub95 = c(1.6, 1.1, 1.2),
+  lb95 = c(1.2, 0.8, 1.0)
 )
 
 test_that("getNullDist function works as expected", {
@@ -44,5 +47,9 @@ test_that("computeCalibratedRows function works as expected", {
   expect_type(result, "list")  # A tibble is a list
   expect_equal(nrow(result), nrow(sample_positives))  # Expect same number of rows
 
-  expect_named(result, c("pValue", "ub95", "lb95", "rr", "seLogRr", "numExposures", "numPersons", "numOutcomesExposed", "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed", "targetCohortId"))
+  checkmate::expect_names(names(result),
+                          must.include = c("pValue", "ub95", "lb95", "rr", "seLogRr", "numExposures", "numPersons",
+                                           "calibratedPValue", "calibratedUb95", "calibratedLb95", "calibratedRr",
+                                           "calibratedSeLogRr", "numOutcomesExposed", "numOutcomesUnexposed",
+                                           "timeAtRiskExposed", "timeAtRiskUnexposed", "targetCohortId"))
 })

@@ -20,7 +20,7 @@ test_that("multiple analyses", {
                                  cdmDatabaseSchema = cdmDatabaseSchema,
                                  sccAnalysisList = sccAnalysisList,
                                  exposureOutcomeList = exposureOutcomeList,
-                                 outputFolder = outputFolder,
+                                 resultsFolder = outputFolder,
                                  databaseId = 1,
                                  computeThreads = 1)
 
@@ -46,7 +46,7 @@ test_that("Fail on analyses clone", {
                                 cdmDatabaseSchema = cdmDatabaseSchema,
                                 sccAnalysisList = sccAnalysisList,
                                 exposureOutcomeList = exposureOutcomeList,
-                                outputFolder = outputFolder,
+                                resultsFolder = outputFolder,
                                 computeThreads = 8))
   })
 })

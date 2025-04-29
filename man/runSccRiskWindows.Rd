@@ -7,7 +7,6 @@
 runSccRiskWindows(
   connection,
   cdmDatabaseSchema,
-  cdmVersion = 5,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   exposureIds = NULL,
   exposureDatabaseSchema = cdmDatabaseSchema,
@@ -35,9 +34,6 @@ runSccRiskWindows(
 
 \item{cdmDatabaseSchema}{Name of database schema that contains the OMOP CDM and
 vocabulary.}
-
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}

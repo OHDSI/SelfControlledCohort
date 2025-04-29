@@ -9,6 +9,7 @@ Changes:
 - Export of large result sets from database with export managers
 - Calibration of effect estimates now computed with EmpiricalCalibration package
 - Storing risk window statistics is no longer an optional parameter
+- Removed support for CDM versions < 5.0 (and no longer includes check or parameter)
 
 SelfControlledCohort 1.6.0
 ==========================

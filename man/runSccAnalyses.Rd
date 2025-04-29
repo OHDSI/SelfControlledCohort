@@ -12,8 +12,7 @@ runSccAnalyses(
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
   outcomeTable = "condition_occurrence",
-  cdmVersion = 5,
-  outputFolder = "./SelfControlledCohortOutput",
+  resultsFolder = "./SelfControlledCohortOutput",
   sccAnalysisList,
   exposureOutcomeList,
   databaseId,
@@ -56,10 +55,7 @@ outcomeTable has format of COHORT table:
 COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 COHORT_END_DATE.}
 
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
-
-\item{outputFolder}{Name of the folder where all the outputs will written to.}
+\item{resultsFolder}{Name of the folder where all the outputs will written to.}
 
 \item{sccAnalysisList}{A list of objects of type \code{sccAnalysis} as created using the
 \code{\link{createSccAnalysis}} function.}

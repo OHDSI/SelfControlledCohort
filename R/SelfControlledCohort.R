@@ -104,65 +104,62 @@ batchComputeEstimates <- function(connection,
     return(NULL)
   }
 
+  first <- TRUE
+
   if (length(negativeControlPairs) > 0) {
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
       data.frame(targetCohortId = eo[[1]], outcomeCohortId = eo[[2]])
     }))
 
-    if (controlType == "outcome") {
+    processControlType <- function(groupByCol, filterCol, dataCol) {
+      filterCol <- SqlRender::camelCaseToSnakeCase(filterCol)
+      dataCol <- SqlRender::camelCaseToSnakeCase(dataCol)
       ncPairsDf |>
-        dplyr::group_by(.data$targetCohortId) |>
+        dplyr::group_by(.data[[groupByCol]]) |>
         dplyr::group_map(function(data, grp) {
-
+          grpCol <- grp[[groupByCol]]
           estimates <- andromeda$estimates |>
-            dplyr::filter(.data$targetCohortId == grp$targetCohortId) |>
+            dplyr::filter(.data[[filterCol]] == grpCol) |>
             dplyr::collect()
 
           positives <- estimates |>
-            dplyr::filter(!.data$outcomeCohortId %in% data$outcomeCohortId)
+            dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]])
 
           negatives <- estimates |>
-            dplyr::filter(.data$outcomeCohortId %in% data$outcomeCohortId)
+            dplyr::filter(.data[[dataCol]] %in% data[[dataCol]])
 
-          calibratedEstimates <- computeCalibratedRows(positives = positives,
-                                                       negatives = negatives,
-                                                       idCol = "targetCohortId")
+          colnames(positives) <- SqlRender::snakeCaseToCamelCase(colnames(positives))
+          colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
 
-          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = FALSE)
-        })
+          calibratedEstimates <- computeCalibratedRows(
+            positives = positives,
+            negatives = negatives,
+            idCol = groupByCol
+          )
+
+          colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
+          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = !first)
+          first <<- FALSE
+      })
+    }
+
+    # Call the function based on controlType
+    if (controlType == "outcome") {
+      processControlType(groupByCol = "targetCohortId", filterCol = "targetCohortId", dataCol = "outcomeCohortId")
     }
 
     if (controlType == "exposure") {
-      ncPairsDf |>
-        dplyr::group_by(.data$outcomeCohortId) |>
-        dplyr::group_map(function(data, grp) {
-
-          estimates <- andromeda$estimates |>
-            dplyr::filter(.data$outcomeCohortId == grp$outcomeCohortId) |>
-            dplyr::collect()
-
-          positives <- estimates |>
-            dplyr::filter(!.data$targetCohortId %in% data$targetCohortId)
-
-          negatives <- estimates |>
-            dplyr::filter(.data$targetCohortId %in% data$targetCohortId)
-
-          calibratedEstimates <- computeCalibratedRows(positives = positives,
-                                                       negatives = negatives,
-                                                       idCol = "outcomeCohortId")
-          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = FALSE)
-        })
+      processControlType(groupByCol = "outcomeCohortId", filterCol = "outcomeCohortId", dataCol = "targetCohortId")
     }
   } else {
     # Just extract results table from andromeda
-    first <- TRUE
     writeBatch <- function(batch) {
       # Add empty columns to  silence RMM warning
       cols <- c("calibrated_rr", "calibrated_se_log_rr", "calibrated_log_rr", "calibrated_lb_95", "calibrated_ub_95", "calibrated_p_value", "exposure_calibrated")
       for (name in cols) {
         batch[[name]] <- NA
       }
-      resultExportManager$exportDataFrame(batch, "scc_result", append = first)
+      resultExportManager$exportDataFrame(batch, "scc_result", append = !first)
       first <<- FALSE
       # we don't want to return anything, just write the result to disk
       return(invisible(NULL))
@@ -195,8 +192,6 @@ batchComputeEstimates <- function(connection,
 #' @param connection                       DatabaseConnector connection instance
 #' @param cdmDatabaseSchema                Name of database schema that contains the OMOP CDM and
 #'                                         vocabulary.
-#' @param cdmVersion                       Define the OMOP CDM version used: currently support "4" and
-#'                                         "5".
 #' @param tempEmulationSchema              Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 #'                                         tables, provide a schema with write privileges where temp tables can be created.
 
@@ -301,7 +296,6 @@ batchComputeEstimates <- function(connection,
 runSelfControlledCohort <- function(connectionDetails = NULL,
                                     cdmDatabaseSchema,
                                     connection = NULL,
-                                    cdmVersion = 5,
                                     tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                     exposureIds = NULL,
                                     outcomeIds = NULL,
@@ -356,11 +350,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
     outcomePersonId <- "person_id"
   } else {
     outcomeStartDate <- "cohort_start_date"
-    if (cdmVersion == "4") {
-      outcomeId <- "cohort_concept_id"
-    } else {
-      outcomeId <- "cohort_definition_id"
-    }
+    outcomeId <- "cohort_definition_id"
     outcomePersonId <- "subject_id"
   }
 
@@ -402,7 +392,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
 
   runSccRiskWindows(connection = connection,
                     cdmDatabaseSchema = cdmDatabaseSchema,
-                    cdmVersion = cdmVersion,
                     tempEmulationSchema = tempEmulationSchema,
                     exposureIds = exposureIds,
                     exposureDatabaseSchema = exposureDatabaseSchema,

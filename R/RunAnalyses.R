@@ -24,7 +24,7 @@
 #' models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
 #'
 #' @inheritParams runSelfControlledCohort
-#' @param outputFolder             Name of the folder where all the outputs will written to.
+#' @param resultsFolder             Name of the folder where all the outputs will written to.
 #' @param sccAnalysisList          A list of objects of type \code{sccAnalysis} as created using the
 #'                                 \code{\link{createSccAnalysis}} function.
 #' @param exposureOutcomeList      A list of objects of type \code{exposureOutcome} as created using
@@ -40,8 +40,7 @@ runSccAnalyses <- function(connectionDetails,
                            exposureTable = "drug_era",
                            outcomeDatabaseSchema = cdmDatabaseSchema,
                            outcomeTable = "condition_occurrence",
-                           cdmVersion = 5,
-                           outputFolder = "./SelfControlledCohortOutput",
+                           resultsFolder = "./SelfControlledCohortOutput",
                            sccAnalysisList,
                            exposureOutcomeList,
                            databaseId,
@@ -51,11 +50,11 @@ runSccAnalyses <- function(connectionDetails,
 
   # Get negative controls
   checkmate::assertChoice(controlType, c("outcome", "exposure"))
-  negatives <- list()
+  negativeControlPairs <- list()
   for (exposureOutcome in exposureOutcomeList) {
     stopifnot(class(exposureOutcome) == "exposureOutcome")
     if (isTRUE(exposureOutcome$trueEffectSize == 1)) {
-      negatives[[length(negatives) + 1]] <- c(exposureOutcome$exposureId, exposureOutcome$outcomeId)
+      negativeControlPairs[[length(negativeControlPairs) + 1]] <- c(exposureOutcome$exposureId, exposureOutcome$outcomeId)
     }
   }
 
@@ -68,8 +67,8 @@ runSccAnalyses <- function(connectionDetails,
   if (length(uniqueAnalysisIds) != length(sccAnalysisList)) {
     stop("Duplicate analysis IDs are not allowed")
   }
-  if (!file.exists(outputFolder))
-    dir.create(outputFolder)
+  if (!file.exists(resultsFolder))
+    dir.create(resultsFolder)
 
   # If any of the results compute the TAR stats, all the analyses must do the same
   computeTarDist <- FALSE
@@ -92,7 +91,7 @@ runSccAnalyses <- function(connectionDetails,
     }
   }
   resultsReference$computeTarDist <- computeTarDist
-  saveRDS(resultsReference, file.path(outputFolder, "resultsReference.rds"))
+  saveRDS(resultsReference, file.path(resultsFolder, "resultsReference.rds"))
 
   ParallelLogger::logInfo("*** Running multiple analysis ***")
   executionArgList <- list()
@@ -111,14 +110,14 @@ runSccAnalyses <- function(connectionDetails,
                  exposureTable = exposureTable,
                  outcomeDatabaseSchema = outcomeDatabaseSchema,
                  outcomeTable = outcomeTable,
-                 cdmVersion = cdmVersion,
                  exposureIds = exposureIds,
                  outcomeIds = outcomeId,
                  databaseId = databaseId,
                  controlType = controlType,
+                 negativeControlPairs = negativeControlPairs,
                  analysisId = refRow$analysisId,
                  tempEmulationSchema = tempEmulationSchema,
-                 resultExportPath = file.path(outputFolder, paste0("A_", refRow$analysisId)),
+                 resultExportPath = file.path(resultsFolder, paste0("A_", refRow$analysisId)),
                  computeThreads = computeThreads)
     args <- append(args, getrunSelfControlledCohortArgs)
     executionArgList[[length(executionArgList) + 1]] <- list(args = args)

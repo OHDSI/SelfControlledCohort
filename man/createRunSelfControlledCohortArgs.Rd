@@ -19,8 +19,7 @@ createRunSelfControlledCohortArgs(
   riskWindowStartUnexposed = -30,
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
-  followupPeriod = 0,
-  computeTarDistribution = FALSE
+  followupPeriod = 0
 )
 }
 \arguments{
@@ -65,9 +64,7 @@ and unexposed.}
 
 \item{washoutPeriod}{Integer to define required time observed before exposurestart.}
 
-\item{followupPeriod}{Integer to define required time observed after exposurestart.}
-
-\item{computeTarDistribution}{If TRUE, computer the distribution of time-at-risk and average
+\item{followupPeriod}{Integer to define required time observed after exposurestart.
 absolute time between treatment and outcome. Note, may add
 significant computation time on some database engines. If set
 true in one analysis will default to true for all others.}

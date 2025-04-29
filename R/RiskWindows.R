@@ -8,7 +8,6 @@
 #' @export
 runSccRiskWindows <- function(connection,
                               cdmDatabaseSchema,
-                              cdmVersion = 5,
                               tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                               exposureIds = NULL,
                               exposureDatabaseSchema = cdmDatabaseSchema,
@@ -48,11 +47,7 @@ runSccRiskWindows <- function(connection,
   } else {
     exposureStartDate <- "cohort_start_date"
     exposureEndDate <- "cohort_end_date"
-    if (cdmVersion == "4") {
-      exposureId <- "cohort_concept_id"
-    } else {
-      exposureId <- "cohort_definition_id"
-    }
+    exposureId <- "cohort_definition_id"
     exposurePersonId <- "subject_id"
   }
 
@@ -201,7 +196,6 @@ getSccRiskWindowStats <- function(connection,
                                   databaseId,
                                   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                   outcomeIds = NULL,
-                                  cdmVersion = 5,
                                   outcomeTable = "condition_era",
                                   firstOutcomeOnly = TRUE,
                                   resultsDatabaseSchema = NULL,
@@ -228,11 +222,7 @@ getSccRiskWindowStats <- function(connection,
     outcomePersonId <- "person_id"
   } else {
     outcomeStartDate <- "cohort_start_date"
-    if (cdmVersion == "4") {
-      outcomeId <- "cohort_concept_id"
-    } else {
-      outcomeId <- "cohort_definition_id"
-    }
+    outcomeId <- "cohort_definition_id"
     outcomePersonId <- "subject_id"
   }
 

@@ -8,7 +8,6 @@ runSelfControlledCohort(
   connectionDetails = NULL,
   cdmDatabaseSchema,
   connection = NULL,
-  cdmVersion = 5,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   exposureIds = NULL,
   outcomeIds = NULL,
@@ -33,7 +32,6 @@ runSelfControlledCohort(
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
   followupPeriod = 0,
-  computeTarDistribution = FALSE,
   computeThreads = 1,
   riskWindowsTable = "#risk_windows",
   resultsTable = "#results",
@@ -56,9 +54,6 @@ the function \code{createConnectionDetails} in the
 vocabulary.}
 
 \item{connection}{DatabaseConnector connection instance}
-
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
@@ -145,11 +140,6 @@ start.}
 
 \item{followupPeriod}{Integer to define required time observed after exposure
 start.}
-
-\item{computeTarDistribution}{If TRUE, computer the distribution of time-at-risk and
-average absolute time between treatment and outcome. Note,
-may add significant computation time on some database
-engines.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}

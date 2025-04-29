@@ -10,6 +10,5 @@ withr::defer({
 
 
 dbms <- getOption("dbms", default = "sqlite")
-cdmVersion <- 5
 connectionDetails <- getTestDatabaseConnectionDetails(dbms = dbms, jdbcDriverFolder = jdbcDriverFolder)
 cdmDatabaseSchema <- getTestDatabaseSchema(dbms = dbms)

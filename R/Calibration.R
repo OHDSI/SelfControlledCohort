@@ -40,20 +40,25 @@ getNullDist <- function(negatives) {
 #' @return
 #' data.frame
 #' @noRd
-computeCalibratedRows <- function(positives, negatives, idCol = NULL, keepCols = c("numExposures", "numPersons",
-  "numOutcomesExposed", "numOutcomesUnexposed", "timeAtRiskExposed", "timeAtRiskUnexposed")) {
+computeCalibratedRows <- function(positives,
+                                  negatives,
+                                  idCol = NULL,
+                                  keepCols = c("numExposures", "numPersons", "numOutcomesExposed", "rr", "pValue",
+                                               "ub95", "lb95", "seLogRr", "numOutcomesUnexposed", "timeAtRiskExposed",
+                                               "timeAtRiskUnexposed")) {
   checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols, idCol))
   nullDist <- getNullDist(negatives)
   errorModel <- EmpiricalCalibration::convertNullToErrorModel(nullDist)
   ci <- EmpiricalCalibration::calibrateConfidenceInterval(log(positives$rr),
                                                           positives$seLogRr,
                                                           errorModel)
-
+  pvalue <- EmpiricalCalibration::calibrateP(nullDist, log(positives$rr), positives$seLogRr)
   # Row matches fields in the database excluding the ids, used in dplyr, group_by with keep_true
-  result <- tibble::tibble(pValue = EmpiricalCalibration::calibrateP(nullDist,
-                                                                     log(positives$rr),
-                                                                     positives$seLogRr),
-    ub95 = exp(ci$logUb95Rr), lb95 = exp(ci$logLb95Rr), rr = exp(ci$logRr), seLogRr = ci$seLogRr)
+  result <- tibble::tibble(calibratedPValue = pvalue,
+                           calibratedUb95 = exp(ci$logUb95Rr),
+                           calibratedLb95 = exp(ci$logLb95Rr),
+                           calibratedRr = exp(ci$logRr),
+                           calibratedSeLogRr = ci$seLogRr)
 
   keptColumns <- positives |>
     dplyr::select(dplyr::all_of(c(keepCols, idCol)))

@@ -10,7 +10,6 @@ getSccRiskWindowStats(
   databaseId,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   outcomeIds = NULL,
-  cdmVersion = 5,
   outcomeTable = "condition_era",
   firstOutcomeOnly = TRUE,
   resultsDatabaseSchema = NULL,
@@ -39,9 +38,6 @@ tables, provide a schema with write privileges where temp tables can be created.
 \item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
 outcomes of interest. If empty, all the outcomes in the
 outcome table will be included.}
-
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
 
 \item{outcomeTable}{The tablename that contains the outcome cohorts.  If
 outcomeTable <> CONDITION_OCCURRENCE, then expectation is

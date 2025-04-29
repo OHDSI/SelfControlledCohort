@@ -13,6 +13,13 @@ sccAnalysis1 <- createSccAnalysis(analysisId = 1,
 sccAnalysis2 <- createSccAnalysis(analysisId = 2,
                                   runSelfControlledCohortArgs = runSelfControlledCohortArgs2)
 sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
+
+resultsFolder <- tempfile()
+dir.create(resultsFolder, showWarnings = FALSE)
+withr::defer({
+  unlink(resultsFolder, recursive = TRUE)
+}, testthat::teardown_env())
+
 runSccAnalyses(connectionDetails = connectionDetails,
                cdmDatabaseSchema = cdmDatabaseSchema,
                sccAnalysisList = sccAnalysisList,
@@ -20,8 +27,8 @@ runSccAnalyses(connectionDetails = connectionDetails,
                exposureTable = "cohort",
                outcomeDatabaseSchema = cdmDatabaseSchema,
                outcomeTable = "cohort",
-               outputFolder = outputFolder,
-               databaseId = "eunomia",
+               resultsFolder = resultsFolder,
+               databaseId = "Eunomia",
                computeThreads = 1)
 
 
@@ -46,9 +53,9 @@ if (dir.exists(Sys.getenv("DATABASECONNECTOR_JAR_FOLDER"))) {
   dir.create(jdbcDriverFolder, showWarnings = FALSE)
   DatabaseConnector::downloadJdbcDrivers("postgresql", pathToDriver = jdbcDriverFolder)
   withr::defer(
-    {
-      unlink(jdbcDriverFolder, recursive = TRUE, force = TRUE)
-    },
+  {
+    unlink(jdbcDriverFolder, recursive = TRUE, force = TRUE)
+  },
     testthat::teardown_env()
   )
 }
@@ -82,7 +89,7 @@ withr::defer({
   DatabaseConnector::disconnect(connection)
   unlink(databaseFile, force = TRUE)
 },
-testthat::teardown_env()
+  testthat::teardown_env()
 )
 
 testCreateSchema <- function(connectionDetails, resultsDatabaseSchema) {
@@ -123,53 +130,24 @@ test_that("Create schema", {
                    resultsDatabaseSchema = sqliteResultsDatabaseSchema)
 })
 
-testUploadResults <- function(connectionDetails, resultsDatabaseSchema) {
 
-
-
-
-  resultsZip <- "result.zip"
-
+test_that("Results upload", {
   uploadResults(
-    connectionDetails = connectionDetails,
-    schema = resultsDatabaseSchema,
-    zipFileName = resultsZip,
+    connectionDetails = sqliteConnectionDetails,
+    schema = "main",
+    resultsFolder = resultsFolder,
     purgeSiteDataBeforeUploading = FALSE
   )
+  expect_true(TRUE)
+})
 
-  # Check if there's data:
-  connection <- DatabaseConnector::connect(connectionDetails)
-  on.exit(DatabaseConnector::disconnect(connection))
-
-  specifications <- getResultsDataModelSpecifications()
-  for (tableName in unique(specifications$tableName)) {
-    primaryKey <- specifications %>%
-      dplyr::filter(tableName == !!tableName &
-                      primaryKey == "Yes") %>%
-      dplyr::select(columnName) %>%
-      dplyr::pull()
-
-    if ("database_id" %in% primaryKey) {
-      sql <- "SELECT COUNT(*) FROM @database_schema.@table_name WHERE database_id = '@database_id';"
-      databaseIdCount <- DatabaseConnector::renderTranslateQuerySql(
-        connection = connection,
-        sql = sql,
-        database_schema = resultsDatabaseSchema,
-        table_name = tableName,
-        database_id = "Eunomia"
-      )[, 1]
-      expect_true(databaseIdCount >= 0)
-    }
-  }
-}
-
-# test_that("Results upload", {
-#   testUploadResults(connectionDetails = sqliteConnectionDetails,
-#                     resultsDatabaseSchema = sqliteResultsDatabaseSchema)
-# })
-#
-# test_that("Results upload postgers", {
-#     skip_if(Sys.getenv("CDM5_POSTGRESQL_SERVER") == "")
-#     testUploadResults(connectionDetails = postgresConnectionDetails,
-#                       resultsDatabaseSchema = postgresResultsDatabaseSchema)
-# })
+test_that("Results upload postgers", {
+  skip_if(Sys.getenv("CDM5_POSTGRESQL_SERVER") == "")
+  uploadResults(
+    connectionDetails = postgresConnectionDetails,
+    schema = postgresResultsDatabaseSchema,
+    resultsFolder = resultsFolder,
+    purgeSiteDataBeforeUploading = FALSE
+  )
+  expect_true(TRUE)
+})

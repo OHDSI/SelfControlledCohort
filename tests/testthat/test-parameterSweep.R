@@ -4,8 +4,7 @@ library(testthat)
 # simple errors in our code.
 
 testAllParams <- function(connectionDetails,
-                          cdmDatabaseSchema,
-                          cdmVersion) {
+                          cdmDatabaseSchema) {
   # Open connection once, so it will be reused:
   conn <- DatabaseConnector::connect(connectionDetails)
   on.exit(DatabaseConnector::disconnect(conn), add = TRUE)
@@ -32,7 +31,6 @@ testAllParams <- function(connectionDetails,
               runSelfControlledCohort(connection = conn,
                                       databaseId = 99,
                                       cdmDatabaseSchema = cdmDatabaseSchema,
-                                      cdmVersion = cdmVersion,
                                       exposureIds = c(767410, 1314924, 907879),
                                       exposureTable = exposureTable,
                                       outcomeIds = 444382,
@@ -57,5 +55,5 @@ testAllParams <- function(connectionDetails,
 }
 
 test_that("SCC", {
-  testAllParams(connectionDetails, cdmDatabaseSchema, cdmVersion)
+  testAllParams(connectionDetails, cdmDatabaseSchema)
 })
