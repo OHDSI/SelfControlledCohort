@@ -44,7 +44,7 @@ test_that("computeCalibratedRows function works as expected", {
                                   negatives = sample_negatives,
                                   idCol = "targetCohortId")
 
-  expect_type(result, "data.frame")
+  checkmate::expect_data_frame(result)
   expect_equal(nrow(result), nrow(sample_positives))
 
   checkmate::expect_names(names(result),
