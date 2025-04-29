@@ -79,7 +79,7 @@ jobs:
 
       - uses: r-lib/actions/check-r-package@v2
         with:
-          args: 'c("--no-manual", "--as-cran")'
+          args: 'c("--no-manual", "--as-cran", "--compact-vignettes=both")'
           error-on: '"warning"'
           check-dir: '"check"'
 
