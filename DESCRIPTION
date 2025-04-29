@@ -27,7 +27,8 @@ Imports:
     EmpiricalCalibration,
     ResultModelManager,
     Andromeda,
-    readr
+    readr,
+    rlang
 Suggests:
     withr,
     testthat,
