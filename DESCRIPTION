@@ -14,6 +14,7 @@ Description: A method to estimate risk by comparing time
     exposed with time unexposed among the exposed cohort.
 URL: https://github.com/OHDSI/SelfControlledCohort
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
+Language: en-US
 Depends:
     DatabaseConnector (>= 5.0.0),
 	R (>= 4.0.0)
