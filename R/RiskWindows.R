@@ -27,6 +27,8 @@ runSccRiskWindows <- function(connection,
                               washoutPeriod = 0,
                               followupPeriod = 0,
                               riskWindowsTable = "#risk_windows",
+                              keepResultsTables = TRUE,
+                              analysisId = 1,
                               resultsDatabaseSchema = NULL) {
 
   if (!DatabaseConnector::dbIsValid(connection))
@@ -64,6 +66,8 @@ runSccRiskWindows <- function(connection,
     riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
                                           results_database_schema = resultsDatabaseSchema,
                                           risk_windows_table = riskWindowsTable)
+  } else {
+    keepResultsTables <- FALSE
   }
 
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "ComputeSccRiskWindows.sql",
@@ -92,6 +96,8 @@ runSccRiskWindows <- function(connection,
                                                    has_full_time_at_risk = hasFullTimeAtRisk,
                                                    washout_window = washoutPeriod,
                                                    followup_window = followupPeriod,
+                                                   drop_results_table = !keepResultsTables,
+                                                   analysis_id = analysisId,
                                                    risk_windows_table = riskWindowsTable)
 
   ParallelLogger::logInfo("Computing time at risk exposed and unexposed windows")
@@ -202,6 +208,7 @@ getSccRiskWindowStats <- function(connection,
                                   riskWindowsTable = "#risk_windows",
                                   resultExportPath = "scc_result",
                                   analysisId = 1,
+                                  keepResultsTables = TRUE,
                                   resultExportManager = ResultModelManager::createResultExportManager(
                                     tableSpecification = getResultsDataModelSpecifications(),
                                     exportDir = resultExportPath,
@@ -239,6 +246,8 @@ getSccRiskWindowStats <- function(connection,
     riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
                                           results_database_schema = resultsDatabaseSchema,
                                           risk_windows_table = riskWindowsTable)
+  } else {
+    keepResultsTables <- FALSE
   }
 
   .getSccRiskWindowStats(connection,

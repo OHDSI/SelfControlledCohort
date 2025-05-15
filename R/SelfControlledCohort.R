@@ -260,6 +260,9 @@ batchComputeEstimates <- function(connection,
 #'                                         unexposed patients per outcome-exposure pair) in a (non-temporary)
 #'                                         table. Note that this table does not store the rate ratios, only
 #'                                         the values required to calculate rate ratios.
+#' @param keepResultsTables                Keep the results tables in place if they exist. This allows the data set
+#'                                         to be added to with aditional targets and outcomes.
+#'                                         (ignored if temporary tables are used, default)
 #' @param resultsDatabaseSchema                    Schema to oputput results to. Ignored if resultsTable and
 #'                                         riskWindowsTable are temporary.
 #' @param washoutPeriod                    Integer to define required time observed before exposure
@@ -324,6 +327,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     computeThreads = 1,
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
+                                    keepResultsTables = TRUE,
                                     resultsDatabaseSchema = NULL,
                                     resultExportPath = "scc_result",
                                     outputFolder = "scc_work",
@@ -412,12 +416,15 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                     washoutPeriod = washoutPeriod,
                     followupPeriod = followupPeriod,
                     riskWindowsTable = riskWindowsTable,
+                    keepResultsTables = keepResultsTables,
                     resultsDatabaseSchema = resultsDatabaseSchema)
   if (riskWindowsTable != "#risk_windows") {
     riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
                                           results_database_schema = resultsDatabaseSchema,
                                           risk_windows_table = riskWindowsTable)
 
+  } else {
+    keepResultsTables <- FALSE
   }
 
   ParallelLogger::logInfo("Retrieving counts from database")
@@ -431,6 +438,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                                    outcome_start_date = outcomeStartDate,
                                                    outcome_id = outcomeId,
                                                    analysis_id = analysisId,
+                                                   drop_results_table = !keepResultsTables,
                                                    outcome_person_id = outcomePersonId,
                                                    first_outcome_only = firstOutcomeOnly,
                                                    risk_windows_table = riskWindowsTable,
@@ -467,6 +475,8 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                            tempEmulationSchema = tempEmulationSchema,
                                            outcome_ids = outcomeIds,
                                            exposure_ids = exposureIds,
+                                           risk_windows_table = riskWindowsTable,
+                                           drop_results_table = !keepResultsTables,
                                            results_table = resultsTable)
   DatabaseConnector::executeSql(connection, sql)
 

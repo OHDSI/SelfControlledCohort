@@ -1,34 +1,7 @@
-/************************************************************************
-Copyright 2025 Observational Health Data Sciences and Informatics
-
-This file is part of SelfControlledCohort
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-************************************************************************/
-
-{@results_table == #results} ? {
-IF OBJECT_ID('tempdb..#results', 'U') IS NOT NULL
-	DROP TABLE #results;
-} : {
-IF OBJECT_ID('@results_table', 'U') IS NOT NULL
-    DROP TABLE @results_table;
-}
-
-IF OBJECT_ID('tempdb..#scc_exposure_summary', 'U') IS NOT NULL
-	DROP TABLE #scc_exposure_summary;
-
-IF OBJECT_ID('tempdb..#scc_outcome_summary', 'U') IS NOT NULL
-	DROP TABLE #scc_outcome_summary;
+{DEFAULT @drop_results_table = FALE}
+{@drop_results_table} ? {DROP TABLE IF EXISTS @results_table;}
+DROP TABLE IF EXISTS #scc_exposure_summary;
+DROP TABLE IF EXISTS #scc_outcome_summary;
 
 -- Summarize risk windows
 SELECT exposure_id,
@@ -93,9 +66,51 @@ ON risk_windows.person_id = outcomes.person_id
 GROUP BY exposure_id,
 	outcome_id;
 
---Create final summary table
-SELECT full_grid.exposure_id as target_cohort_id,
-	full_grid.outcome_id as outcome_cohort_id,
+
+DROP TABLE IF EXISTS #full_grid;
+SELECT exposure_id,
+		num_persons,
+		num_exposures,
+		time_at_risk_exposed,
+		time_at_risk_unexposed,
+		outcome_id
+INTO #full_grid
+FROM #scc_exposure_summary,
+(
+    SELECT DISTINCT outcome_id
+    FROM #scc_outcome_summary
+) o1;
+
+
+-- Probably not supported
+CREATE TABLE IF NOT EXISTS @results_table (
+    target_cohort_id BIGINT,
+    outcome_cohort_id BIGINT,
+    analysis_id BIGINT,
+    num_persons BIGINT,
+    num_exposures BIGINT,
+    num_outcomes_exposed BIGINT,
+    num_outcomes_unexposed BIGINT,
+    time_at_risk_exposed BIGINT,
+    time_at_risk_unexposed
+);
+
+
+DELETE FROM @results_table
+WHERE EXISTS (
+    SELECT 1
+    FROM #full_grid
+    WHERE  @results_table.target_cohort_id = #full_grid.exposure_id
+      AND  @results_table.outcome_cohort_id = #full_grid.outcome_id
+      AND @results_table.analysis_id = @analysis_id
+);
+
+-- INSERT INTO RESULTS TABLE
+INSERT INTO @results_table (target_cohort_id, outcome_cohort_id, analysis_id, num_persons, num_exposures,
+                            num_outcomes_exposed, num_outcomes_unexposed, time_at_risk_exposed, time_at_risk_unexposed)
+SELECT
+    fg.exposure_id as target_cohort_id,
+	fg.outcome_id as outcome_cohort_id,
 	@analysis_id as analysis_id,
 	num_persons,
 	num_exposures,
@@ -103,20 +118,7 @@ SELECT full_grid.exposure_id as target_cohort_id,
 	CASE WHEN outcome_summary.num_outcomes_unexposed IS NULL THEN 0 ELSE outcome_summary.num_outcomes_unexposed END AS num_outcomes_unexposed,
 	time_at_risk_exposed,
 	time_at_risk_unexposed
-INTO @results_table
-FROM (
-	SELECT exposure_id,
-		num_persons,
-		num_exposures,
-		time_at_risk_exposed,
-		time_at_risk_unexposed,
-		outcome_id
-	FROM #scc_exposure_summary,
-		(
-			SELECT DISTINCT outcome_id
-			FROM #scc_outcome_summary
-		) o1
-) full_grid
+FROM #full_grid fg
 LEFT JOIN #scc_outcome_summary outcome_summary
-	ON full_grid.exposure_id = outcome_summary.exposure_id
-		AND full_grid.outcome_id = outcome_summary.outcome_id;
+	ON fg.exposure_id = outcome_summary.exposure_id
+		AND fg.outcome_id = outcome_summary.outcome_id;
