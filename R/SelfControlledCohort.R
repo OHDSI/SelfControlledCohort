@@ -193,8 +193,12 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' Allow the extraction of result estimates from a precomputed scc_result table.
 #'
 #' @inheritParams runSelfControlledCohort
+#' @param resultsTable      string - must be a permanent table
+#' @param riskWindowsTable  string - must be a permanent table
 exportEstimates <- function(connectionDetails,
                             connection,
+                            resultsTable,
+                            riskWindowsTable,
                             negativeControlPairs = NULL,
                             exposureIds = NULL,
                             outcomeIds = NULL,
@@ -203,9 +207,11 @@ exportEstimates <- function(connectionDetails,
                             outcomeDatabaseSchema = cdmDatabaseSchema,
                             outcomeTable = "condition_era",
                             databaseId,
+                            computeThreads = 1,
                             analysisId = 1,
                             tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                             resultsDatabaseSchema = NULL,
+                            firstOutcomeOnly = TRUE,
                             resultExportPath = "scc_result",
                             outputFolder = "scc_work",
                             resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
@@ -451,7 +457,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     outputFolder = "scc_work",
                                     databaseId,
                                     analysisId = 1,
-                                    resultExportManager =  resultExportManager = getDefaultExportManager(resultExportPath, databaseId)) {
+                                    resultExportManager = getDefaultExportManager(resultExportPath, databaseId)) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -560,32 +566,25 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (extractResults) {
-    .getSccRiskWindowStats(connection,
-                           tempEmulationSchema,
-                           outcomeIds,
-                           outcomeDatabaseSchema,
-                           outcomeTable,
-                           outcomeStartDate,
-                           outcomeId,
-                           outcomePersonId,
-                           analysisId,
-                           firstOutcomeOnly,
-                           riskWindowsTable,
-                           resultExportManager)
-
-    ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-    batchComputeEstimates(connection = connection,
-                          analysisId = analysisId,
-                          computeThreads = computeThreads,
-                          resultsTable = resultsTable,
-                          resultExportManager = resultExportManager,
-                          negativeControlPairs = negativeControlPairs,
-                          controlType = controlType,
-                          tempEmulationSchema = tempEmulationSchema)
-
-    resultExportManager$writeManifest(packageName = utils::packageName(),
-                                      packageVersion = utils::packageVersion(utils::packageName()))
-
+    exportEstimates(connection = connection,
+                    exposureIds = exposureIds,
+                    outcomeIds = outcomeIds,
+                    exposureDatabaseSchema = exposureDatabaseSchema,
+                    exposureTable = exposureTable,
+                    outcomeDatabaseSchema = outcomeDatabaseSchema,
+                    outcomeTable = outcomeTable,
+                    databaseId = databaseId,
+                    analysisId = analysisId,
+                    computeThreads = computeThreads,
+                    firstOutcomeOnly = firstOutcomeOnly,
+                    riskWindowsTable = riskWindowsTable,
+                    tempEmulationSchema = tempEmulationSchema,
+                    resultsDatabaseSchema = resultsDatabaseSchema,
+                    resultExportPath = resultExportPath,
+                    resultsTable = resultsTable,
+                    outputFolder = outputFolder,
+                    resultExportManager = resultExportManager,
+                    controlType = controlType)
   }
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
