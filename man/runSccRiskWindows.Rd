@@ -26,6 +26,8 @@ runSccRiskWindows(
   washoutPeriod = 0,
   followupPeriod = 0,
   riskWindowsTable = "#risk_windows",
+  keepResultsTables = TRUE,
+  analysisId = 1,
   resultsDatabaseSchema = NULL
 )
 }
@@ -100,6 +102,12 @@ start.}
 
 \item{riskWindowsTable}{String: optionally store the risk windows in a (non-temporary)
 table.}
+
+\item{keepResultsTables}{Keep the results tables in place if they exist. This allows the data set
+to be added to with aditional targets and outcomes.
+(ignored if temporary tables are used, default)}
+
+\item{analysisId}{An integer unique to this analysis}
 
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}

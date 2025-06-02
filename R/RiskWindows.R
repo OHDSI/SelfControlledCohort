@@ -104,6 +104,8 @@ runSccRiskWindows <- function(connection,
   DatabaseConnector::executeSql(connection, renderedSql)
 }
 
+#' Convenience function for extracting scc risk windows table
+#' @noRd
 .getSccRiskWindowStats <- function(connection,
                                    tempEmulationSchema,
                                    outcomeIds,

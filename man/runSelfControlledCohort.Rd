@@ -35,6 +35,8 @@ runSelfControlledCohort(
   computeThreads = 1,
   riskWindowsTable = "#risk_windows",
   resultsTable = "#results",
+  keepResultsTables = TRUE,
+  extractResults = TRUE,
   resultsDatabaseSchema = NULL,
   resultExportPath = "scc_result",
   outputFolder = "scc_work",
@@ -151,6 +153,17 @@ table.}
 unexposed patients per outcome-exposure pair) in a (non-temporary)
 table. Note that this table does not store the rate ratios, only
 the values required to calculate rate ratios.}
+
+\item{keepResultsTables}{Keep the results tables in place if they exist. This allows the data set
+to be added to with aditional targets and outcomes.
+(ignored if temporary tables are used, default)}
+
+\item{extractResults}{Export results to disk. In the case of very large exposure/outcome set
+pairs it is often more ideal to create a permanent results table with
+the @resultsTable parameter and extract and calibrate small subsets on
+demand. Performing calibration across the full set of outcome/exposure pairs
+can take a significant amount of time.
+If set to false, no relative risk ratios will be produced.}
 
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}

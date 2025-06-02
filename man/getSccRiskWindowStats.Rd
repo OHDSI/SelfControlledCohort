@@ -16,6 +16,7 @@ getSccRiskWindowStats(
   riskWindowsTable = "#risk_windows",
   resultExportPath = "scc_result",
   analysisId = 1,
+  keepResultsTables = TRUE,
   resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
     = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
     databaseId)
@@ -57,6 +58,10 @@ table.}
 \item{resultExportPath}{Folder where result files are exported}
 
 \item{analysisId}{An integer unique to this analysis}
+
+\item{keepResultsTables}{Keep the results tables in place if they exist. This allows the data set
+to be added to with aditional targets and outcomes.
+(ignored if temporary tables are used, default)}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}

@@ -58,6 +58,7 @@ computeIrrs <- function(estimates) {
 
 
 batchComputeEstimates <- function(connection,
+                                  analysisId,
                                   computeThreads,
                                   resultsTable,
                                   resultExportManager,
@@ -80,6 +81,7 @@ batchComputeEstimates <- function(connection,
       rows <- split(rows, rep_len(1:batches, nrow(rows)))
       rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
       rows <- do.call(rbind, rows)
+      rows$analysis_id <- analysisId
       if (position == 1) {
         andromeda$estimates <- rows
       } else {
@@ -141,7 +143,7 @@ batchComputeEstimates <- function(connection,
           colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
           resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = !first)
           first <<- FALSE
-      })
+        })
     }
 
     # Call the function based on controlType
@@ -165,10 +167,119 @@ batchComputeEstimates <- function(connection,
       # we don't want to return anything, just write the result to disk
       return(invisible(NULL))
     }
+
     Andromeda::batchApply(andromeda$estimates, writeBatch)
   }
 
   return(NULL)
+}
+
+#' Get Default export manager
+#' @description
+#' Returns the default export manager class for writing csv file results
+#' @inheritParams runSelfControlledCohort
+#' @export
+getDefaultExportManager <- function(resultExportPath, databaseId) {
+  ResultModelManager::createResultExportManager(
+    tableSpecification = getResultsDataModelSpecifications(),
+    exportDir = resultExportPath,
+    databaseId = databaseId
+  )
+}
+
+
+#' Export Estimates
+#' @description
+#' Allow the extraction of result estimates from a precomputed scc_result table.
+#'
+#' @inheritParams runSelfControlledCohort
+exportEstimates <- function(connectionDetails,
+                            connection,
+                            negativeControlPairs = NULL,
+                            exposureIds = NULL,
+                            outcomeIds = NULL,
+                            exposureDatabaseSchema = cdmDatabaseSchema,
+                            exposureTable = "drug_era",
+                            outcomeDatabaseSchema = cdmDatabaseSchema,
+                            outcomeTable = "condition_era",
+                            databaseId,
+                            analysisId = 1,
+                            tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+                            resultsDatabaseSchema = NULL,
+                            resultExportPath = "scc_result",
+                            outputFolder = "scc_work",
+                            resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
+                            controlType = "outcomes") {
+  checkmate::assertR6(resultExportManager, "ResultExportManager")
+  checkmate::assertList(negativeControlPairs, null.ok = TRUE)
+  checkmate::assertChoice(controlType, choices = c("outcome", "exposure"))
+  # Check if connection already open:
+  if (is.null(connection)) {
+    if (is.null(connectionDetails)) {
+      stop("Connection details not set")
+    }
+    connection <- DatabaseConnector::connect(connectionDetails)
+    on.exit(DatabaseConnector::disconnect(connection))
+  } else if (!DatabaseConnector::dbIsValid(connection)) {
+    stop("Invalid connection object")
+  }
+
+  if (!is.null(exposureIds)) {
+    DatabaseConnector::insertTable(connection = connection,
+                                   tableName = "#scc_exposure_ids",
+                                   data = data.frame(exposure_id = exposureIds),
+                                   tempTable = TRUE)
+  }
+
+
+  if (!is.null(outcomeIds)) {
+    DatabaseConnector::insertTable(connection = connection,
+                                   tableName = "#scc_outcome_ids",
+                                   data = data.frame(outcome_id = outcomeIds),
+                                   tempTable = TRUE)
+  }
+
+  outcomeTable <- tolower(outcomeTable)
+  if (outcomeTable == "condition_era") {
+    outcomeStartDate <- "condition_era_start_date"
+    outcomeId <- "condition_concept_id"
+    outcomePersonId <- "person_id"
+  } else if (outcomeTable == "condition_occurrence") {
+    outcomeStartDate <- "condition_start_date"
+    outcomeId <- "condition_concept_id"
+    outcomePersonId <- "person_id"
+  } else {
+    outcomeStartDate <- "cohort_start_date"
+    outcomeId <- "cohort_definition_id"
+    outcomePersonId <- "subject_id"
+  }
+
+  .getSccRiskWindowStats(connection,
+                         tempEmulationSchema,
+                         outcomeIds,
+                         outcomeDatabaseSchema,
+                         outcomeTable,
+                         outcomeStartDate,
+                         outcomeId,
+                         outcomePersonId,
+                         analysisId,
+                         firstOutcomeOnly,
+                         riskWindowsTable,
+                         resultExportManager)
+
+  ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
+  batchComputeEstimates(connection = connection,
+                        analysisId = analysisId,
+                        computeThreads = computeThreads,
+                        resultsTable = resultsTable,
+                        resultExportManager = resultExportManager,
+                        negativeControlPairs = negativeControlPairs,
+                        controlType = controlType,
+                        tempEmulationSchema = tempEmulationSchema)
+
+
+  resultExportManager$writeManifest(packageName = utils::packageName(),
+                                    packageVersion = utils::packageVersion(utils::packageName()))
 }
 
 #' @title
@@ -263,7 +374,13 @@ batchComputeEstimates <- function(connection,
 #' @param keepResultsTables                Keep the results tables in place if they exist. This allows the data set
 #'                                         to be added to with aditional targets and outcomes.
 #'                                         (ignored if temporary tables are used, default)
-#' @param resultsDatabaseSchema                    Schema to oputput results to. Ignored if resultsTable and
+#' @param extractResults                   Export results to disk. In the case of very large exposure/outcome set
+#'                                         pairs it is often more ideal to create a permanent results table with
+#'                                         the @resultsTable parameter and extract and calibrate small subsets on
+#'                                         demand. Performing calibration across the full set of outcome/exposure pairs
+#'                                         can take a significant amount of time.
+#'                                         If set to false, no relative risk ratios will be produced.
+#' @param resultsDatabaseSchema            Schema to oputput results to. Ignored if resultsTable and
 #'                                         riskWindowsTable are temporary.
 #' @param washoutPeriod                    Integer to define required time observed before exposure
 #'                                         start.
@@ -328,16 +445,13 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
                                     keepResultsTables = TRUE,
+                                    extractResults = TRUE,
                                     resultsDatabaseSchema = NULL,
                                     resultExportPath = "scc_result",
                                     outputFolder = "scc_work",
                                     databaseId,
                                     analysisId = 1,
-                                    resultExportManager = ResultModelManager::createResultExportManager(
-                                      tableSpecification = getResultsDataModelSpecifications(),
-                                      exportDir = resultExportPath,
-                                      databaseId = databaseId
-                                    )) {
+                                    resultExportManager =  resultExportManager = getDefaultExportManager(resultExportPath, databaseId)) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -444,29 +558,35 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                                    risk_windows_table = riskWindowsTable,
                                                    results_table = resultsTable)
   DatabaseConnector::executeSql(connection, renderedSql)
-  .getSccRiskWindowStats(connection,
-                         tempEmulationSchema,
-                         outcomeIds,
-                         outcomeDatabaseSchema,
-                         outcomeTable,
-                         outcomeStartDate,
-                         outcomeId,
-                         outcomePersonId,
-                         analysisId,
-                         firstOutcomeOnly,
-                         riskWindowsTable,
-                         resultExportManager)
 
+  if (extractResults) {
+    .getSccRiskWindowStats(connection,
+                           tempEmulationSchema,
+                           outcomeIds,
+                           outcomeDatabaseSchema,
+                           outcomeTable,
+                           outcomeStartDate,
+                           outcomeId,
+                           outcomePersonId,
+                           analysisId,
+                           firstOutcomeOnly,
+                           riskWindowsTable,
+                           resultExportManager)
 
-  ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
+    ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
+    batchComputeEstimates(connection = connection,
+                          analysisId = analysisId,
+                          computeThreads = computeThreads,
+                          resultsTable = resultsTable,
+                          resultExportManager = resultExportManager,
+                          negativeControlPairs = negativeControlPairs,
+                          controlType = controlType,
+                          tempEmulationSchema = tempEmulationSchema)
 
-  batchComputeEstimates(connection = connection,
-                        computeThreads = computeThreads,
-                        resultsTable = resultsTable,
-                        resultExportManager = resultExportManager,
-                        negativeControlPairs = negativeControlPairs,
-                        controlType = controlType,
-                        tempEmulationSchema = tempEmulationSchema)
+    resultExportManager$writeManifest(packageName = utils::packageName(),
+                                      packageVersion = utils::packageVersion(utils::packageName()))
+
+  }
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
   sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",
@@ -479,10 +599,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                            drop_results_table = !keepResultsTables,
                                            results_table = resultsTable)
   DatabaseConnector::executeSql(connection, sql)
-
-  resultExportManager$writeManifest(packageName = utils::packageName(),
-                                    packageVersion = utils::packageVersion(utils::packageName()))
-
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
 
