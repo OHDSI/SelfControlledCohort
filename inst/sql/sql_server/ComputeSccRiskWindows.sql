@@ -17,7 +17,7 @@ WHERE EXISTS (
     SELECT 1
     FROM @exposure_database_schema.@exposure_table
     WHERE @exposure_database_schema.@exposure_table.@exposure_id = @risk_windows_table.exposure_id
-    AND analysis_id = @analysis_id
+    AND @risk_windows_table.analysis_id = @analysis_id
 );
 
 -- Create risk windows
