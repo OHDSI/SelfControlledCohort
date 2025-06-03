@@ -1,4 +1,4 @@
-{DEFAULT @drop_results_table = FALE}
+{DEFAULT @drop_results_table = FALSE}
 {@drop_results_table} ? {DROP TABLE IF EXISTS @results_table;}
 DROP TABLE IF EXISTS #scc_exposure_summary;
 DROP TABLE IF EXISTS #scc_outcome_summary;
@@ -102,7 +102,7 @@ WHERE EXISTS (
     FROM #full_grid
     WHERE  @results_table.target_cohort_id = #full_grid.exposure_id
       AND  @results_table.outcome_cohort_id = #full_grid.outcome_id
-      AND @results_table.analysis_id = @analysis_id
+      AND  @results_table.analysis_id = @analysis_id
 );
 
 -- INSERT INTO RESULTS TABLE
