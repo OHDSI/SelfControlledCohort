@@ -1,9 +1,9 @@
 {DEFAULT @drop_results_table = FALSE}
 {@drop_results_table} ? {DROP TABLE IF EXISTS @results_table;}
+
 DROP TABLE IF EXISTS #scc_exposure_summary;
 DROP TABLE IF EXISTS #scc_outcome_summary;
 
--- Summarize risk windows
 SELECT exposure_id,
     @analysis_id as analysis_id,
 	COUNT(DISTINCT person_id) AS num_persons,
@@ -20,7 +20,6 @@ FROM (
 ) t1
 GROUP BY exposure_id;
 
--- Summarize outcomes in risk windows
 SELECT @analysis_id as analysis_id,
     exposure_id,
 	outcome_id,
@@ -81,8 +80,6 @@ FROM #scc_exposure_summary,
     FROM #scc_outcome_summary
 ) o1;
 
-
--- Probably not supported
 CREATE TABLE IF NOT EXISTS @results_table (
     target_cohort_id BIGINT,
     outcome_cohort_id BIGINT,
@@ -92,9 +89,8 @@ CREATE TABLE IF NOT EXISTS @results_table (
     num_outcomes_exposed BIGINT,
     num_outcomes_unexposed BIGINT,
     time_at_risk_exposed BIGINT,
-    time_at_risk_unexposed
+    time_at_risk_unexposed BIGINT
 );
-
 
 DELETE FROM @results_table
 WHERE EXISTS (
@@ -105,7 +101,6 @@ WHERE EXISTS (
       AND  @results_table.analysis_id = @analysis_id
 );
 
--- INSERT INTO RESULTS TABLE
 INSERT INTO @results_table (target_cohort_id, outcome_cohort_id, analysis_id, num_persons, num_exposures,
                             num_outcomes_exposed, num_outcomes_unexposed, time_at_risk_exposed, time_at_risk_unexposed)
 SELECT
