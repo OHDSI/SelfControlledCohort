@@ -550,7 +550,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   ParallelLogger::logInfo("Retrieving counts from database")
   renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
                                                    packageName = "SelfControlledCohort",
-                                                   dbms = connection@dbms,
+                                                   dbms = DatabaseConnector::dbms(connection),
                                                    tempEmulationSchema = tempEmulationSchema,
                                                    outcome_ids = outcomeIds,
                                                    outcome_database_schema = outcomeDatabaseSchema,
