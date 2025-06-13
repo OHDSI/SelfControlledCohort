@@ -68,7 +68,7 @@ runSccAnalyses <- function(connectionDetails,
     stop("Duplicate analysis IDs are not allowed")
   }
   if (!dir.exists(resultsFolder))
-    dir.create(resultsFolder)
+    dir.create(resultsFolder, recursive = TRUE)
 
   # If any of the results compute the TAR stats, all the analyses must do the same
   computeTarDist <- FALSE
