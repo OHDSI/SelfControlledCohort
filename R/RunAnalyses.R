@@ -67,7 +67,7 @@ runSccAnalyses <- function(connectionDetails,
   if (length(uniqueAnalysisIds) != length(sccAnalysisList)) {
     stop("Duplicate analysis IDs are not allowed")
   }
-  if (!file.exists(resultsFolder))
+  if (!dir.exists(resultsFolder))
     dir.create(resultsFolder)
 
   # If any of the results compute the TAR stats, all the analyses must do the same

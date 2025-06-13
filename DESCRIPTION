@@ -39,9 +39,16 @@ Suggests:
     DiagrammeR,
     tidyr,
     R.utils,
-    jsonlite
+    jsonlite,
+    OhdsiShinyModules,
+    DT,
+    ggplot2,
+    shiny,
+    shinycssloaders,
+    plotly
 Remotes:
-    OHDSI/ResultModelManager@fix-finalize
+    OHDSI/ResultModelManager@fix-finalize,
+    OHDSI/OhdsiShinyModules
 License: Apache License 2.0
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
