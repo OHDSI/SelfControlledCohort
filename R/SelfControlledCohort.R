@@ -111,13 +111,15 @@ batchComputeEstimates <- function(connection,
 
   if (length(negativeControlPairs) > 0) {
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
-      data.frame(targetCohortId = eo[[1]], outcomeCohortId = eo[[2]])
+      data.frame(targetCohortId = eo[[1]], outcomeCohortId = eo[[2]], trueEffectSize = 1)
     }))
+    resultExportManager$exportDataFrame(ncPairsDf, "scc_outcome_exposure", append = FALSE)
 
     processControlType <- function(groupByCol, filterCol, dataCol) {
       filterCol <- SqlRender::camelCaseToSnakeCase(filterCol)
       dataCol <- SqlRender::camelCaseToSnakeCase(dataCol)
       ncPairsDf |>
+        dplyr::select(-"trueEffectSize") |>
         dplyr::group_by(.data[[groupByCol]]) |>
         dplyr::group_map(function(data, grp) {
           grpCol <- grp[[groupByCol]]
@@ -140,8 +142,13 @@ batchComputeEstimates <- function(connection,
             idCol = groupByCol
           )
 
+          outcomeExposurePairs <- positives |>
+            dplyr::select("targetCohortId", "outcomeCohortId") |>
+            dplyr::distinct()
+
           colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
           resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = !first)
+          resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure", append = TRUE)
           first <<- FALSE
         })
     }
@@ -571,6 +578,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                     outcomeIds = outcomeIds,
                     exposureDatabaseSchema = exposureDatabaseSchema,
                     exposureTable = exposureTable,
+                    negativeControlPairs = negativeControlPairs,
                     outcomeDatabaseSchema = outcomeDatabaseSchema,
                     outcomeTable = outcomeTable,
                     databaseId = databaseId,
