@@ -151,8 +151,7 @@ batchComputeEstimates <- function(connection,
 
             calibratedEstimates <- computeCalibratedRows(
               positives = positives,
-              negatives = negatives,
-              idCol = SqlRender::snakeCaseToCamelCase(groupByCol)
+              negatives = negatives
             )
             colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
             calibratedEstimates$analysis_id <- analysisId
