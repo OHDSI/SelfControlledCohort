@@ -5,6 +5,8 @@ sample_negatives <- data.frame(
 )
 
 sample_positives <- data.frame(
+  targetCohortId = 1:3,
+  outcomeCohortId = 4:6,
   rr = c(1.5, 0.9, 1.1),
   seLogRr = c(0.2, 0.1, 0.3),
   numPersons = c(100, 150, 200),
@@ -35,14 +37,10 @@ test_that("computeCalibratedRows function works as expected", {
 
   expect_error(computeCalibratedRows(sample_positives, NULL))
 
-  # Test the expected error when idCol does not exist
-  expect_error(computeCalibratedRows(sample_positives, sample_negatives, idCol = "non_existent_id"))
-
   # Valid call
 
   result <- computeCalibratedRows(positives = sample_positives,
-                                  negatives = sample_negatives,
-                                  idCol = "targetCohortId")
+                                  negatives = sample_negatives)
 
   checkmate::expect_data_frame(result)
   expect_equal(nrow(result), nrow(sample_positives))
@@ -51,5 +49,5 @@ test_that("computeCalibratedRows function works as expected", {
                           must.include = c("pValue", "ub95", "lb95", "rr", "seLogRr", "numExposures", "numPersons",
                                            "calibratedPValue", "calibratedUb95", "calibratedLb95", "calibratedRr",
                                            "calibratedSeLogRr", "numOutcomesExposed", "numOutcomesUnexposed",
-                                           "timeAtRiskExposed", "timeAtRiskUnexposed", "targetCohortId"))
+                                           "timeAtRiskExposed", "timeAtRiskUnexposed", "targetCohortId", "outcomeCohortId"))
 })

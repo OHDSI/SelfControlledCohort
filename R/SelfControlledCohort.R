@@ -111,45 +111,56 @@ batchComputeEstimates <- function(connection,
 
   if (length(negativeControlPairs) > 0) {
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
-      data.frame(targetCohortId = eo[[1]], outcomeCohortId = eo[[2]], trueEffectSize = 1)
+      data.frame(target_cohort_id = eo[[1]], outcome_cohort_id = eo[[2]], true_effect_size = 1)
     }))
     resultExportManager$exportDataFrame(ncPairsDf, "scc_outcome_exposure", append = FALSE)
 
     processControlType <- function(groupByCol, filterCol, dataCol) {
       filterCol <- SqlRender::camelCaseToSnakeCase(filterCol)
       dataCol <- SqlRender::camelCaseToSnakeCase(dataCol)
+      groupByCol <- SqlRender::camelCaseToSnakeCase(groupByCol)
+
       ncPairsDf |>
-        dplyr::select(-"trueEffectSize") |>
+        dplyr::select(-"true_effect_size") |>
         dplyr::group_by(.data[[groupByCol]]) |>
         dplyr::group_map(function(data, grp) {
           grpCol <- grp[[groupByCol]]
+
           estimates <- andromeda$estimates |>
             dplyr::filter(.data[[filterCol]] == grpCol) |>
             dplyr::collect()
 
-          positives <- estimates |>
-            dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]])
+          if (nrow(estimates)) {
+            positives <- estimates |>
+              dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]])
 
-          negatives <- estimates |>
-            dplyr::filter(.data[[dataCol]] %in% data[[dataCol]])
+            negatives <- estimates |>
+              dplyr::filter(.data[[dataCol]] %in% data[[dataCol]])
 
-          colnames(positives) <- SqlRender::snakeCaseToCamelCase(colnames(positives))
-          colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
+            outcomeExposurePairs <- positives |>
+              dplyr::select(dataCol, filterCol) |>
+              dplyr::mutate(true_effect_size = NA) |>
+              dplyr::distinct()
 
-          calibratedEstimates <- computeCalibratedRows(
-            positives = positives,
-            negatives = negatives,
-            idCol = groupByCol
-          )
+            resultExportManager$exportDataFrame(outcomeExposurePairs,
+                                                "scc_outcome_exposure",
+                                                append = TRUE)
 
-          outcomeExposurePairs <- positives |>
-            dplyr::select("targetCohortId", "outcomeCohortId") |>
-            dplyr::distinct()
+            colnames(positives) <- SqlRender::snakeCaseToCamelCase(colnames(positives))
+            colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
 
-          colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
-          resultExportManager$exportDataFrame(calibratedEstimates, "scc_result", append = !first)
-          resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure", append = TRUE)
-          first <<- FALSE
+            calibratedEstimates <- computeCalibratedRows(
+              positives = positives,
+              negatives = negatives,
+              idCol = SqlRender::snakeCaseToCamelCase(groupByCol)
+            )
+            colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
+            calibratedEstimates$analysis_id <- analysisId
+            resultExportManager$exportDataFrame(calibratedEstimates,
+                                                "scc_result",
+                                                append = !first)
+            first <<- FALSE
+          }
         })
     }
 
@@ -165,15 +176,17 @@ batchComputeEstimates <- function(connection,
     # Just extract results table from andromeda
     writeBatch <- function(batch) {
       # Add empty columns to  silence RMM warning
-      cols <- c("calibrated_rr", "calibrated_se_log_rr", "calibrated_log_rr", "calibrated_lb_95", "calibrated_ub_95", "calibrated_p_value", "exposure_calibrated")
+      cols <- c("calibrated_rr", "calibrated_se_log_rr", "calibrated_lb_95", "calibrated_ub_95", "calibrated_p_value")
       for (name in cols) {
         batch[[name]] <- NA
       }
 
       outcomeExposurePairs <- batch |>
-        dplyr::select("targetCohortId", "outcomeCohortId") |>
+        dplyr::select("targetCohortId" = "target_cohort_id",
+                      "outcomeCohortId" = "outcome_cohort_id") |>
+        dplyr::mutate(true_effect_size = NA) |>
         dplyr::distinct()
-      
+
       resultExportManager$exportDataFrame(batch, "scc_result", append = !first)
       resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure", append = !first)
       first <<- FALSE

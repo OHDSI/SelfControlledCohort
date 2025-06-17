@@ -36,17 +36,15 @@ getNullDist <- function(negatives) {
 #' Actual calibration is performed here in a dplyr friendly way
 #' @param positives   this is the cohort set that should be calibrated
 #' @param negatives   these are the negative control cohort results
-#' @param idCol       - either target_cohort_id or outcome_cohort_id - to keep
 #' @return
 #' data.frame
 #' @noRd
 computeCalibratedRows <- function(positives,
                                   negatives,
-                                  idCol = NULL,
                                   keepCols = c("numExposures", "numPersons", "numOutcomesExposed", "rr", "pValue",
                                                "ub95", "lb95", "seLogRr", "numOutcomesUnexposed", "timeAtRiskExposed",
-                                               "timeAtRiskUnexposed")) {
-  checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols, idCol))
+                                               "timeAtRiskUnexposed", "targetCohortId", "outcomeCohortId")) {
+  checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols))
   nullDist <- getNullDist(negatives)
   errorModel <- EmpiricalCalibration::convertNullToErrorModel(nullDist)
   ci <- EmpiricalCalibration::calibrateConfidenceInterval(log(positives$rr),
@@ -61,7 +59,7 @@ computeCalibratedRows <- function(positives,
                        calibratedSeLogRr = ci$seLogRr)
 
   keptColumns <- positives |>
-    dplyr::select(dplyr::all_of(c(keepCols, idCol)))
+    dplyr::select(dplyr::all_of(keepCols))
   result <- result |>
     dplyr::bind_cols(keptColumns)
   return(result)

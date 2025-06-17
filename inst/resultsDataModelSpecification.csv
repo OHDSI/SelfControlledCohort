@@ -8,18 +8,15 @@ scc_result,outcome_cohort_id,bigint,1,1,0,Identifier for the outcome cohort
 scc_result,target_cohort_id,bigint,1,1,0,Identifier for the target cohort
 scc_result,rr,float,0,0,0,Relative risk calculated from the study
 scc_result,se_log_rr,float,0,0,0,Standard error of the log relative risk
-scc_result,log_rr,float,0,0,0,Logarithm of the relative risk
 scc_result,lb_95,float,0,0,0,Lower bound of the 95% confidence interval
 scc_result,ub_95,float,0,0,0,Upper bound of the 95% confidence interval
 scc_result,p_value,float,0,0,0,P-value indicating statistical significance
 scc_result,i2,float,0,0,0,I^2 statistic (if meta-analysis row)
 scc_result,calibrated_rr,float,0,0,0,Calibrated relative risk
 scc_result,calibrated_se_log_rr,float,0,0,0,Standard error of the calibrated log relative risk
-scc_result,calibrated_log_rr,float,0,0,0,Calibrated logarithm of the relative risk
 scc_result,calibrated_lb_95,float,0,0,0,Lower bound of the 95% confidence interval for calibrated results
 scc_result,calibrated_ub_95,float,0,0,0,Upper bound of the 95% confidence interval for calibrated results
 scc_result,calibrated_p_value,float,0,0,0,P-value for calibrated results
-scc_result,exposure_calibrated,int,0,0,0,Is the result calibrated with exposure negative controls or outcomes?
 scc_result,num_persons,float,0,0,0,person count
 scc_result,time_at_risk_exposed,float,0,0,0,Time at risk exposed
 scc_result,time_at_risk_unexposed,float,0,0,0,Time at risk unexposed
