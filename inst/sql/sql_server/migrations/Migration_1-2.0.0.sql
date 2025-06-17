@@ -30,11 +30,12 @@ create table @database_schema.scc_result (
     t_cases NUMERIC,
     c_cases NUMERIC,
     num_exposures NUMERIC,
+    i2 NUMERIC,
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
 );
 
 create TABLE @database_schema.scc_stat (
-    database_id INT NOT NULL,
+    database_id VARCHAR NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
     target_cohort_id BIGINT NOT NULL,
@@ -53,7 +54,7 @@ create TABLE @database_schema.scc_stat (
 );
 
 create TABLE @database_schema.scc_diagnostics_summary (
-    database_id INT NOT NULL,
+    database_id VARCHAR NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
     target_cohort_id BIGINT NOT NULL,
@@ -61,4 +62,11 @@ create TABLE @database_schema.scc_diagnostics_summary (
     pass INT,
     diagnostic_name TEXT NOT NULL,
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
+)
+
+create TABLE @database_schema.scc_outcome_exposure (
+    outcome_cohort_id BIGINT NOT NULL,
+    target_cohort_id BIGINT NOT NULL,
+    true_effect_size NUMERIC,
+    PRIMARY KEY (outcome_cohort_id, target_cohort_id)
 )
