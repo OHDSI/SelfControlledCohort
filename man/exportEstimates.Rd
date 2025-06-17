@@ -7,6 +7,8 @@
 exportEstimates(
   connectionDetails,
   connection,
+  resultsTable,
+  riskWindowsTable,
   negativeControlPairs = NULL,
   exposureIds = NULL,
   outcomeIds = NULL,
@@ -15,12 +17,14 @@ exportEstimates(
   outcomeDatabaseSchema = cdmDatabaseSchema,
   outcomeTable = "condition_era",
   databaseId,
+  computeThreads = 1,
   analysisId = 1,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   resultsDatabaseSchema = NULL,
+  firstOutcomeOnly = TRUE,
   resultExportPath = "scc_result",
   outputFolder = "scc_work",
-  resultExportManager = getDefaultExportManager(),
+  resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
   controlType = "outcomes"
 )
 }
@@ -30,6 +34,10 @@ the function \code{createConnectionDetails} in the
 \code{DatabaseConnector} package.}
 
 \item{connection}{DatabaseConnector connection instance}
+
+\item{resultsTable}{string - must be a permanent table}
+
+\item{riskWindowsTable}{string - must be a permanent table}
 
 \item{negativeControlPairs}{A list of vectors for pairs of negative control}
 
@@ -66,6 +74,9 @@ COHORT_END_DATE.}
 
 \item{databaseId}{Unique identifier for database - required}
 
+\item{computeThreads}{Number of parallel threads for computing IRRs with exact
+confidence intervals.}
+
 \item{analysisId}{An integer unique to this analysis}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
@@ -73,6 +84,9 @@ tables, provide a schema with write privileges where temp tables can be created.
 
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}
+
+\item{firstOutcomeOnly}{If TRUE, only use first occurrence of each condition concept
+id for each person.}
 
 \item{resultExportPath}{Folder where result files are exported}
 

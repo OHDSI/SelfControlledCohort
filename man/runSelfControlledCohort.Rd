@@ -42,9 +42,7 @@ runSelfControlledCohort(
   outputFolder = "scc_work",
   databaseId,
   analysisId = 1,
-  resultExportManager = ResultModelManager::createResultExportManager(tableSpecification
-    = getResultsDataModelSpecifications(), exportDir = resultExportPath, databaseId =
-    databaseId)
+  resultExportManager = getDefaultExportManager(resultExportPath, databaseId)
 )
 }
 \arguments{
