@@ -169,7 +169,13 @@ batchComputeEstimates <- function(connection,
       for (name in cols) {
         batch[[name]] <- NA
       }
+
+      outcomeExposurePairs <- batch |>
+        dplyr::select("targetCohortId", "outcomeCohortId") |>
+        dplyr::distinct()
+      
       resultExportManager$exportDataFrame(batch, "scc_result", append = !first)
+      resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure", append = !first)
       first <<- FALSE
       # we don't want to return anything, just write the result to disk
       return(invisible(NULL))
