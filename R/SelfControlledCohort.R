@@ -144,15 +144,16 @@ batchComputeEstimates <- function(connection,
                                                 "scc_outcome_exposure",
                                                 append = TRUE)
 
-            colnames(positives) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
+            colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
             colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
 
             calibratedEstimates <- computeCalibratedRows(
               positives = estimates,
               negatives = negatives
             )
-            calibratedEstimates$i2 <- NA
+
             colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
+            calibratedEstimates$i2 <- NA
             calibratedEstimates$analysis_id <- analysisId
             resultExportManager$exportDataFrame(calibratedEstimates,
                                                 "scc_result",
