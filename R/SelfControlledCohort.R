@@ -425,6 +425,7 @@ exportEstimates <- function(connectionDetails,
 #' @param resultExportManager              ResultModelManager::ResultExportManager instance - customize this to implement
 #'                                         an alternative mechanism for exporting results
 #' @param analysisId                       An integer unique to this analysis
+#' @param analysisDescription              A string description of the analysis (optional)
 #'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
@@ -482,6 +483,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     outputFolder = "scc_work",
                                     databaseId,
                                     analysisId = 1,
+                                    analysisDescription = paste("SCC analysis", analysisId),
                                     resultExportManager = getDefaultExportManager(resultExportPath, databaseId)) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
@@ -539,6 +541,30 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                    data = data.frame(outcome_id = outcomeIds),
                                    tempTable = TRUE)
   }
+
+  settingsString <- list(firstExposureOnly = firstExposureOnly,
+                         firstOutcomeOnly = firstExposureOnly,
+                         minAge = minAge,
+                         maxAge = maxAge,
+                         studyStartDate = studyStartDate,
+                         studyEndDate = studyEndDate,
+                         addLengthOfExposureExposed = addLengthOfExposureExposed,
+                         riskWindowStartExposed = riskWindowStartExposed,
+                         riskWindowEndExposed = riskWindowEndExposed,
+                         addLengthOfExposureUnexposed = addLengthOfExposureUnexposed,
+                         riskWindowEndUnexposed = riskWindowEndUnexposed,
+                         riskWindowStartUnexposed = riskWindowStartUnexposed,
+                         hasFullTimeAtRisk = hasFullTimeAtRisk,
+                         washoutPeriod = washoutPeriod,
+                         followupPeriod = followupPeriod) |>
+    ParallelLogger::convertSettingsToJson() |>
+    as.character()
+
+  sccAnalysisSetting <- data.frame(analysis_id = analysisId,
+                                   description = analysisDescription,
+                                   settings = settingsString)
+
+  resultExportManager$exportDataFrame(sccAnalysisSetting, "scc_analysis_setting", append = FALSE)
 
   runSccRiskWindows(connection = connection,
                     cdmDatabaseSchema = cdmDatabaseSchema,

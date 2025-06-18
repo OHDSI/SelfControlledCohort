@@ -42,6 +42,7 @@ runSelfControlledCohort(
   outputFolder = "scc_work",
   databaseId,
   analysisId = 1,
+  analysisDescription = paste("SCC analysis", analysisId),
   resultExportManager = getDefaultExportManager(resultExportPath, databaseId)
 )
 }
@@ -173,6 +174,8 @@ riskWindowsTable are temporary.}
 \item{databaseId}{Unique identifier for database - required}
 
 \item{analysisId}{An integer unique to this analysis}
+
+\item{analysisDescription}{A string description of the analysis (optional)}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}

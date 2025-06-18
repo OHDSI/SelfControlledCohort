@@ -9,7 +9,7 @@ uploadResults(
   schema,
   resultsFolder,
   forceOverWriteOfSpecifications = FALSE,
-  purgeSiteDataBeforeUploading = TRUE,
+  purgeSiteDataBeforeUploading = FALSE,
   tablePrefix = "",
   ...
 )
