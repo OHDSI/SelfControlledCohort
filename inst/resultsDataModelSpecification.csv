@@ -1,50 +1,49 @@
 table_name,column_name,data_type,is_required,primary_key,min_cell_count,description
-scc_analysis_setting,analysis_id,int,1,1,0,Unique identifier for the analysis setting
-scc_analysis_setting,description,varchar,0,0,0,Description of the analysis
-scc_analysis_setting,settings,varchar,0,0,0,Settings related to the analysis
-scc_result,database_id,varchar,1,1,0,Unique identifier for the database
-scc_result,analysis_id,int,1,1,0,Identifier for the associated analysis
-scc_result,outcome_cohort_id,bigint,1,1,0,Identifier for the outcome cohort
-scc_result,target_cohort_id,bigint,1,1,0,Identifier for the target cohort
-scc_result,rr,float,0,0,0,Relative risk calculated from the study
-scc_result,se_log_rr,float,0,0,0,Standard error of the log relative risk
-scc_result,lb_95,float,0,0,0,Lower bound of the 95% confidence interval
-scc_result,ub_95,float,0,0,0,Upper bound of the 95% confidence interval
-scc_result,p_value,float,0,0,0,P-value indicating statistical significance
-scc_result,i2,float,0,0,0,I^2 statistic (if meta-analysis row)
-scc_result,calibrated_rr,float,0,0,0,Calibrated relative risk
-scc_result,calibrated_se_log_rr,float,0,0,0,Standard error of the calibrated log relative risk
-scc_result,calibrated_lb_95,float,0,0,0,Lower bound of the 95% confidence interval for calibrated results
-scc_result,calibrated_ub_95,float,0,0,0,Upper bound of the 95% confidence interval for calibrated results
-scc_result,calibrated_p_value,float,0,0,0,P-value for calibrated results
-scc_result,num_persons,float,0,0,0,person count
-scc_result,time_at_risk_exposed,float,0,0,0,Time at risk exposed
-scc_result,time_at_risk_unexposed,float,0,0,0,Time at risk unexposed
-scc_result,num_outcomes_exposed,float,0,0,1,Cases while exposed
-scc_result,num_outcomes_unexposed,float,0,0,1,Cases while unexposed
-scc_result,num_exposures,float,0,0,1,Number of exposures
-scc_stat,database_id,int,1,1,0,Unique identifier for the database
-scc_stat,analysis_id,int,1,1,0,Identifier for the associated analysis
-scc_stat,outcome_cohort_id,bigint,1,1,0,Identifier for the outcome cohort
-scc_stat,target_cohort_id,bigint,1,1,0,Identifier for the target cohort
-scc_stat,stat_type,varchar,0,0,0,Type of statistical measure
-scc_stat,mean,float,0,0,0,Mean value of the statistic
-scc_stat,sd,float,0,0,0,Standard deviation of the statistic
-scc_stat,minimum,float,0,0,0,Minimum value in the dataset
-scc_stat,p10,float,0,0,0,10th percentile value
-scc_stat,p25,float,0,0,0,25th percentile value
-scc_stat,median,float,0,0,0,Median value
-scc_stat,p75,float,0,0,0,75th percentile value
-scc_stat,p90,float,0,0,0,90th percentile value
-scc_stat,maximum,float,0,0,0,Maximum value in the dataset
-scc_stat,total,float,0,0,0,Total count or total value of the statistic
-scc_diagnostics_summary,database_id,bigint,1,1,0,Unique identifier for the database
-scc_diagnostics_summary,analysis_id,int,1,1,0,Identifier for the associated analysis
-scc_diagnostics_summary,outcome_cohort_id,bigint,1,1,0,Identifier for the outcome cohort
-scc_diagnostics_summary,target_cohort_id,bigint,1,1,0,Identifier for the target cohort
-scc_diagnostics_summary,diagnostic_value,float,0,0,0,Value associated with the diagnostic test
-scc_diagnostics_summary,pass,int,0,0,0,Indicator of whether the diagnostic test passed
-scc_diagnostics_summary,diagnostic_name,varchar,1,1,0,Name of the diagnostic test
-scc_outcome_exposure,outcome_cohort_id,bigint,1,1,0,Identifier for the outcome cohort
-scc_outcome_exposure,target_cohort_id,bigint,1,1,0,Identifier for the target cohort
-scc_outcome_exposure,true_effect_size,float,0,0,1,Is the outcome/exposure pair a control?
+scc_analysis_setting,analysis_id,int,Yes,Yes,No,Unique identifier for the analysis setting
+scc_analysis_setting,description,varchar,No,No,No,Description of the analysis
+scc_analysis_setting,settings,varchar,No,No,No,Settings related to the analysis
+scc_result,database_id,varchar,Yes,Yes,No,Unique identifier for the database
+scc_result,analysis_id,int,Yes,Yes,No,Identifier for the associated analysis
+scc_result,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort
+scc_result,target_cohort_id,bigint,Yes,Yes,No,Identifier for the target cohort
+scc_result,rr,float,No,No,No,Relative risk calculated from the study
+scc_result,se_log_rr,float,No,No,No,Standard error of the log relative risk
+scc_result,lb_95,float,No,No,No,Lower bound of the 95% confidence interval
+scc_result,ub_95,float,No,No,No,Upper bound of the 95% confidence interval
+scc_result,p_value,float,No,No,No,P-value indicating statistical significance
+scc_result,calibrated_rr,float,No,No,No,Calibrated relative risk
+scc_result,calibrated_se_log_rr,float,No,No,No,Standard error of the calibrated log relative risk
+scc_result,calibrated_lb_95,float,No,No,No,Lower bound of the 95% confidence interval for calibrated results
+scc_result,calibrated_ub_95,float,No,No,No,Upper bound of the 95% confidence interval for calibrated results
+scc_result,calibrated_p_value,float,No,No,No,P-value for calibrated results
+scc_result,num_persons,float,No,No,No,person count
+scc_result,time_at_risk_exposed,float,No,No,No,Time at risk exposed
+scc_result,time_at_risk_unexposed,float,No,No,No,Time at risk unexposed
+scc_result,num_outcomes_exposed,float,No,No,Yes,Cases while exposed
+scc_result,num_outcomes_unexposed,float,No,No,Yes,Cases while unexposed
+scc_result,num_exposures,float,No,No,Yes,Number of exposures
+scc_stat,database_id,int,Yes,Yes,No,Unique identifier for the database
+scc_stat,analysis_id,int,Yes,Yes,No,Identifier for the associated analysis
+scc_stat,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort
+scc_stat,target_cohort_id,bigint,Yes,Yes,No,Identifier for the target cohort
+scc_stat,stat_type,varchar,No,No,No,Type of statistical measure
+scc_stat,mean,float,No,No,No,Mean value of the statistic
+scc_stat,sd,float,No,No,No,Standard deviation of the statistic
+scc_stat,minimum,float,No,No,No,Minimum value in the dataset
+scc_stat,p10,float,No,No,No,YesNoth percentile value
+scc_stat,p25,float,No,No,No,25th percentile value
+scc_stat,median,float,No,No,No,Median value
+scc_stat,p75,float,No,No,No,75th percentile value
+scc_stat,p90,float,No,No,No,9Noth percentile value
+scc_stat,maximum,float,No,No,No,Maximum value in the dataset
+scc_stat,total,float,No,No,No,Total count or total value of the statistic
+scc_diagnostics_summary,database_id,bigint,Yes,Yes,No,Unique identifier for the database
+scc_diagnostics_summary,analysis_id,int,Yes,Yes,No,Identifier for the associated analysis
+scc_diagnostics_summary,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort
+scc_diagnostics_summary,target_cohort_id,bigint,Yes,Yes,No,Identifier for the target cohort
+scc_diagnostics_summary,diagnostic_value,float,No,No,No,Value associated with the diagnostic test
+scc_diagnostics_summary,pass,int,No,No,No,Indicator of whether the diagnostic test passed
+scc_diagnostics_summary,diagnostic_name,varchar,Yes,Yes,No,Name of the diagnostic test
+scc_outcome_exposure,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort
+scc_outcome_exposure,target_cohort_id,bigint,Yes,Yes,No,Identifier for the target cohort
+scc_outcome_exposure,true_effect_size,float,No,No,No,Is the outcome/exposure pair a control?

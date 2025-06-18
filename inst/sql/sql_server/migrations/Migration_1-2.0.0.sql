@@ -1,10 +1,16 @@
-create table @database_schema.scc_analysis_setting (
+{DEFAULT @scc_analysis_setting = scc_analysis_setting}
+{DEFAULT @scc_result = scc_result}
+{DEFAULT @scc_stat = scc_stat}
+{DEFAULT @scc_diagnostics_summary = scc_diagnostics_summary}
+{DEFAULT @scc_outcome_exposure = scc_outcome_exposure}
+
+create table @database_schema.@table_prefix@scc_analysis_setting (
    analysis_id INT PRIMARY KEY,
    description VARCHAR,
    settings VARCHAR
 );
 
-create table @database_schema.scc_result (
+create table @database_schema.@table_prefix@scc_result (
     database_id VARCHAR NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
@@ -30,11 +36,16 @@ create table @database_schema.scc_result (
     t_cases NUMERIC,
     c_cases NUMERIC,
     num_exposures NUMERIC,
+    num_persons NUMERIC,
+    time_at_risk_exposed NUMERIC,
+    time_at_risk_unexposed NUMERIC,
+    num_outcomes_exposed NUMERIC,
+    num_outcomes_unexposed NUMERIC,
     i2 NUMERIC,
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
 );
 
-create TABLE @database_schema.scc_stat (
+create TABLE @database_schema.@table_prefix@scc_stat (
     database_id VARCHAR NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
@@ -53,7 +64,7 @@ create TABLE @database_schema.scc_stat (
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id, stat_type)
 );
 
-create TABLE @database_schema.scc_diagnostics_summary (
+create TABLE @database_schema.@table_prefix@scc_diagnostics_summary (
     database_id VARCHAR NOT NULL,
     analysis_id INT NOT NULL,
     outcome_cohort_id BIGINT NOT NULL,
@@ -64,7 +75,7 @@ create TABLE @database_schema.scc_diagnostics_summary (
     PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
 );
 
-create TABLE @database_schema.scc_outcome_exposure (
+create TABLE @database_schema.@table_prefix@scc_outcome_exposure (
     outcome_cohort_id BIGINT NOT NULL,
     target_cohort_id BIGINT NOT NULL,
     true_effect_size NUMERIC,
