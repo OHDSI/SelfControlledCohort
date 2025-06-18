@@ -131,13 +131,11 @@ batchComputeEstimates <- function(connection,
             dplyr::collect()
 
           if (nrow(estimates)) {
-            positives <- estimates |>
-              dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]])
-
             negatives <- estimates |>
               dplyr::filter(.data[[dataCol]] %in% data[[dataCol]])
 
-            outcomeExposurePairs <- positives |>
+            outcomeExposurePairs <- estimates |>
+              dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]]) |>
               dplyr::select(dataCol, filterCol) |>
               dplyr::mutate(true_effect_size = NA) |>
               dplyr::distinct()
@@ -146,11 +144,11 @@ batchComputeEstimates <- function(connection,
                                                 "scc_outcome_exposure",
                                                 append = TRUE)
 
-            colnames(positives) <- SqlRender::snakeCaseToCamelCase(colnames(positives))
+            colnames(positives) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
             colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
 
             calibratedEstimates <- computeCalibratedRows(
-              positives = positives,
+              positives = estimates,
               negatives = negatives
             )
             calibratedEstimates$i2 <- NA
