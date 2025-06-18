@@ -22,6 +22,7 @@ scc_result,time_at_risk_unexposed,float,No,No,No,Time at risk unexposed
 scc_result,num_outcomes_exposed,float,No,No,Yes,Cases while exposed
 scc_result,num_outcomes_unexposed,float,No,No,Yes,Cases while unexposed
 scc_result,num_exposures,float,No,No,Yes,Number of exposures
+scc_result,i2,float,No,No,Yes,I^2 statsitic. Used in meta-analytic results only
 scc_stat,database_id,int,Yes,Yes,No,Unique identifier for the database
 scc_stat,analysis_id,int,Yes,Yes,No,Identifier for the associated analysis
 scc_stat,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort

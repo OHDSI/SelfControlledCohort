@@ -153,6 +153,7 @@ batchComputeEstimates <- function(connection,
               positives = positives,
               negatives = negatives
             )
+            calibratedEstimates$i2 <- NA
             colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
             calibratedEstimates$analysis_id <- analysisId
             resultExportManager$exportDataFrame(calibratedEstimates,
@@ -186,6 +187,7 @@ batchComputeEstimates <- function(connection,
         dplyr::mutate(true_effect_size = NA) |>
         dplyr::distinct()
 
+      batch$i2 <- NA
       resultExportManager$exportDataFrame(batch, "scc_result", append = !first)
       resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure", append = !first)
       first <<- FALSE
