@@ -38,7 +38,6 @@ computeIrrs <- function(estimates) {
                                                   timeAtRiskUnexposed)))
     return(c(test$estimate[1], test$conf.int))
   }
-  }
 
   irrs <- mapply(computeIrr,
                  numOutcomesExposed = estimates$num_outcomes_exposed,
