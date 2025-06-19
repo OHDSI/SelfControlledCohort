@@ -27,7 +27,7 @@ strQueryWrap <- function(vec) {
 #' @param input shiny input object
 #' @param output shiny output object
 #' @param session shiny session
-sccModule <- function(id = "Reward", model) {
+sccModule <- function(id = "Scc", model) {
   appConfig <- model$config
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
@@ -58,7 +58,7 @@ sccModule <- function(id = "Reward", model) {
       if (length(input$excludedConcepts) > 0) {
         tryCatch({
           concepts <- unlist(lapply(strsplit(input$excludedConcepts, ","), as.numeric))
-        }, error = function(...) {})
+        }, error = function(...) { })
       }
       return(concepts)
     })
@@ -325,30 +325,6 @@ sccModule <- function(id = "Reward", model) {
         write.csv(mainTableDownload(), file, row.names = FALSE)
       }
     )
-
-
-    # Add cohort diagnostics module if options present
-    if (isTRUE(appConfig$showCohortDiagnostics)) {
-      cdModuleVal <- shiny::reactiveVal(0)
-      shiny::observeEvent(input$sidebarMenu, {
-        if (input$sidebarMenu == "cohortDiagnostics" & cdModuleVal() == 0) {
-          cdModuleVal(1)
-          shiny::withProgress({
-            cdSettings <- list(
-              schema = model$resultsSchema,
-              vocabularyDatabaseSchema = model$resultsSchema,
-              cdTablePrefix = model$config$cdTablePrefix,
-              cgTable = "cohort",
-              databaseTable = "database"
-            )
-
-            OhdsiShinyModules::cohortDiagnosticsServer(id = "cohortDiagnostics",
-                                                       connectionHandler = model$connection,
-                                                       resultDatabaseSettings = cdSettings)
-          }, message = "loading cohort diagnostics")
-        }
-      })
-    }
   })
 }
 
@@ -358,11 +334,11 @@ dashboardInstance <- function(input,
                               model = .GlobalEnv$.model) {
 
   shiny::onStop(function() { model$finalize() })
-  rewardModule(model = model)
+  sccModule(model = model)
 }
 
 dashboardUi <- function(...) {
-  rewardUi(appConfig = loadDashboardConfiguration(.GlobalEnv$dashboardConfigPath))
+  sccUi(appConfig = loadDashboardConfiguration(.GlobalEnv$dashboardConfigPath))
 }
 
 #' @title
@@ -399,12 +375,12 @@ launchDashboard <- function(dashboardConfigPath,
     vocabularyDatabaseSchema <- config$vocabularySchema
   }
 
-  .GlobalEnv$.model <- DashboardDataModel$new(dashboardConfigPath = dashboardConfigPath,
-                                              connectionDetails = connectionDetails,
-                                              cemConnectionDetails = config$cemConnectionDetails,
-                                              resultDatabaseSchema = resultDatabaseSchema,
-                                              vocabularyDatabaseSchema = vocabularyDatabaseSchema,
-                                              usePooledConnection = FALSE)
+  .GlobalEnv$.model <- SccDataModel$new(dashboardConfigPath = dashboardConfigPath,
+                                        connectionDetails = connectionDetails,
+                                        cemConnectionDetails = config$cemConnectionDetails,
+                                        resultDatabaseSchema = resultDatabaseSchema,
+                                        vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+                                        usePooledConnection = FALSE)
 
   shiny::shinyApp(server = dashboardInstance, dashboardUi, enableBookmarking = "url")
 }

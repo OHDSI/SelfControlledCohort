@@ -45,7 +45,8 @@ Suggests:
     ggplot2,
     shiny,
     shinycssloaders,
-    plotly
+    plotly,
+    reactable
 Remotes:
     OHDSI/ResultModelManager@fix-finalize,
     OHDSI/OhdsiShinyModules

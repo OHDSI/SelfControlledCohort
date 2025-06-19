@@ -28,7 +28,6 @@ SccDataModel <- R6::R6Class(
   public = list(
     connection = NULL,
     config = NULL,
-    vocabularySchema = NULL,
     resultsSchema = NULL,
     cemConnectionDetails = list(),
 
@@ -37,8 +36,7 @@ SccDataModel <- R6::R6Class(
     #' @param connectionHandler.
     initialize = function(connectionHandler, resultsDatabaseSettings) {
       self$connection <- connectionHandler
-      self$vocabularySchema <- vocabularySchema
-      self$resultsSchema <- resultsSchema
+      self$resultsSchema <- resultsDatabaseSettings$resultsDatabaseSchema
     },
 
     #' Query database
