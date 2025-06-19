@@ -32,11 +32,12 @@ computeIrrs <- function(estimates) {
     if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
       return(c(NA, 0, Inf))
     }
-    test <- rateratio.test::rateratio.test(x = c(numOutcomesExposed,
-                                                 numOutcomesUnexposed),
-                                           n = c(timeAtRiskExposed,
-                                                 timeAtRiskUnexposed))
+    test <- rateratio.test::rateratio.test(x = abs(c(numOutcomesExposed,
+                                                 numOutcomesUnexposed)),
+                                           n = abs(c(timeAtRiskExposed,
+                                                  timeAtRiskUnexposed)))
     return(c(test$estimate[1], test$conf.int))
+  }
   }
 
   irrs <- mapply(computeIrr,

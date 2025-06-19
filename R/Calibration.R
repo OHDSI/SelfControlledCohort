@@ -44,6 +44,10 @@ computeCalibratedRows <- function(positives,
                                   keepCols = c("numExposures", "numPersons", "numOutcomesExposed", "rr", "pValue",
                                                "ub95", "lb95", "seLogRr", "numOutcomesUnexposed", "timeAtRiskExposed",
                                                "timeAtRiskUnexposed", "targetCohortId", "outcomeCohortId")) {
+
+  if (nrow(positives) == 0)
+    return(positives)
+
   checkmate::assertNames(names(positives), must.include = c("rr", "seLogRr", keepCols))
   nullDist <- getNullDist(negatives)
   errorModel <- EmpiricalCalibration::convertNullToErrorModel(nullDist)
