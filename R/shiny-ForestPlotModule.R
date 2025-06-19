@@ -21,7 +21,7 @@
 #' @param table data.frame with columns RR, LB_95, UB_95
 #' @return ggplot plot
 forestPlot <- function(table) {
-  table$SOURCE_ID <- as.character(table$sourceId)
+  table$SOURCE_ID <- as.character(table$databaseId)
   label <- paste0("IRR= ", round(table$rr * 1, 2),
                   "; 95% CI= (", round(table$lb95, 2), " - ", round(table$ub95, 2), ")")
   plot <- ggplot2::ggplot(
@@ -29,7 +29,7 @@ forestPlot <- function(table) {
     ggplot2::aes(
       y = factor(sourceName, level = rev(sourceName)),
       x = rr,
-      color = sourceId,
+      color = databaseId,
       xmin = lb95,
       xmax = ub95,
       label = label

@@ -34,7 +34,7 @@ sccModule <- function(id = "Reward", model) {
 
     dataSourceInfo <- shiny::reactive({ model$getDataSources() })
     output$dataSourceTable <- reactable::renderReactable({
-      tbl <- dataSourceInfo() %>% dplyr::select(sourceId, sourceName, cdmVersion)
+      tbl <- dataSourceInfo() |> dplyr::select(databaseId, sourceName, cdmVersion)
       colnames(tbl) <- SqlRender::camelCaseToTitleCase(colnames(tbl))
       reactable::reactable(tbl)
     })
@@ -49,7 +49,7 @@ sccModule <- function(id = "Reward", model) {
 
     requiredBenefitSources <- shiny::reactive({
       dsi <- dataSourceInfo()
-      dsi[dsi$sourceName %in% input$requiredDataSources,]$sourceId
+      dsi[dsi$sourceName %in% input$requiredDataSources,]$databaseId
     })
 
     # Concepts to exclude from search

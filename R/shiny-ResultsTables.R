@@ -54,7 +54,7 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
         table3$calibratedPValue <- formatC(table3$calibratedPValue, digits = 2, format = "f")
 
 
-        table3 <- table3 %>% dplyr::select(
+        table3 <- table3 |> dplyr::select(
           sourceName,
           rr,
           ci95,

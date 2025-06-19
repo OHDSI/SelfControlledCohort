@@ -64,7 +64,7 @@ SccDataModel <- R6::R6Class(
     getOutcomeCohortDefinitionSet = function(cohortIds = NULL) {
       # make a proper cohort definition set from sql and cohort json
       sql <- "SELECT cd.* FROM @results_schema.cohort_definition cd
-      INNER JOIN @results_schema.outcome_cohort oc ON cd.cohort_definition_id = oc.cohort_definition_id
+      INNER JOIN @results_schema.scc_outcome_exposure ec ON cd.cohort_definition_id = ec.outcome_cohort_id
       {@cohort_ids != ''}? {WHERE cohort_definition_id IN (@cohort_ids)}
       "
       self$connection$queryDb(sql,
@@ -77,8 +77,8 @@ SccDataModel <- R6::R6Class(
     #' @param cohortIds         numeric vector of cohort ids or null
     getExposureCohortDefinitionSet = function(cohortIds = NULL) {
       # make a proper cohort definition set from sql and cohort json
-      sql <- "SELECT cd.* FROM @results_schema.cohort_definition cd
-      INNER JOIN @results_schema.exposure_cohort ec ON cd.cohort_definition_id = ec.cohort_definition_id
+      sql <- "SELECT cd.* FROM @results_schema.cg_cohort_definition cd
+      INNER JOIN @results_schema.scc_outcome_exposure ec ON cd.cohort_definition_id = ec.target_cohort_id
       {@cohort_ids != ''}? {WHERE cohort_definition_id IN (@cohort_ids)}
       "
       self$connection$queryDb(sql,
@@ -145,50 +145,12 @@ SccDataModel <- R6::R6Class(
     #' Get analysis settings
     #'
     #' @param decode convert json to r list
-    getAnalysisSettings = function(decode = TRUE) {
-      sql <- "SELECT * FROM @results_schema.analysis_setting"
-      rows <-
-        self$connection$queryDb(sql, results_schema = self$resultsSchema)
-      #' Decode raw base 64
-      if (decode) {
-        decoded <- c()
-        for (i in 1:nrow(rows)) {
-          decoded <-
-            c(decoded, rawToChar(base64enc::base64decode(rows$options[i])))
-        }
-        rows$options <- decoded
-      }
-
+    getAnalysisSettings = function() {
+      sql <- "SELECT * FROM @results_schema.scc_analysis_setting"
+      rows <- self$connection$queryDb(sql, results_schema = self$resultsSchema)
       return(rows)
     },
 
-    #' @description
-    #' Get getCohortStats
-    #' @param cohortDefinitionId         cohort identifier (not null, integer)
-    #' @param isExposure                   Logical exposure cohort or not
-    getCohortStats = function(cohortDefinitionId, isExposure) {
-      checkmate::assert_number(cohortDefinitionId)
-      checkmate::assert_logical(isExposure)
-      sql <- "
-      SELECT cd.cohort_definition_id,
-             cd.short_name,
-             ds.source_name,
-             aset.analysis_name,
-             aset.analysis_id,
-             s.count as result_count
-      FROM {@exposure} ? {@results_schema.scc_target_source_counts} : {@results_schema.scc_outcome_source_counts} s
-      INNER JOIN @results_schema.data_source ds ON ds.source_id = s.source_id
-      INNER JOIN @results_schema.analysis_setting aset ON s.analysis_id = aset.analysis_id
-      INNER JOIN @results_schema.cohort_definition cd ON
-       {@exposure} ? {s.target_cohort_id} : {s.outcome_cohort_id} = cd.cohort_definition_id
-      WHERE cd.cohort_definition_id = @cohort_definition_id;"
-      self$connection$queryDb(
-        sql,
-        cohort_definition_id = cohortDefinitionId,
-        exposure = isExposure,
-        results_schema = self$resultsSchema
-      )
-    },
     #' Returns SCC results for a cohort id
     #'
     #' @param cohortDefinitionId          Cohort Id
@@ -220,9 +182,11 @@ SccDataModel <- R6::R6Class(
           cohortIds <- cohortIds + outcomeType
         }
 
-        sql <- "SELECT * FROM @results_schema.scc_result
-        WHERE {@exposure} ? {target_cohort_id} : {outcome_cohort_id} = @cohort_definition_id
-        AND {@exposure} ? {outcome_cohort_id} : {target_cohort_id} IN (@cohort_ids)
+        sql <- "SELECT * FROM @results_schema.scc_result sr
+        INNER JOIN @results_schema.scc_outcome_exposure soe ON sr.target_cohort_id = seo.target_cohort_id
+                                                            AND seo.outcome_cohort_id = sr.outcome_cohort_id
+        WHERE {@exposure} ? {sr.target_cohort_id} : {sr.outcome_cohort_id} = @cohort_definition_id
+        AND {@exposure} ? {sr.outcome_cohort_id} : {sr.target_cohort_id} IN (@cohort_ids)
         AND rr IS NOT NULL"
 
         res <- self$connection$queryDb(
@@ -237,56 +201,6 @@ SccDataModel <- R6::R6Class(
       return(data.frame())
     },
 
-    #' Get negative control condition rr values
-    #' @param cohortIds     (Optional) List of cohort identifiers
-    getNegativeControlConditions = function(cohortIds = NULL) {
-      cemConnection <- self$getCemConnection()
-      if (is.null(cemConnection))
-        return(data.frame())
-
-      # Get concept sets for all exposure cohorts
-      # Use CemConnector to get control outcome concepts
-      # This will take a long time with the web api utility
-      suggestedControlConditions <-
-        self$getExposureCohortConceptSets(cohortIds = cohortIds) %>%
-        dplyr::group_by(cohortDefinitionId) %>%
-        dplyr::group_modify(
-          ~ cemConnection$getSuggestedControlCondtions(.x, nControls = self$config$negativeControlCount)
-        ) %>%
-        # Map control outcome concepts to cohorts (* 1000)
-        dplyr::mutate(outcomeCohortId = conceptId * 1000, outcomeType = 0)
-
-      # Map other outcome types
-      suggestedControlConditions <- suggestedControlConditions %>%
-        dplyr::bind_rows(
-          suggestedControlConditions %>%
-            dplyr::mutate(outcomeCohortId = outcomeCohortId + 1, outcomeType = 1)
-        ) %>%
-        dplyr::bind_rows(
-          suggestedControlConditions %>%
-            dplyr::mutate(outcomeCohortId = outcomeCohortId + 2, outcomeType = 2)
-        )
-
-      suggestedControlConditions
-    },
-    #' Get negative control exposures
-    #' @param cohortIds     (Optional) List of cohort identifiers
-    getNegativeControlExposures = function(cohortIds = NULL) {
-      cemConnection <- self$getCemConnection()
-      if (is.null(cemConnection))
-        return(data.frame())
-
-      # Get concept sets for all exposure cohorts
-      # Use CemConnector to get control outcome concepts
-      # This will take a long time with the web api utility
-      suggestedControlExposures <-
-        self$getOutcomeCohortConceptSets(cohortIds = cohortIds) %>%
-        dplyr::group_by(cohortDefinitionId) %>%
-        dplyr::group_modify(
-          ~ cemConnection$getSuggestedControlIngredients(.x, nControls = self$config$negativeControlCount)
-        ) %>%
-        dplyr::mutate(targetCohortId = conceptId * 1000)
-    },
     #' Count any query as subquery - (note: will be inneficient in many situations)
     #' @param query                 Sql query string
     #' @param ...                   @seealso `SqlRender::render`

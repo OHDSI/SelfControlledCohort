@@ -56,15 +56,15 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
                                                       conceptSet = cohort$conceptSet)
 
       nulls <- data.frame()
-      for (sourceId in unique(negatives$sourceId)) {
-        subset <- negatives %>% dplyr::filter(.data$sourceId == !!sourceId &
+      for (databaseId in unique(negatives$databaseId)) {
+        subset <- negatives |> dplyr::filter(.data$databaseId == !!databaseId &
                                               .data$analysisId == cohort$analysisId &
                                               !is.na(rr) &
                                               !is.null(rr))
         null <- EmpiricalCalibration::fitNull(log(subset$rr), subset$seLogRr)
         systematicError <- EmpiricalCalibration::computeExpectedAbsoluteSystematicError(null)
         df <- data.frame(
-          "sourceId" = sourceId,
+          "databaseId" = databaseId,
           "mean" = round(exp(null[["mean"]]), 3),
           "sd" = round(exp(null[["sd"]]), 3),
           "EASE" = round(systematicError, 3),
@@ -73,13 +73,13 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
         nulls <- rbind(nulls, df)
       }
       if (nrow(nulls))
-        nulls <- dplyr::inner_join(dataSources, nulls, by = "sourceId")
+        nulls <- dplyr::inner_join(dataSources, nulls, by = "databaseId")
 
       return(nulls)
     })
 
     getNullDistTable <- shiny::reactive({
-      nullDistData() %>%
+      nullDistData() |>
         dplyr::select(sourceName,
                       sourceKey,
                       n,
@@ -109,19 +109,19 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
         if (is.null(selectedRows)) {
           selectedRows <- 1
         }
-        validsourceIds <- null[selectedRows,]$sourceId
+        validdatabaseIds <- null[selectedRows,]$databaseId
 
         negatives <- model$getNegativeControlSccResults(cohort$cohortDefinitionId,
                                                         cohort$isExposure,
                                                         outcomeType = cohort$selectedOutcomeType,
                                                         conceptSet = cohort$conceptSet)
-        negatives <- negatives %>%
+        negatives <- negatives |>
           dplyr::filter(analysisId == cohort$analysisId)
 
-        if (length(validsourceIds) == 0) {
-          validsourceIds <- dataSources$sourceId[1]
+        if (length(validdatabaseIds) == 0) {
+          validdatabaseIds <- dataSources$databaseId[1]
         }
-        negatives <- negatives[negatives$sourceId %in% validsourceIds,]
+        negatives <- negatives[negatives$databaseId %in% validdatabaseIds,]
 
         if (nrow(negatives)) {
           plotNegatives <- negatives[negatives$rr > 0,]
