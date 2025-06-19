@@ -93,8 +93,13 @@ batchComputeEstimates <- function(connection,
 
   # Fetch results from server:
   args <- list(cluster = cluster, andromeda = andromeda)
+  rsql <- " SELECT * FROM @results_table
+            WHERE num_outcomes_exposed > 0
+            AND num_outcomes_unexposed > 0
+            AND time_at_risk_exposed > 0
+            AND time_at_risk_unexposed > 0"
   DatabaseConnector::renderTranslateQueryApplyBatched(connection,
-                                                      "SELECT * FROM @results_table", # Query
+                                                      rsql,
                                                       results_table = resultsTable,
                                                       fun = batchComputeCallBack,
                                                       tempEmulationSchema = tempEmulationSchema,
