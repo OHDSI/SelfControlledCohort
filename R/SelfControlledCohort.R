@@ -117,7 +117,8 @@ batchComputeEstimates <- function(connection,
   if (length(negativeControlPairs) > 0) {
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
       data.frame(target_cohort_id = eo[[1]], outcome_cohort_id = eo[[2]], true_effect_size = 1)
-    }))
+    })) |>
+      dplyr:: distinct()
     resultExportManager$exportDataFrame(ncPairsDf, "scc_outcome_exposure", append = FALSE)
 
     processControlType <- function(groupByCol, filterCol, dataCol) {
