@@ -186,6 +186,249 @@ SccDataModel <- R6::R6Class(
       return(data.frame())
     },
 
+    #' Shiny Dashboard - main query
+    #'
+    #' @param benefitThreshold thereshold to consider a benefit
+    #' @param lowerBenefitThereshold thereshold to consider a benefit
+    #'        (lower bounds, e.g. exclude benefits below 0.1 to rule out potential indications)
+    #' @param riskThreshold threshold to consider effect estimate a risk
+    #' @param pValueCut pvalue hacking
+    #' @param requiredBenefitSources required sources to be in results
+    #' @param filterByMeta filter by meta analysis RR?
+    #' @param outcomeCohortTypes outcome cohorts to filter by type of
+    #' @param calibrated calibrated result
+    #' @param benefitCount minimum number of benefits found
+    #' @param riskCount number of accerptable risks
+    #' @param targetCohorts target cohort ids
+    #' @param outcomeCohorts outcome cohort ids
+    #' @param exposureClasses exposureClasses filter
+    #' @param orderByCol Order by which column?
+    #' @param ascending ascending order?
+    #' @param limit Row limit
+    #' @param offset Row Offset
+    #' @param excludedConcepts concept id's to exclude from results
+    getFilteredTableResultsQuery = function(benefitThreshold = 0.5,
+                                            lowerBenefitThereshold = 0.0,
+                                            riskThreshold = 2.0,
+                                            pValueCut = 0.05,
+                                            requiredBenefitSources = NULL,
+                                            filterByMeta = FALSE,
+                                            outcomeCohortTypes = c(0, 1, 2, 3),
+                                            calibrated = TRUE,
+                                            benefitCount = 1,
+                                            riskCount = 0,
+                                            targetCohorts = NULL,
+                                            outcomeCohorts = NULL,
+                                            exposureClasses = NULL,
+                                            orderByCol = NULL,
+                                            ascending = NULL,
+                                            excludedConcepts = NULL,
+                                            limit = NULL,
+                                            offset = NULL) {
+      calibrated <- ifelse(calibrated, 1, 0)
+      filterOutcomes <- length(outcomeCohortTypes) > 0
+
+      query <- SqlRender::loadRenderTranslateSql(
+        sqlFilename = file.path("dashboard", "mainTable.sql"),
+        packageName = utils::packageName(),
+        risk = riskThreshold,
+        lower_benefit = lowerBenefitThereshold,
+        benefit = benefitThreshold,
+        p_cut_value = pValueCut,
+        # filter_outcome_types = filterOutcomes,
+        # outcome_types = outcomeCohortTypes,
+        risk_count = riskCount,
+        benefit_count = benefitCount,
+        # calibrated = calibrated,
+        #show_exposure_classes = !self$config$exposureDashboard,
+        filter_by_meta_analysis = filterByMeta,
+        outcome_cohort_length = length(outcomeCohorts) > 0,
+        outcome_cohorts = outcomeCohorts,
+        target_cohort_length = length(targetCohorts) > 0,
+        target_cohorts = targetCohorts,
+        exposure_classes = exposureClasses,
+        required_benefit_sources = requiredBenefitSources,
+        required_benefit_count = length(requiredBenefitSources),
+        excluded_concepts = excludedConcepts,
+        vocabulary_schema = self$resultsSchema,
+        order_by = orderByCol,
+        ascending = ascending,
+        limit = limit,
+        offset = offset,
+        schema = self$resultsSchema
+      )
+      return(query)
+    },
+
+    #' Get Filtered Table Results
+    #' @description
+    #' @params ...     Params for getFilteredTableResultsQuery
+    getFilteredTableResults = function(...) {
+      sql <- self$getFilteredTableResultsQuery(...)
+      self$connection$queryDb(sql)
+    },
+
+    #' Get Filtered Table Results
+    #' @description
+    #' Get results count - filtered by specified parameters
+    #' @params ...     Params for getFilteredTableResults
+    getFilteredTableResultsCount = function(...) {
+      sql <- self$getFilteredTableResultsQuery(...)
+      self$countQuery(sql, render = FALSE)
+    },
+
+        #' Get table of meta analysis results
+    #'
+    #' @param exposureId exposure cohort id
+    #' @param outcomeId outcome Cohort id
+    getMetaAnalysisTable = function(exposureId, outcomeId) {
+      sql <- "
+        SELECT r.SOURCE_ID,
+            ds.SOURCE_NAME,
+            r.RR,
+            CONCAT(ROUND(r.LB_95, 2), '-', ROUND(r.UB_95, 2)) AS CI_95,
+            r.LB_95,
+            r.UB_95,
+            r.P_VALUE,
+            r2.RR as Calibrated_RR,
+            CONCAT(ROUND(r2.LB_95, 2) , '-', ROUND(r2.UB_95, 2)) AS CALIBRATED_CI_95,
+            r2.LB_95 as CALIBRATED_LB_95,
+            r2.UB_95 as CALIBRATED_UB_95,
+            r2.P_VALUE as Calibrated_P_VALUE,
+            r.C_AT_RISK,
+            r.C_PT,
+            r.C_CASES,
+            r.T_AT_RISK,
+            r.T_PT,
+            r.T_CASES
+        FROM @results_schema.scc_result r
+        INNER JOIN @results_schema.data_source ds ON ds.source_id = r.source_id
+        LEFT JOIN @results_schema.scc_result r2 ON (
+                r2.OUTCOME_COHORT_ID = r.OUTCOME_COHORT_ID
+                AND r2.TARGET_COHORT_ID = r.TARGET_COHORT_ID
+                AND r2.calibrated = 1
+                AND r2.source_id = r.source_id
+            )
+            WHERE r.OUTCOME_COHORT_ID = @outcome
+            AND r.TARGET_COHORT_ID = @treatment
+            AND r.calibrated = 0
+        ORDER BY r.SOURCE_ID
+      "
+      return(self$queryDb(sql, treatment = exposureId, outcome = outcomeId))
+    },
+
+    #' Get Forest plot table
+    #'
+    #' @param exposureId  exposure Id
+    #' @param outcomeId   outcome Id
+    #' @param calibrated  get calibrated results?
+    getForestPlotTable = function(exposureId, outcomeId, calibrated) {
+      sql <- "
+      {DEFAULT @use_calibration = TRUE}
+      SELECT
+          r.SOURCE_ID,
+          ds.SOURCE_NAME,
+          r.C_AT_RISK,
+          r.C_PT,
+          r.C_CASES,
+          r.RR,
+          r.LB_95,
+          r.UB_95,
+          r.P_VALUE,
+          r.T_AT_RISK,
+          r.T_PT,
+          r.T_CASES,
+          r.SE_LOG_RR,
+          {@use_calibration} ? { r.calibrated, }
+          r.I2
+      FROM @results_schema.scc_result r
+      INNER JOIN @results_schema.data_source ds ON ds.source_id = r.source_id
+          WHERE r.OUTCOME_COHORT_ID = @outcome
+          AND r.TARGET_COHORT_ID = @treatment
+          {@use_calibration} ? { AND r.calibrated IN (@calibrated) }
+      ORDER BY r.SOURCE_ID
+      "
+      table <-
+        self$queryDb(sql,
+                     treatment = exposureId,
+                     outcome = outcomeId,
+                     calibrated = calibrated)
+      calibratedTable <- table %>% dplyr::filter(calibrated == 1)
+      uncalibratedTable <- table %>% dplyr::filter(calibrated == 0)
+
+      if (nrow(calibratedTable) & nrow(uncalibratedTable)) {
+        calibratedTable$calibrated <- "Calibrated"
+        uncalibratedTable$calibrated <- "Uncalibrated"
+        uncalibratedTable$sourceName <-
+          paste0(uncalibratedTable$sourceName, "\n uncalibrated")
+        calibratedTable$sourceName <-
+          paste0(calibratedTable$sourceName, "\n Calibrated")
+      }
+
+      table <-
+        rbind(uncalibratedTable[order(uncalibratedTable$sourceId, decreasing = TRUE), ],
+              calibratedTable[order(calibratedTable$sourceId, decreasing = TRUE), ])
+      return(table)
+    },
+
+    #' Get Summary Statistics
+    #'
+    #' @param statType        statistic type
+    #' @param exposureId      exposure cohort id
+    #' @param outcomeId       outcome cohort id
+    #' @param sourceIds       cohort source ids
+    #' @param tableName       table name
+    #' @param analysisId      Analysis setting id
+    getSummaryStats = function(statType,
+                               exposureId,
+                               outcomeId,
+                               sourceIds = NULL,
+                               tableName = "scc_stat",
+                               analysisId = 1) {
+      self$queryDb(
+        "
+      SELECT
+        ds.source_name,
+        round(mean, 3) as mean,
+        round(sd, 3) as sd,
+        minimum as min,
+        p_10 as p10,
+        p_25 as p25,
+        median as median,
+        p_75 as p75,
+        p_90 as p90,
+        maximum as max,
+        total
+      FROM @results_schema.@table_name tts
+      INNER JOIN @results_schema.data_source ds ON tts.source_id = ds.source_id
+      WHERE stat_type = '@stat_type'
+      AND target_cohort_id = @treatment AND outcome_cohort_id = @outcome
+      AND mean is not NULL
+      AND analysis_id = @analysis_id
+      {@source_ids != ''} ? {AND ds.source_id IN (@source_ids)}",
+        stat_type = statType,
+        analysis_id = analysisId,
+        table_name = tableName,
+        treatment = exposureId,
+        outcome = outcomeId,
+        source_ids = sourceIds
+      )
+    },
+
+    #' getTimeOnTreatmentStats
+    #'
+    #' @param ...
+    getTimeToOutcomeStats = function(...) {
+      self$getSummaryStats(statType = "time_to_outcome", ...)
+    },
+
+    #' getTimeOnTreatmentStats
+    #'
+    #' @param ...
+    getTimeOnTreatmentStats = function(...) {
+      self$getSummaryStats(statType = "time_on_treatment", ...)
+    },
+
     #' Count any query as subquery - (note: will be inneficient in many situations)
     #' @param query                 Sql query string
     #' @param ...                   @seealso `SqlRender::render`

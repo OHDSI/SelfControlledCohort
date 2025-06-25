@@ -40,16 +40,14 @@ sccModule <- function(id = "scc-module", model) {
     })
 
     output$requiredDataSources <- shiny::renderUI({
+      dsInfo <- dataSourceInfo()
+      dsChoices <- dsInfo$databaseId
+      names(dsChoices) <- dsInfo$cdmSourceAbbreviation
       shinyWidgets::pickerInput(ns("requiredDataSources"),
                                 label = "Select required data sources for benefit:",
-                                choices = dataSourceInfo()$cdmSourceAbbreviation,
+                                choices = dsChoices,
                                 options = shinyWidgets::pickerOptions(actionsBox = TRUE),
                                 multiple = TRUE)
-    })
-
-    requiredBenefitSources <- shiny::reactive({
-      dsi <- dataSourceInfo()
-      dsi[dsi$cdmSourceAbbreviation %in% input$requiredDataSources,]$databaseId
     })
 
     # Concepts to exclude from search
@@ -64,23 +62,20 @@ sccModule <- function(id = "scc-module", model) {
     })
 
     getMainTableParams <- shiny::reactive({
-      exposureClassNames <- if (!appConfig$exposureDashboard & length(input$exposureClass)) strQueryWrap(input$exposureClass) else NULL
-      outcomeTypes <- input$outcomeCohortTypes
 
       params <- list(benefitThreshold = input$cutrange1[2],
                      lowerBenefitThereshold = input$cutrange1[1],
                      riskThreshold = input$cutrange2,
                      pValueCut = input$pCut,
-                     requiredBenefitSources = requiredBenefitSources(),
+                     requiredBenefitSources = input$requiredDataSources,
                      filterByMeta = input$filterThreshold == "Meta analysis",
-                     outcomeCohortTypes = outcomeTypes,
                      calibrated = input$calibrated,
                      benefitCount = input$scBenefit,
                      riskCount = input$scRisk,
                      outcomeCohorts = input$outcomeCohorts,
                      targetCohorts = input$targetCohorts,
                      excludedConcepts = excludedConcepts(),
-                     exposureClasses = exposureClassNames)
+                     exposureClasses = c())
 
       return(params)
     })
