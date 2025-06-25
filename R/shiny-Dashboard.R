@@ -50,6 +50,20 @@ sccModule <- function(id = "scc-module", model) {
                                 multiple = TRUE)
     })
 
+
+    analysisChoices <- shiny::reactive({
+      aRes <- model$queryDb("SELECT * from @results_schema.scc_analysis_setting")
+      choices <- aRes$analysisId
+      names(choices) <- paste(aRes$analysisId, "-", aRes$description)
+    })
+
+    # shiny::observe({
+    #   shiny::updateSelectInput(
+    #     inputId = "analysisId",
+    #     choices = analysisChoices()
+    #   )
+    # })
+
     # Concepts to exclude from search
     excludedConcepts <- shiny::reactive({
       concepts <- c()
@@ -62,18 +76,18 @@ sccModule <- function(id = "scc-module", model) {
     })
 
     getMainTableParams <- shiny::reactive({
-
       params <- list(benefitThreshold = input$cutrange1[2],
                      lowerBenefitThereshold = input$cutrange1[1],
                      riskThreshold = input$cutrange2,
                      pValueCut = input$pCut,
                      requiredBenefitSources = input$requiredDataSources,
                      filterByMeta = input$filterThreshold == "Meta analysis",
-                     calibrated = input$calibrated,
+                     calibrated = TRUE,
                      benefitCount = input$scBenefit,
                      riskCount = input$scRisk,
                      outcomeCohorts = input$outcomeCohorts,
                      targetCohorts = input$targetCohorts,
+                     analysisId = input$analysisId,
                      excludedConcepts = excludedConcepts(),
                      exposureClasses = c())
 
@@ -193,6 +207,7 @@ sccModule <- function(id = "scc-module", model) {
 
       filtered2 <- filtered1[ids,]
       filtered2$calibrationType <- "none"
+      filtered2$analysisId <- input$analysisId
       return(filtered2)
     })
 
@@ -229,7 +244,7 @@ sccModule <- function(id = "scc-module", model) {
         isExposure = model$config$exposureDashboard,
         selectedOutcomeType = selectedOutcomeType,
         conceptSet = conceptSet,
-        analysisId = 1
+        analysisId = input$analysisId
       )
     })
 
@@ -249,7 +264,7 @@ sccModule <- function(id = "scc-module", model) {
                                     riskThreshold = input$cutrange2,
                                     pValueCut = input$pCut,
                                     filterByMeta = input$filterThreshold == "Meta analysis",
-                                    calibrated = input$calibrated,
+                                    calibrated = TRUE,
                                     benefitCount = input$scBenefit,
                                     riskCount = input$scRisk)
     })
@@ -346,10 +361,19 @@ createDashboardConfig <- function(resultsDatabaseSchema,
 launchDashboard <- function(connectionDetails, dashboardConfig) {
   connectionHandler <- ResultModelManager::PooledConnectionHandler$new(connectionDetails)
   model <- SccDataModel$new(connectionHandler, dashboardConfig)
+
+  # data sources available
   dashboardConfig$dataSources <- model$getDataSources()$databaseId
-  serverFunc <- function(input, output, session) {
-    sccModule(model = model)
-  }
+
+  # Settings available
+  aRes <- model$queryDb("SELECT * from @results_schema.scc_analysis_setting")
+  choices <- aRes$analysisId
+  names(choices) <- paste(aRes$analysisId, "-", aRes$description)
+  dashboardConfig$analysisSettings <- choices
+
+    serverFunc <- function(input, output, session) {
+      sccModule(model = model)
+    }
 
   shiny::shinyApp(server = serverFunc,
                   ui = sccUi(dashboardConfig = dashboardConfig),

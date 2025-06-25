@@ -5,6 +5,7 @@
 {DEFAULT @required_benefit_sources = ''}
  -- Should always be the same as number of data sources
 {DEFAULT @required_benefit_count = 0}
+{DEFAULT @analysis_id = 1}
 {DEFAULT @show_exposure_classes = FALSE}
 {DEFAULT @outcome_cohort_length = FALSE}
 {DEFAULT @target_cohort_length = TRUE}
@@ -19,6 +20,7 @@ WITH benefit_t AS(
         AND calibrated_RR >= @lower_benefit
         AND calibrated_P_VALUE < @p_cut_value
         AND DATABASE_ID != 'meta-analysis'
+        AND scc_result.analysis_id = @analysis_id
     GROUP BY TARGET_COHORT_ID, OUTCOME_COHORT_ID
 ),
 
@@ -29,6 +31,7 @@ risk_t AS (
         AND calibrated_RR >= @lower_benefit
         AND calibrated_P_VALUE < @p_cut_value
         AND DATABASE_ID != 'meta-analysis'
+        AND scc_result.analysis_id = @analysis_id
     GROUP BY TARGET_COHORT_ID, OUTCOME_COHORT_ID
 )
 {@required_benefit_sources != ''} ? {,
@@ -40,6 +43,7 @@ req_benefit_sources AS (
         AND calibrated_RR >= @lower_benefit
         AND calibrated_P_VALUE < @p_cut_value
         AND DATABASE_ID IN (@required_benefit_sources)
+        AND scc_result.analysis_id = @analysis_id
     GROUP BY TARGET_COHORT_ID, OUTCOME_COHORT_ID
 )
 }
@@ -80,11 +84,13 @@ FROM @schema.scc_result fr
         fr.outcome_cohort_id = mr.outcome_cohort_id AND
         fr.target_cohort_id = mr.target_cohort_id AND
         mr.DATABASE_ID = 'meta-analysis'
+        AND mr.analysis_id = @analysis_id
     )
     LEFT JOIN @schema.scc_result mr2 ON (
         fr.outcome_cohort_id = mr2.outcome_cohort_id AND
         fr.target_cohort_id = mr2.target_cohort_id AND
         mr2.DATABASE_ID = 'meta-analysis'
+        AND mr2.analysis_id = @analysis_id
     )
 --    {@show_exposure_classes}?{
 --    INNER JOIN @schema.cohort_exposure_class tec ON tec.cohort_definition_id = t.cohort_definition_id

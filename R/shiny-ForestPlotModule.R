@@ -27,7 +27,7 @@ forestPlot <- function(table) {
   plot <- ggplot2::ggplot(
     table,
     ggplot2::aes(
-      y = factor(cdmSourceAbbreviation, level = rev(cdmSourceAbbreviation)),
+      y = sourceName,
       x = rr,
       color = databaseId,
       xmin = lb95,
@@ -88,7 +88,7 @@ forestPlotServer <- function(id, model, selectedExposureOutcome) {
       if (length(outcomeId) & length(exposureId)) {
         shiny::updateTabsetPanel(session, "mainPanel", "Detail")
         calibOpts <- if (length(input$forestPlotCalibrated)) input$forestPlotCalibrated else c(0, 1)
-        res <- model$getForestPlotTable(exposureId, outcomeId, as.numeric(calibOpts))
+        res <- model$getForestPlotTable(exposureId, outcomeId, s$analysisId, as.numeric(calibOpts))
         return(res)
       }
       return(data.frame())
@@ -105,7 +105,7 @@ forestPlotServer <- function(id, model, selectedExposureOutcome) {
       s <- selectedExposureOutcome()
       treatment <- s$targetCohortId
       outcome <- s$outcomeCohortId
-      paste0(model$schemaName, '-forest-plot-', treatment, "-", outcome, '.png')
+      paste0(model$resultsSchema, '-forest-plot-', treatment, "-", outcome, '.png')
     }, content = function(file) {
       df <- forestPlotTable()
       ggplot2::ggsave(file, plot = forestPlot(df), device = "png")

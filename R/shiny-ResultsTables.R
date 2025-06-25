@@ -29,7 +29,8 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
       exposureId <- s$targetCohortId
       outcomeId <- s$outcomeCohortId
       if (length(outcomeId) & length(exposureId)) {
-        return(model$getMetaAnalysisTable(exposureId, outcomeId))
+
+        return(model$getMetaAnalysisTable(exposureId, outcomeId, analysisId = s$analysisId))
       }
       return(data.frame())
     })
@@ -41,18 +42,20 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
       }
 
       if (nrow(table3) >= 1) {
-        table3$unexposedCases <- formatC(table3$cCases, digits = 0, format = "f")
-        table3$exposedCases <- formatC(table3$tCases, digits = 0, format = "f")
+        table3$unexposedCases <- formatC(table3$numOutcomesUnexposed, digits = 0, format = "f")
+        table3$exposedCases <- formatC(table3$numOutcomesExposed, digits = 0, format = "f")
         table3$rr <- formatC(table3$rr, digits = 2, format = "f")
         table3$lb95 <- formatC(table3$lb95, digits = 2, format = "f")
         table3$ub95 <- formatC(table3$ub95, digits = 2, format = "f")
+
+        table3$ci95 <- paste(table3$lb95, "-", table3$ub95)
         table3$pValue <- formatC(table3$pValue, digits = 2, format = "f")
 
         table3$calibratedRr <- formatC(table3$calibratedRr, digits = 2, format = "f")
         table3$calibratedLb95 <- formatC(table3$calibratedLb95, digits = 2, format = "f")
         table3$calibratedUb95 <- formatC(table3$calibratedUb95, digits = 2, format = "f")
         table3$calibratedPValue <- formatC(table3$calibratedPValue, digits = 2, format = "f")
-
+        table3$calibratedCi95 <- paste(table3$calibratedLb95, "-", table3$calibratedUb95)
 
         table3 <- table3 |> dplyr::select(
           databaseId,

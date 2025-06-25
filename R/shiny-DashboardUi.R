@@ -27,12 +27,19 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
         inputId = ns("targetCohorts"),
         label = "Drug exposures:",
         choices = NULL,
-        multiple = TRUE),
+        multiple = TRUE
+      ),
       shiny::selectizeInput(
         inputId = ns("outcomeCohorts"),
         label = "Disease outcomes:",
         choices = NULL,
-        multiple = TRUE)
+        multiple = TRUE
+      ),
+      shiny::selectInput(
+        inputId = ns("analysisId"),
+        label = "Analysis setting:",
+        choices = dashboardConfig$analysisSettings
+      )
     ),
     shinydashboard::box(
       # TODO: add these in when we have a meta-data mechanism in cohort_generator
@@ -172,7 +179,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       shiny::sliderInput(ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
       shiny::sliderInput(ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
       shiny::sliderInput(ns("pCut"), "P-value cut off:", min = 0.0, max = 1.0, step = 0.01, value = 0.05),
-      shiny::checkboxInput(ns("calibrated"), "Threshold with empirically calibrated IRR", TRUE),
+      # shiny::checkboxInput(ns("calibrated"), "Threshold with empirically calibrated IRR", TRUE),
       shiny::radioButtons(ns("filterThreshold"), "Threshold benefit by:", c("Data sources", "Meta analysis")),
       shiny::sliderInput(
         ns("scBenefit"),

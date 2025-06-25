@@ -224,6 +224,7 @@ SccDataModel <- R6::R6Class(
                                             ascending = NULL,
                                             excludedConcepts = NULL,
                                             limit = NULL,
+                                            analysisId = 1,
                                             offset = NULL) {
       calibrated <- ifelse(calibrated, 1, 0)
       filterOutcomes <- length(outcomeCohortTypes) > 0
@@ -235,6 +236,7 @@ SccDataModel <- R6::R6Class(
         lower_benefit = lowerBenefitThereshold,
         benefit = benefitThreshold,
         p_cut_value = pValueCut,
+        analysis_id = analysisId,
         # filter_outcome_types = filterOutcomes,
         # outcome_types = outcomeCohortTypes,
         risk_count = riskCount,
@@ -277,44 +279,24 @@ SccDataModel <- R6::R6Class(
       self$countQuery(sql, render = FALSE)
     },
 
-        #' Get table of meta analysis results
+    #' Get table of meta analysis results
     #'
     #' @param exposureId exposure cohort id
     #' @param outcomeId outcome Cohort id
-    getMetaAnalysisTable = function(exposureId, outcomeId) {
+    #' @param analysisId outcome Cohort id
+    getMetaAnalysisTable = function(exposureId, outcomeId, analysisId = 1) {
       sql <- "
-        SELECT r.SOURCE_ID,
-            ds.SOURCE_NAME,
-            r.RR,
-            CONCAT(ROUND(r.LB_95, 2), '-', ROUND(r.UB_95, 2)) AS CI_95,
-            r.LB_95,
-            r.UB_95,
-            r.P_VALUE,
-            r2.RR as Calibrated_RR,
-            CONCAT(ROUND(r2.LB_95, 2) , '-', ROUND(r2.UB_95, 2)) AS CALIBRATED_CI_95,
-            r2.LB_95 as CALIBRATED_LB_95,
-            r2.UB_95 as CALIBRATED_UB_95,
-            r2.P_VALUE as Calibrated_P_VALUE,
-            r.C_AT_RISK,
-            r.C_PT,
-            r.C_CASES,
-            r.T_AT_RISK,
-            r.T_PT,
-            r.T_CASES
+        SELECT
+            COALESCE(ds.cdm_source_abbreviation, r.database_id) as source_name,
+            r.*
         FROM @results_schema.scc_result r
-        INNER JOIN @results_schema.data_source ds ON ds.source_id = r.source_id
-        LEFT JOIN @results_schema.scc_result r2 ON (
-                r2.OUTCOME_COHORT_ID = r.OUTCOME_COHORT_ID
-                AND r2.TARGET_COHORT_ID = r.TARGET_COHORT_ID
-                AND r2.calibrated = 1
-                AND r2.source_id = r.source_id
-            )
-            WHERE r.OUTCOME_COHORT_ID = @outcome
-            AND r.TARGET_COHORT_ID = @treatment
-            AND r.calibrated = 0
-        ORDER BY r.SOURCE_ID
+        LEFT JOIN @results_schema.database_meta_data ds ON ds.database_id = r.database_id
+        WHERE r.OUTCOME_COHORT_ID = @outcome
+        AND r.TARGET_COHORT_ID = @treatment
+        AND r.analysis_id = @analysis_id
+        ORDER BY r.database_id
       "
-      return(self$queryDb(sql, treatment = exposureId, outcome = outcomeId))
+      return(self$queryDb(sql, treatment = exposureId, outcome = outcomeId, analysis_id = analysisId))
     },
 
     #' Get Forest plot table
@@ -322,12 +304,12 @@ SccDataModel <- R6::R6Class(
     #' @param exposureId  exposure Id
     #' @param outcomeId   outcome Id
     #' @param calibrated  get calibrated results?
-    getForestPlotTable = function(exposureId, outcomeId, calibrated) {
+    getForestPlotTable = function(exposureId, outcomeId, analysisId, calibrated) {
       sql <- "
       {DEFAULT @use_calibration = TRUE}
       SELECT
-          r.SOURCE_ID,
-          ds.SOURCE_NAME,
+          r.database_id,
+          coalesce(ds.cdm_source_abbreviation, 'meta-analysis') as source_name,
           r.C_AT_RISK,
           r.C_PT,
           r.C_CASES,
@@ -339,22 +321,48 @@ SccDataModel <- R6::R6Class(
           r.T_PT,
           r.T_CASES,
           r.SE_LOG_RR,
-          {@use_calibration} ? { r.calibrated, }
-          r.I2
+          r.I2,
+          0 as calibrated
       FROM @results_schema.scc_result r
-      INNER JOIN @results_schema.data_source ds ON ds.source_id = r.source_id
+      LEFT JOIN @results_schema.database_meta_data ds ON ds.database_id = r.database_id
           WHERE r.OUTCOME_COHORT_ID = @outcome
           AND r.TARGET_COHORT_ID = @treatment
-          {@use_calibration} ? { AND r.calibrated IN (@calibrated) }
-      ORDER BY r.SOURCE_ID
+          AND r.analysis_id = @analysis_id
+
+      UNION
+
+        SELECT
+          r.database_id,
+          coalesce(ds.cdm_source_abbreviation, 'meta-analysis') as source_name,
+          r.C_AT_RISK,
+          r.C_PT,
+          r.C_CASES,
+          r.CALIBRATED_RR as RR,
+          r.CALIBRATED_LB_95 as LB_95,
+          r.CALIBRATED_UB_95 as UB_95,
+          r.CALIBRATED_P_VALUE as P_VALUE,
+          r.T_AT_RISK,
+          r.T_PT,
+          r.T_CASES,
+          r.CALIBRATED_SE_LOG_RR as SE_LOG_RR,
+          r.I2,
+          1 as calibrated
+      FROM @results_schema.scc_result r
+      LEFT JOIN @results_schema.database_meta_data ds ON ds.database_id = r.database_id
+          WHERE r.OUTCOME_COHORT_ID = @outcome
+          AND r.TARGET_COHORT_ID = @treatment
+          AND r.analysis_id = @analysis_id
+
+      ORDER BY database_id
       "
       table <-
         self$queryDb(sql,
                      treatment = exposureId,
                      outcome = outcomeId,
+                     analysis_id = analysisId,
                      calibrated = calibrated)
-      calibratedTable <- table %>% dplyr::filter(calibrated == 1)
-      uncalibratedTable <- table %>% dplyr::filter(calibrated == 0)
+      calibratedTable <- table |> dplyr::filter(calibrated == 1)
+      uncalibratedTable <- table |> dplyr::filter(calibrated == 0)
 
       if (nrow(calibratedTable) & nrow(uncalibratedTable)) {
         calibratedTable$calibrated <- "Calibrated"
@@ -365,9 +373,8 @@ SccDataModel <- R6::R6Class(
           paste0(calibratedTable$sourceName, "\n Calibrated")
       }
 
-      table <-
-        rbind(uncalibratedTable[order(uncalibratedTable$sourceId, decreasing = TRUE), ],
-              calibratedTable[order(calibratedTable$sourceId, decreasing = TRUE), ])
+      table <- table |>
+        dplyr::arrange(.data$databaseId)
       return(table)
     },
 
@@ -383,24 +390,23 @@ SccDataModel <- R6::R6Class(
                                exposureId,
                                outcomeId,
                                sourceIds = NULL,
-                               tableName = "scc_stat",
                                analysisId = 1) {
       self$queryDb(
         "
       SELECT
-        ds.source_name,
+        ds.cdm_source_abbreviation,
         round(mean, 3) as mean,
         round(sd, 3) as sd,
         minimum as min,
-        p_10 as p10,
-        p_25 as p25,
-        median as median,
-        p_75 as p75,
-        p_90 as p90,
+        p10,
+        p25,
+        median,
+        p75,
+        p90,
         maximum as max,
         total
-      FROM @results_schema.@table_name tts
-      INNER JOIN @results_schema.data_source ds ON tts.source_id = ds.source_id
+      FROM @results_schema.scc_stat tts
+      INNER JOIN @results_schema.database_meta_data ds ON tts.database_id = ds.database_id
       WHERE stat_type = '@stat_type'
       AND target_cohort_id = @treatment AND outcome_cohort_id = @outcome
       AND mean is not NULL
@@ -408,7 +414,6 @@ SccDataModel <- R6::R6Class(
       {@source_ids != ''} ? {AND ds.source_id IN (@source_ids)}",
         stat_type = statType,
         analysis_id = analysisId,
-        table_name = tableName,
         treatment = exposureId,
         outcome = outcomeId,
         source_ids = sourceIds
@@ -426,7 +431,21 @@ SccDataModel <- R6::R6Class(
     #'
     #' @param ...
     getTimeOnTreatmentStats = function(...) {
-      self$getSummaryStats(statType = "time_on_treatment", ...)
+      self$getSummaryStats(statType = "time_exposed", ...)
+    },
+
+    #' getTimeOnTreatmentStats
+    #'
+    #' @param ...
+    getTimeToOutcomeExposedStats = function(...) {
+      self$getSummaryStats(statType = "time_to_outcome_exposed", ...)
+    },
+
+    #' getTimeOnTreatmentStats
+    #'
+    #' @param ...
+    getTimeToOutcomeUnexposedStats = function(...) {
+      self$getSummaryStats(statType = "time_to_outcome_unexposed", ...)
     },
 
     #' Count any query as subquery - (note: will be inneficient in many situations)
