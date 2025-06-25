@@ -37,7 +37,7 @@ calibrationPlotUi <- function(id,
 #'
 #' @param id                shiny namespace should be consistent with UI
 #' @param model             SccDataModel R6 class instance
-#' @param selectedCohort    cohort object reactive - returned list must contain: cohortDefinitionId, isExposure, selectedOutcomeType (reactive)
+#' @param selectedCohort    cohort object reactive
 #'
 #' @export
 calibrationPlotServer <- function(id, model, selectedCohort) {
@@ -50,10 +50,7 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
     nullDistData <- shiny::reactive({
       cohort <- selectedCohort()
 
-      negatives <- model$getNegativeControlSccResults(cohort$cohortDefinitionId,
-                                                      cohort$isExposure,
-                                                      outcomeType = cohort$selectedOutcomeType,
-                                                      conceptSet = cohort$conceptSet)
+      negatives <- model$getNegativeControlSccResults(cohort$targetCohortId)
 
       nulls <- data.frame()
       for (databaseId in unique(negatives$databaseId)) {
@@ -111,10 +108,7 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
         }
         validdatabaseIds <- null[selectedRows,]$databaseId
 
-        negatives <- model$getNegativeControlSccResults(cohort$cohortDefinitionId,
-                                                        cohort$isExposure,
-                                                        outcomeType = cohort$selectedOutcomeType,
-                                                        conceptSet = cohort$conceptSet)
+        negatives <- model$getNegativeControlSccResults(cohort$targetCohortId)
         negatives <- negatives |>
           dplyr::filter(analysisId == cohort$analysisId)
 

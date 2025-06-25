@@ -250,7 +250,7 @@ sccModule <- function(id = "scc-module", model) {
 
     metaAnalysisTableServer("metaTable", model, selectedExposureOutcome)
     forestPlotServer("forestPlot", model, selectedExposureOutcome)
-    calibrationPlotServer("calibrationPlot", model, selectedCohort)
+    calibrationPlotServer("calibrationPlot", model, selectedExposureOutcome)
     timeOnTreatmentServer("timeOnTreatment", model, selectedExposureOutcome)
     tabPanelTimeOnTreatment <- tabPanel("Time on treatment", boxPlotModuleUi(ns("timeOnTreatment")))
     shiny::appendTab(inputId = "outcomeResultsTabs", tabPanelTimeOnTreatment)

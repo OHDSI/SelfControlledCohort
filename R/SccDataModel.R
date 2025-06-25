@@ -139,51 +139,21 @@ SccDataModel <- R6::R6Class(
     #' Returns SCC results for a cohort id
     #'
     #' @param cohortDefinitionId          Cohort Id
-    #' @param outcomeType               Outcome types
-    #' @param conceptSet                conceptset type
-    #' @param isExposure                  Boolean - is this for exposure cohort?
-    getNegativeControlSccResults = function(cohortDefinitionId,
-                                            isExposure,
-                                            outcomeType = NULL,
-                                            conceptSet = NULL) {
-      checkmate::assertLogical(isExposure)
-      checkmate::assertIntegerish(outcomeType, null.ok = !isExposure)
-      # Get negative controls from cem connection
-      cemConnection <- self$getCemConnection()
-      if (is.null(conceptSet))
-        conceptSet <- self$getCohortConceptSet(cohortDefinitionId)
+    getNegativeControlSccResults = function(cohortDefinitionId) {
 
-      if (isExposure) {
-        controlConcepts <-
-          cemConnection$getSuggestedControlCondtions(conceptSet)
-      } else {
-        controlConcepts <-
-          cemConnection$getSuggestedControlIngredients(conceptSet)
-      }
-
-      if (nrow(controlConcepts)) {
-        cohortIds <- controlConcepts$conceptId * 1000
-        if (isExposure) {
-          cohortIds <- cohortIds + outcomeType
-        }
-
-        sql <- "SELECT * FROM @results_schema.scc_result sr
-        INNER JOIN @results_schema.scc_outcome_exposure soe ON sr.target_cohort_id = seo.target_cohort_id
-                                                            AND seo.outcome_cohort_id = sr.outcome_cohort_id
-        WHERE {@exposure} ? {sr.target_cohort_id} : {sr.outcome_cohort_id} = @cohort_definition_id
-        AND {@exposure} ? {sr.outcome_cohort_id} : {sr.target_cohort_id} IN (@cohort_ids)
+      sql <- "SELECT sr.* FROM @results_schema.scc_result sr
+        INNER JOIN @results_schema.scc_outcome_exposure soe ON sr.target_cohort_id = soe.target_cohort_id
+                                                            AND soe.outcome_cohort_id = sr.outcome_cohort_id
+        WHERE sr.target_cohort_id = @cohort_definition_id or sr.outcome_cohort_id = @cohort_definition_id
+        AND soe.true_effect_size = 1
         AND rr IS NOT NULL"
 
-        res <- self$connection$queryDb(
-          sql,
-          cohort_definition_id = cohortDefinitionId,
-          cohort_ids = cohortIds,
-          results_schema = self$resultsSchema,
-          exposure = isExposure
-        )
-        return(res)
-      }
-      return(data.frame())
+      res <- self$connection$queryDb(
+        sql,
+        cohort_definition_id = cohortDefinitionId,
+        results_schema = self$resultsSchema
+      )
+      return(res)
     },
 
     #' Shiny Dashboard - main query
