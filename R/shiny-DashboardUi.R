@@ -17,12 +17,10 @@
 #' Ui for rewardb dashboard
 #' @param request shiny request object
 #' @export
-sccUi <- function(id = "Reward",
-                     appConfig) {
+sccUi <- function(id = "scc-module", dashboardConfig) {
   ns <- shiny::NS(id)
   # This hides the outcome exporues/result pairing
   metaDisplayCondtion <- "typeof input.mainTable_rows_selected  !== 'undefined' && input.mainTable_rows_selected.length > 0"
-
   filterBox <- shinydashboard::box(
     shinydashboard::box(
       shiny::selectizeInput(
@@ -34,23 +32,27 @@ sccUi <- function(id = "Reward",
         inputId = ns("outcomeCohorts"),
         label = "Disease outcomes:",
         choices = NULL,
-        multiple = TRUE)),
+        multiple = TRUE)
+    ),
     shinydashboard::box(
-      shiny::selectizeInput(
-        inputId = ns("exposureClass"),
-        label = "Drug exposure classes:",
-        choices = NULL,
-        multiple = TRUE),
-      shinyWidgets::pickerInput(
-        inputId = ns("outcomeCohortTypes"),
-        "Outcome Cohort Types:",
-        choices = c("ATLAS defined" = 3, "Inpatient" = 1, "Two diagnosis codes" = 0, "One diagnosis code" = 2),
-        selected = c(),
-        options = shinyWidgets::pickerOptions(
-          actionsBox = TRUE,
-          noneSelectedText = "Filter by subset"
-        ),
-        multiple = TRUE),
+      # TODO: add these in when we have a meta-data mechanism in cohort_generator
+      # shiny::selectizeInput(
+      #   inputId = ns("exposureClass"),
+      #   label = "Drug exposure classes:",
+      #   choices = NULL,
+      #   multiple = TRUE
+      # ),
+      # shinyWidgets::pickerInput(
+      #   inputId = ns("outcomeCohortTypes"),
+      #   "Outcome Cohort Types:",
+      #   choices = c("ATLAS defined" = 3, "Inpatient" = 1, "Two diagnosis codes" = 0, "One diagnosis code" = 2),
+      #   selected = c(),
+      #   options = shinyWidgets::pickerOptions(
+      #     actionsBox = TRUE,
+      #     noneSelectedText = "Filter by subset"
+      #   ),
+      #   multiple = TRUE
+      # ),
       shiny::textAreaInput(inputId = ns("excludedConcepts"), label = "Exclude concept ids", NULL),
       shiny::tags$p("Excludes and child concepts of specified concept ids. Separate with comma"),
       width = 6
@@ -131,17 +133,13 @@ sccUi <- function(id = "Reward",
 
   aboutTab <- shiny::tagList(
     shinydashboard::box(
-      shiny::includeHTML(system.file("html", "about.html", package = "Reward")),
-      width = 12,
-      title = paste("Real World Assessment and Research of Drug performance (REWARD)")),
-    shinydashboard::box(
       width = 6,
       title = "Data sources",
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("dataSourceTable"))
       )
     ),
     shinydashboard::box(
-      shiny::p(appConfig$description),
+      shiny::p(dashboardConfig$description),
       shiny::p("Click the dashboard option to see the results. The sidebar options allow filtering of results based on risk and benift IRR thresholds"),
       shiny::downloadButton(
         ns("downloadData"),
@@ -150,7 +148,7 @@ sccUi <- function(id = "Reward",
         ns("downloadFullData"),
         "Download full results"),
       width = 6,
-      title = paste("About this dashboard -", appConfig$dashboardName
+      title = paste("About this dashboard -", dashboardConfig$dashboardName
       )
     )
   )
@@ -161,11 +159,6 @@ sccUi <- function(id = "Reward",
     shinydashboard::tabItem(tabName = "results", shiny::fluidRow(filterBox, mainResults, rPanel))
   )
 
-  if (isTRUE(appConfig$showCohortDiagnostics)) {
-    tabs[[3]] <- shinydashboard::tabItem(tabName = "cohortDiagnostics",
-                                         OhdsiShinyModules::cohortDiagnosticsView(id = ns("cohortDiagnostics")))
-  }
-
   body <- shinydashboard::dashboardBody(
     do.call(shinydashboard::tabItems, tabs)
   )
@@ -175,11 +168,7 @@ sccUi <- function(id = "Reward",
       id = ns("sidebarMenu"),
       shinydashboard::menuItem("About", tabName = "about", icon = icon("rectangle-list")),
       shinydashboard::menuItem("Results", tabName = "results", icon = icon("table")),
-      if (isTRUE(appConfig$showCohortDiagnostics)) {
-        shinydashboard::menuItem("Cohort Diagnostics", tabName = "cohortDiagnostics", icon = icon("users"))
-      } else {
-        shiny::p()
-      },
+      shiny::p(),
       shiny::sliderInput(ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
       shiny::sliderInput(ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
       shiny::sliderInput(ns("pCut"), "P-value cut off:", min = 0.0, max = 1.0, step = 0.01, value = 0.05),
@@ -189,21 +178,21 @@ sccUi <- function(id = "Reward",
         ns("scBenefit"),
         "Minimum sources with self control benefit:",
         min = 0,
-        max = length(appConfig$dataSources),
+        max = length(dashboardConfig$dataSources),
         step = 1,
         value = 1),
       shiny::sliderInput(
         ns("scRisk"),
         "Maximum sources with self control risk:",
         min = 0,
-        max = length(appConfig$dataSources),
+        max = length(dashboardConfig$dataSources),
         step = 1,
         value = 0
       ),
       shinycssloaders::withSpinner(shiny::uiOutput(ns("requiredDataSources"))),
       shiny::bookmarkButton()))
 
-  appTitle <- paste(appConfig$dashboardName)
+  appTitle <- paste(dashboardConfig$dashboardName)
   # Put them together into a dashboardPage
   ui <- shinydashboard::dashboardPage(
     shinydashboard::dashboardHeader(
@@ -215,5 +204,6 @@ sccUi <- function(id = "Reward",
     sidebar,
     body
   )
+
   return(ui)
 }

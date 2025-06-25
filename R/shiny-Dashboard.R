@@ -27,14 +27,14 @@ strQueryWrap <- function(vec) {
 #' @param input shiny input object
 #' @param output shiny output object
 #' @param session shiny session
-sccModule <- function(id = "Scc", model) {
+sccModule <- function(id = "scc-module", model) {
   appConfig <- model$config
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
 
     dataSourceInfo <- shiny::reactive({ model$getDataSources() })
     output$dataSourceTable <- reactable::renderReactable({
-      tbl <- dataSourceInfo() |> dplyr::select(databaseId, sourceName, cdmVersion)
+      tbl <- dataSourceInfo() |> dplyr::select("databaseId", "cdmSourceAbbreviation", "cdmVersion")
       colnames(tbl) <- SqlRender::camelCaseToTitleCase(colnames(tbl))
       reactable::reactable(tbl)
     })
@@ -42,14 +42,14 @@ sccModule <- function(id = "Scc", model) {
     output$requiredDataSources <- shiny::renderUI({
       shinyWidgets::pickerInput(ns("requiredDataSources"),
                                 label = "Select required data sources for benefit:",
-                                choices = dataSourceInfo()$sourceName,
+                                choices = dataSourceInfo()$cdmSourceAbbreviation,
                                 options = shinyWidgets::pickerOptions(actionsBox = TRUE),
                                 multiple = TRUE)
     })
 
     requiredBenefitSources <- shiny::reactive({
       dsi <- dataSourceInfo()
-      dsi[dsi$sourceName %in% input$requiredDataSources,]$databaseId
+      dsi[dsi$cdmSourceAbbreviation %in% input$requiredDataSources,]$databaseId
     })
 
     # Concepts to exclude from search
@@ -150,19 +150,15 @@ sccModule <- function(id = "Scc", model) {
     shiny::observe({
       ocC <- outcomeCohorts()
       outcomeCohortChoices <- ocC$cohortDefinitionId
-      names(outcomeCohortChoices) <- ocC$shortName
+      names(outcomeCohortChoices) <- ocC$cohortName
 
       shiny::updateSelectizeInput(session, "outcomeCohorts", choices = outcomeCohortChoices, server = TRUE)
 
       ecC <- exposureCohorts()
       exposureCohortChoices <- ecC$cohortDefinitionId
-      names(exposureCohortChoices) <- ecC$shortName
+      names(exposureCohortChoices) <- ecC$cohortName
 
       shiny::updateSelectizeInput(session, "targetCohorts", choices = exposureCohortChoices, server = TRUE)
-
-      if (!appConfig$exposureDashboard) {
-        shiny::updateSelectizeInput(session, "exposureClass", choices = model$getExposureClassNames(), server = TRUE)
-      }
     })
 
     # Subset of results for harm, risk and treatement categories
@@ -292,7 +288,7 @@ sccModule <- function(id = "Scc", model) {
 
     output$downloadControls <- downloadHandler(
       filename = function() {
-        paste0(appConfig$short_name, '-negative-controls.csv')
+        paste0(appConfig$shortName, '-negative-controls.csv')
       },
       content = function(file) {
         write.csv(getNegativeControls(), file, row.names = FALSE)
@@ -304,7 +300,7 @@ sccModule <- function(id = "Scc", model) {
 
     output$downloadIndications <- shiny::downloadHandler(
       filename = function() {
-        paste0(appConfig$short_name, '-indications.csv')
+        paste0(appConfig$shortName, '-indications.csv')
       },
       content = function(file) {
         write.csv(getIndications(), file, row.names = FALSE)
@@ -319,7 +315,7 @@ sccModule <- function(id = "Scc", model) {
 
     output$downloadFullTable <- shiny::downloadHandler(
       filename = function() {
-        paste0(appConfig$short_name, '-filtered-', input$cutrange1[2], '-', input$cutrange2, '.csv')
+        paste0(appConfig$shortName, '-filtered-', input$cutrange1[2], '-', input$cutrange2, '.csv')
       },
       content = function(file) {
         write.csv(mainTableDownload(), file, row.names = FALSE)
@@ -328,59 +324,39 @@ sccModule <- function(id = "Scc", model) {
   })
 }
 
-dashboardInstance <- function(input,
-                              output,
-                              session,
-                              model = .GlobalEnv$.model) {
-
-  shiny::onStop(function() { model$finalize() })
-  sccModule(model = model)
-}
-
-dashboardUi <- function(...) {
-  sccUi(appConfig = loadDashboardConfiguration(.GlobalEnv$dashboardConfigPath))
+#' Create Dashboard Config
+#' @param resultsDatabaseSchema name of the dashboard
+#' @param dashboardName name of the dashboard
+#' @param dataSources to be used (optional, can be set on dashboard load)
+#' @export
+createDashboardConfig <- function(resultsDatabaseSchema,
+                                  dashboardName = "SCC dashboard",
+                                  shortName = "SCC") {
+  return(list(
+    dashboardName = "SCC dashboard",
+    shortName = shortName,
+    dataSources = list(),
+    resultsDatabaseSchema = resultsDatabaseSchema
+  ))
 }
 
 #' @title
 #' Launch the REWARD Shiny app dashboard
 #' @description
 #' Launches a Shiny app for a given configuration file
-#' @param appConfigPath path to configuration file. This is loaded in to the local environment with the appConfig variable
+#' @param connectionDetails
+#' @param dashboardConfig see createDashboardConfig
 #'
 #' @export
-launchDashboard <- function(dashboardConfigPath,
-                            configPath = NULL,
-                            connectionDetails = NULL,
-                            resultDatabaseSchema = NULL) {
-
-  if (all(is.null(c(configPath, connectionDetails)))) {
-    stop("Must specify config path or connectionDetails")
+launchDashboard <- function(connectionDetails, dashboardConfig) {
+  connectionHandler <- ResultModelManager::PooledConnectionHandler$new(connectionDetails)
+  model <- SccDataModel$new(connectionHandler, dashboardConfig)
+  dashboardConfig$dataSources <- model$getDataSources()$databaseId
+  serverFunc <- function(input, output, session) {
+    sccModule(model = model)
   }
 
-  .GlobalEnv$dashboardConfigPath <- normalizePath(dashboardConfigPath)
-
-  dashboardConfig <- loadDashboardConfiguration(dashboardConfigPath)
-  if (is.null(connectionDetails)) {
-    config <- loadGlobalConfiguration(configPath)
-    connectionDetails <- config$connectionDetails
-  }
-
-  if (!is.null(connectionDetails) && connectionDetails$dbms == "sqlite") {
-    resultDatabaseSchema <- "main"
-    vocabularyDatabaseSchema <- "main"
-  } else if (is.null(resultDatabaseSchema)) {
-    resultDatabaseSchema <- dashboardConfig$shortName
-    vocabularyDatabaseSchema <- config$vocabularySchema
-  } else {
-    vocabularyDatabaseSchema <- config$vocabularySchema
-  }
-
-  .GlobalEnv$.model <- SccDataModel$new(dashboardConfigPath = dashboardConfigPath,
-                                        connectionDetails = connectionDetails,
-                                        cemConnectionDetails = config$cemConnectionDetails,
-                                        resultDatabaseSchema = resultDatabaseSchema,
-                                        vocabularyDatabaseSchema = vocabularyDatabaseSchema,
-                                        usePooledConnection = FALSE)
-
-  shiny::shinyApp(server = dashboardInstance, dashboardUi, enableBookmarking = "url")
+  shiny::shinyApp(server = serverFunc,
+                  ui = sccUi(dashboardConfig = dashboardConfig),
+                  enableBookmarking = "url")
 }

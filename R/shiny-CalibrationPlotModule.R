@@ -36,12 +36,12 @@ calibrationPlotUi <- function(id,
 #' Also shows Expected Absolute Systematic Error
 #'
 #' @param id                shiny namespace should be consistent with UI
-#' @param model             RewardDataModel R6 class instance
+#' @param model             SccDataModel R6 class instance
 #' @param selectedCohort    cohort object reactive - returned list must contain: cohortDefinitionId, isExposure, selectedOutcomeType (reactive)
 #'
 #' @export
 calibrationPlotServer <- function(id, model, selectedCohort) {
-  checkmate::assertR6(model, "RewardDataModel")
+  checkmate::assertR6(model, "SccDataModel")
   checkmate::assert(shiny::is.reactive(selectedCohort))
 
   server <- shiny::moduleServer(id, function(input, output, session) {
@@ -80,7 +80,7 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
 
     getNullDistTable <- shiny::reactive({
       nullDistData() |>
-        dplyr::select(sourceName,
+        dplyr::select(cdmSourceAbbreviation,
                       sourceKey,
                       n,
                       mean,

@@ -26,7 +26,7 @@ boxPlotDist <- function(data) {
   }
 
   plot <- ggplot2::ggplot(data = data) +
-    ggplot2::aes(x = sourceName,
+    ggplot2::aes(x = cdmSourceAbbreviation,
                  ymin = min,
                  lower = p25,
                  middle = median,
@@ -34,7 +34,7 @@ boxPlotDist <- function(data) {
                  ymax = max,
                  average = mean,
                  sd = sd,
-                 group = sourceName,
+                 group = cdmSourceAbbreviation,
                  y = median) +
     ggplot2::geom_errorbar(size = 0.5) +
     ggplot2::geom_boxplot(stat = "identity", fill = rgb(0, 0, 0.8, alpha = 0.25), size = 0.2) +

@@ -46,7 +46,8 @@ Suggests:
     shiny,
     shinycssloaders,
     plotly,
-    reactable
+    reactable,
+    shinyWidgets
 Remotes:
     OHDSI/ResultModelManager@fix-finalize,
     OHDSI/OhdsiShinyModules

@@ -55,7 +55,7 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
 
 
         table3 <- table3 |> dplyr::select(
-          sourceName,
+          databaseId,
           rr,
           ci95,
           pValue,

@@ -27,7 +27,7 @@ forestPlot <- function(table) {
   plot <- ggplot2::ggplot(
     table,
     ggplot2::aes(
-      y = factor(sourceName, level = rev(sourceName)),
+      y = factor(cdmSourceAbbreviation, level = rev(cdmSourceAbbreviation)),
       x = rr,
       color = databaseId,
       xmin = lb95,

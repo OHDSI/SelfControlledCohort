@@ -14,36 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' RewardDataModel
+#' SccDataModel
 #' @description
 #' An interface to the common evidence model that uses works directly with a database schema
 #' @field connection DatabaseConnector::connection instance
 #' @field vocabularySchema OMOP vocabulary schema (must include concept and concept ancestor tables)
 #' @field resultsSchema schema containing reward references and results
-#' @field config    Reward configuration s3 object
-#' @field cemConnectionDetails  Cem COnnector connection details object
 SccDataModel <- R6::R6Class(
   "SccDataModel",
-  private = list(cemConnection = NULL),
   public = list(
     connection = NULL,
     config = NULL,
     resultsSchema = NULL,
-    cemConnectionDetails = list(),
-
     #' @description
     #' initialize backend object.
     #' @param connectionHandler.
     initialize = function(connectionHandler, resultsDatabaseSettings) {
       self$connection <- connectionHandler
+      checkmate::assertString(resultsDatabaseSettings$resultsDatabaseSchema)
       self$resultsSchema <- resultsDatabaseSettings$resultsDatabaseSchema
     },
 
-    #' Query database
+    #' Query database x
     #' @param sql     query string
     #' @param results_schema      (optional) schema string
     #' @param ... @seealso `SqlRender::render`
-    queryDb = function(sql, results_schema = config$resultsSchema, ...) {
+    queryDb = function(sql, resultsSchema = self$resultsSchema, ...) {
       self$connection$queryDb(sql, results_schema = self$resultsSchema, ...)
     },
 
@@ -53,15 +49,15 @@ SccDataModel <- R6::R6Class(
     #' @returns data.frame of data sources
     #'
     getDataSources = function() {
-      self$queryDb("SELECT * FROM  @results_schema.data_source")
+      self$queryDb("SELECT * FROM  @results_schema.database_meta_data")
     },
 
     #' @description
     #' Get outcome cohort definition set
     #' @param cohortIds         numeric vector of cohort ids or null
-    getOutcomeCohortDefinitionSet = function(cohortIds = NULL) {
+    getOutcomeCohorts = function(cohortIds = NULL) {
       # make a proper cohort definition set from sql and cohort json
-      sql <- "SELECT cd.* FROM @results_schema.cohort_definition cd
+      sql <- "SELECT cd.* FROM @results_schema.cg_cohort_definition cd
       INNER JOIN @results_schema.scc_outcome_exposure ec ON cd.cohort_definition_id = ec.outcome_cohort_id
       {@cohort_ids != ''}? {WHERE cohort_definition_id IN (@cohort_ids)}
       "
@@ -73,7 +69,7 @@ SccDataModel <- R6::R6Class(
     #' @description
     #' Get exposure cohort definition set
     #' @param cohortIds         numeric vector of cohort ids or null
-    getExposureCohortDefinitionSet = function(cohortIds = NULL) {
+    getExposureCohorts = function(cohortIds = NULL) {
       # make a proper cohort definition set from sql and cohort json
       sql <- "SELECT cd.* FROM @results_schema.cg_cohort_definition cd
       INNER JOIN @results_schema.scc_outcome_exposure ec ON cd.cohort_definition_id = ec.target_cohort_id
@@ -111,41 +107,32 @@ SccDataModel <- R6::R6Class(
                               results_schema = self$resultsSchema)
     },
 
-    #' Get concept set for cohort
-    #'
-    #' @param cohortDefinitionId  Cohort definition id
-    getCohortConceptSet = function(cohortDefinitionId = NULL) {
-      sql <- "SELECT ccs.* FROM @results_schema.cohort_concept_set ccs
-      {@cohort_definition_id != ''} ? {WHERE cohort_definition_id = @cohort_definition_id}"
-      self$connection$queryDb(sql,
-                              cohort_definition_id = cohortDefinitionId,
-                              results_schema = self$resultsSchema)
-    },
-
     #' @description
     #' Get getCohort data for one cohort
     #' @param cohortDefinitionId         cohort identifier (not null, integer)
     getCohort = function(cohortDefinitionId) {
       checkmate::assert_number(cohortDefinitionId)
-      sql <- "SELECT cd.* FROM @results_schema.cohort_definition cd
+      sql <- "SELECT cd.* FROM @results_schema.cg_cohort_definition cd
       WHERE cohort_definition_id = @cohort_definition_id"
       cohortDf <- self$connection$queryDb(sql,
                                           cohort_definition_id = cohortDefinitionId,
                                           results_schema = self$resultsSchema)
-      cohort <-
-        setNames(split(cohortDf, seq(nrow(cohortDf))), rownames(cohortDf))[[1]]
 
-      cohort$conceptSet <-
-        self$getCohortConceptSet(cohortDefinitionId)
+      cohort <- setNames(split(cohortDf, seq(nrow(cohortDf))), rownames(cohortDf))[[1]]
+      #
+      # cohort$conceptSets <-
+      #   self$getCohortConceptSet(cohortDefinitionId)
+
+
+      cohort$conceptSets <- list()
       return(cohort)
     },
 
-    #' Get analysis settings
-    #'
-    #' @param decode convert json to r list
+    #' Get analysis settings, converting json text to list
     getAnalysisSettings = function() {
       sql <- "SELECT * FROM @results_schema.scc_analysis_setting"
       rows <- self$connection$queryDb(sql, results_schema = self$resultsSchema)
+      rows$settings <- lapply(rows$settings, ParallelLogger::convertJsonToSettings)
       return(rows)
     },
 
@@ -208,8 +195,7 @@ SccDataModel <- R6::R6Class(
         query <- SqlRender::render(query, ...)
       }
 
-      res <-
-        self$connection$queryDb("SELECT count(*) as CNT FROM (@sub_query) AS qur", sub_query = query)
+      res <- self$connection$queryDb("SELECT count(*) as CNT FROM (@sub_query) AS qur", sub_query = query)
       return(res$cnt)
     }
   )
