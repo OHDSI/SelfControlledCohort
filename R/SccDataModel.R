@@ -139,19 +139,24 @@ SccDataModel <- R6::R6Class(
     #' Returns SCC results for a cohort id
     #'
     #' @param cohortDefinitionId          Cohort Id
-    getNegativeControlSccResults = function(cohortDefinitionId) {
+    #' @param databaseId                  Database Id
+    getNegativeControlSccResults = function(cohortDefinitionId, databaseId) {
 
-      sql <- "SELECT sr.* FROM @results_schema.scc_result sr
-        INNER JOIN @results_schema.scc_outcome_exposure soe ON sr.target_cohort_id = soe.target_cohort_id
-                                                            AND soe.outcome_cohort_id = sr.outcome_cohort_id
-        WHERE sr.target_cohort_id = @cohort_definition_id or sr.outcome_cohort_id = @cohort_definition_id
+      sql <- "
+        SELECT sr.*
+        FROM @results_schema.scc_result sr
+        INNER JOIN @results_schema.scc_outcome_exposure soe ON
+                    sr.target_cohort_id = soe.target_cohort_id AND soe.outcome_cohort_id = sr.outcome_cohort_id
+        WHERE (sr.target_cohort_id = @cohort_definition_id OR sr.outcome_cohort_id = @cohort_definition_id)
+        AND sr.database_id = '@database_id'
         AND soe.true_effect_size = 1
         AND rr IS NOT NULL"
 
       res <- self$connection$queryDb(
         sql,
         cohort_definition_id = cohortDefinitionId,
-        results_schema = self$resultsSchema
+        results_schema = self$resultsSchema,
+        database_id = databaseId
       )
       return(res)
     },
@@ -277,6 +282,8 @@ SccDataModel <- R6::R6Class(
     getForestPlotTable = function(exposureId, outcomeId, analysisId, calibrated) {
       sql <- "
       {DEFAULT @use_calibration = TRUE}
+
+      {@use_calibration} ? {
       SELECT
           r.database_id,
           coalesce(ds.cdm_source_abbreviation, 'meta-analysis') as source_name,
@@ -298,8 +305,7 @@ SccDataModel <- R6::R6Class(
           WHERE r.OUTCOME_COHORT_ID = @outcome
           AND r.TARGET_COHORT_ID = @treatment
           AND r.analysis_id = @analysis_id
-
-      UNION
+      } : {
 
         SELECT
           r.database_id,
@@ -322,26 +328,16 @@ SccDataModel <- R6::R6Class(
           WHERE r.OUTCOME_COHORT_ID = @outcome
           AND r.TARGET_COHORT_ID = @treatment
           AND r.analysis_id = @analysis_id
-
-      ORDER BY database_id
+      }
       "
+
+      browser()
       table <-
         self$queryDb(sql,
                      treatment = exposureId,
                      outcome = outcomeId,
                      analysis_id = analysisId,
-                     calibrated = calibrated)
-      calibratedTable <- table |> dplyr::filter(calibrated == 1)
-      uncalibratedTable <- table |> dplyr::filter(calibrated == 0)
-
-      if (nrow(calibratedTable) & nrow(uncalibratedTable)) {
-        calibratedTable$calibrated <- "Calibrated"
-        uncalibratedTable$calibrated <- "Uncalibrated"
-        uncalibratedTable$sourceName <-
-          paste0(uncalibratedTable$sourceName, "\n uncalibrated")
-        calibratedTable$sourceName <-
-          paste0(calibratedTable$sourceName, "\n Calibrated")
-      }
+                     use_calibration = calibrated)
 
       table <- table |>
         dplyr::arrange(.data$databaseId)

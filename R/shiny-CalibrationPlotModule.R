@@ -20,12 +20,21 @@ calibrationPlotUi <- function(id,
                               figureText = "Plot of calibration of effect estimates. Blue dots are negative control effect estimates.") {
   ns <- shiny::NS(id)
   shiny::tagList(
-    shinycssloaders::withSpinner(shiny::plotOutput(ns("calibrationPlot"), height = 500)),
+    shiny::fluidRow(
+      shiny::column(width = 2),
+      shiny::column(
+        shinycssloaders::withSpinner(shiny::plotOutput(ns("calibrationPlot"), width = 800)),
+        shinycssloaders::withSpinner(reactable::reactableOutput(ns("nullDistribution"))), width = 8)
+    ),
     shiny::div(
+      shiny::selectInput(
+        ns("databaseSelection"),
+        label = "Select data source",
+        choices = c()
+      ),
       shiny::strong(figureTitle),
       shiny::p(figureText),
-      shiny::downloadButton(ns("downloadCalibrationPlot"), "Save"),
-      shinycssloaders::withSpinner(reactable::reactableOutput(ns("nullDistribution")))
+      shiny::downloadButton(ns("downloadCalibrationPlot"), "Save")
     )
   )
 }
@@ -46,77 +55,20 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
 
   server <- shiny::moduleServer(id, function(input, output, session) {
     dataSources <- model$getDataSources()
-
-    nullDistData <- shiny::reactive({
-      cohort <- selectedCohort()
-
-      negatives <- model$getNegativeControlSccResults(cohort$targetCohortId)
-
-      nulls <- data.frame()
-      for (databaseId in unique(negatives$databaseId)) {
-        subset <- negatives |> dplyr::filter(.data$databaseId == !!databaseId &
-                                              .data$analysisId == cohort$analysisId &
-                                              !is.na(rr) &
-                                              !is.null(rr))
-        null <- EmpiricalCalibration::fitNull(log(subset$rr), subset$seLogRr)
-        systematicError <- EmpiricalCalibration::computeExpectedAbsoluteSystematicError(null)
-        df <- data.frame(
-          "databaseId" = databaseId,
-          "mean" = round(exp(null[["mean"]]), 3),
-          "sd" = round(exp(null[["sd"]]), 3),
-          "EASE" = round(systematicError, 3),
-          "n" = nrow(subset)
-        )
-        nulls <- rbind(nulls, df)
-      }
-      if (nrow(nulls))
-        nulls <- dplyr::inner_join(dataSources, nulls, by = "databaseId")
-
-      return(nulls)
-    })
-
-    getNullDistTable <- shiny::reactive({
-      nullDistData() |>
-        dplyr::select(cdmSourceAbbreviation,
-                      sourceKey,
-                      n,
-                      mean,
-                      sd,
-                      EASE)
-    })
-
-    output$nullDistribution <- reactable::renderReactable({
-      nullDist <- getNullDistTable()
-      colnames(nullDist) <- SqlRender::camelCaseToTitleCase(colnames(nullDist))
-      reactable::reactable(nullDist, selection = "single")
-    })
-
     shiny::observe({
-      reactable::updateReactable("nullDistribution", selected = 1)
+      dataSourceChoices <- c(dataSources$databaseId, 'meta-analysis')
+      names(dataSourceChoices) <- c(dataSources$cdmSourceAbbreviation, 'Meta Analysis')
+      shiny::updateSelectInput(inputId = "databaseSelection", choices = dataSourceChoices, selected = 'meta-analysis')
     })
+
 
     getCalibrationPlot <- shiny::reactive({
+      shiny::validate(shiny::need(!is.null(input$databaseSelection), message = "database must be selected"))
       cohort <- selectedCohort()
 
       plot <- ggplot2::ggplot()
       if (!is.null(cohort)) {
-        null <- nullDistData()
-        selectedRows <- reactable::getReactableState("nullDistribution", name = "selected")
-
-        if (is.null(selectedRows)) {
-          selectedRows <- 1
-        }
-        validdatabaseIds <- null[selectedRows,]$databaseId
-
-        negatives <- model$getNegativeControlSccResults(cohort$targetCohortId)
-        negatives <- negatives |>
-          dplyr::filter(analysisId == cohort$analysisId)
-
-        if (length(validdatabaseIds) == 0) {
-          validdatabaseIds <- dataSources$databaseId[1]
-        }
-        negatives <- negatives[negatives$databaseId %in% validdatabaseIds,]
-
+        negatives <- model$getNegativeControlSccResults(cohort$targetCohortId, databaseId = input$databaseSelection)
         if (nrow(negatives)) {
           plotNegatives <- negatives[negatives$rr > 0,]
           plot <- EmpiricalCalibration::plotCalibrationEffect(logRrNegatives = log(plotNegatives$rr),
@@ -131,6 +83,37 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
 
     output$calibrationPlot <- shiny::renderPlot({
       getCalibrationPlot()
+    })
+
+
+    nullDistData <- shiny::reactive({
+      cohort <- selectedCohort()
+      negatives <- model$getNegativeControlSccResults(cohort$targetCohortId, databaseId = input$databaseSelection)
+      subset <- negatives |> dplyr::filter(.data$analysisId == cohort$analysisId &
+                                             !is.na(rr) &
+                                             !is.null(rr))
+      null <- EmpiricalCalibration::fitNull(log(subset$rr), subset$seLogRr)
+      systematicError <- EmpiricalCalibration::computeExpectedAbsoluteSystematicError(null)
+      df <- data.frame(
+        "databaseId" = input$databaseSelection,
+        "mean" = round(exp(null[["mean"]]), 3),
+        "sd" = round(exp(null[["sd"]]), 3),
+        "EASE" = round(systematicError, 3),
+        "n" = nrow(subset)
+      )
+      return(df)
+    })
+
+    getNullDistTable <- shiny::reactive({
+      nullDistData() |>
+        dplyr::select("databaseId", "n", "mean", "sd", "EASE")
+    })
+
+    output$nullDistribution <- reactable::renderReactable({
+      shiny::validate(shiny::need(!is.null(input$databaseSelection), message = "database must be selected"))
+      nullDist <- getNullDistTable()
+      colnames(nullDist) <- SqlRender::camelCaseToTitleCase(colnames(nullDist))
+      reactable::reactable(nullDist)
     })
 
     output$downloadCalibrationPlot <- shiny::downloadHandler(

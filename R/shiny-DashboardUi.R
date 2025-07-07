@@ -126,7 +126,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
     condition = metaDisplayCondtion,
     ns = ns,
     shinydashboard::box(
-      shiny::HTML(paste("<h4 id='mainR'>", textOutput(ns("treatmentOutcomeStr")), "</h4>")),
+      shiny::HTML(paste("<h4 id='mainR'>", shiny::textOutput(ns("treatmentOutcomeStr")), "</h4>")),
       shiny::tabsetPanel(
         id = ns("outcomeResultsTabs"),
         type = "pills",
@@ -173,8 +173,8 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
   sidebar <- shinydashboard::dashboardSidebar(
     shinydashboard::sidebarMenu(
       id = ns("sidebarMenu"),
-      shinydashboard::menuItem("About", tabName = "about", icon = icon("rectangle-list")),
-      shinydashboard::menuItem("Results", tabName = "results", icon = icon("table")),
+      shinydashboard::menuItem("About", tabName = "about", icon = shiny::icon("rectangle-list")),
+      shinydashboard::menuItem("Results", tabName = "results", icon = shiny::icon("table")),
       shiny::p(),
       shiny::sliderInput(ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
       shiny::sliderInput(ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
