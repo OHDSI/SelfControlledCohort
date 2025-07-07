@@ -282,56 +282,29 @@ SccDataModel <- R6::R6Class(
     getForestPlotTable = function(exposureId, outcomeId, analysisId, calibrated) {
       sql <- "
       {DEFAULT @use_calibration = TRUE}
-
-      {@use_calibration} ? {
-      SELECT
-          r.database_id,
-          coalesce(ds.cdm_source_abbreviation, 'meta-analysis') as source_name,
-          r.C_AT_RISK,
-          r.C_PT,
-          r.C_CASES,
-          r.RR,
-          r.LB_95,
-          r.UB_95,
-          r.P_VALUE,
-          r.T_AT_RISK,
-          r.T_PT,
-          r.T_CASES,
-          r.SE_LOG_RR,
-          r.I2,
-          0 as calibrated
-      FROM @results_schema.scc_result r
-      LEFT JOIN @results_schema.database_meta_data ds ON ds.database_id = r.database_id
-          WHERE r.OUTCOME_COHORT_ID = @outcome
-          AND r.TARGET_COHORT_ID = @treatment
-          AND r.analysis_id = @analysis_id
-      } : {
-
         SELECT
-          r.database_id,
-          coalesce(ds.cdm_source_abbreviation, 'meta-analysis') as source_name,
-          r.C_AT_RISK,
-          r.C_PT,
-          r.C_CASES,
-          r.CALIBRATED_RR as RR,
-          r.CALIBRATED_LB_95 as LB_95,
-          r.CALIBRATED_UB_95 as UB_95,
-          r.CALIBRATED_P_VALUE as P_VALUE,
-          r.T_AT_RISK,
-          r.T_PT,
-          r.T_CASES,
-          r.CALIBRATED_SE_LOG_RR as SE_LOG_RR,
-          r.I2,
-          1 as calibrated
-      FROM @results_schema.scc_result r
-      LEFT JOIN @results_schema.database_meta_data ds ON ds.database_id = r.database_id
-          WHERE r.OUTCOME_COHORT_ID = @outcome
-          AND r.TARGET_COHORT_ID = @treatment
-          AND r.analysis_id = @analysis_id
-      }
+            r.database_id,
+            coalesce(ds.cdm_source_abbreviation, 'Meta Analysis') as source_name,
+            {@use_calibration} ? {
+            r.CALIBRATED_RR as RR,
+            r.CALIBRATED_LB_95 as LB_95,
+            r.CALIBRATED_UB_95 as UB_95,
+            r.CALIBRATED_P_VALUE as P_VALUE,
+            r.CALIBRATED_SE_LOG_RR as SE_LOG_RR,
+            } : {
+            r.RR,
+            r.LB_95,
+            r.UB_95,
+            r.P_VALUE,
+            r.SE_LOG_RR,
+            }
+            r.I2
+        FROM @results_schema.scc_result r
+        LEFT JOIN @results_schema.database_meta_data ds ON ds.database_id = r.database_id
+            WHERE r.OUTCOME_COHORT_ID = @outcome
+            AND r.TARGET_COHORT_ID = @treatment
+            AND r.analysis_id = @analysis_id
       "
-
-      browser()
       table <-
         self$queryDb(sql,
                      treatment = exposureId,
@@ -339,8 +312,10 @@ SccDataModel <- R6::R6Class(
                      analysis_id = analysisId,
                      use_calibration = calibrated)
 
-      table <- table |>
-        dplyr::arrange(.data$databaseId)
+      # custom order of data.frame
+      metaRow <- table |> dplyr::filter(.data$databaseId == 'meta-analysis')
+      otherRows <- table |> dplyr::filter(.data$databaseId != 'meta-analysis')
+      table <- dplyr::bind_rows(otherRows, metaRow)
       return(table)
     },
 
@@ -361,6 +336,7 @@ SccDataModel <- R6::R6Class(
         "
       SELECT
         ds.cdm_source_abbreviation,
+        ds.database_id,
         round(mean, 3) as mean,
         round(sd, 3) as sd,
         minimum as min,
@@ -377,7 +353,7 @@ SccDataModel <- R6::R6Class(
       AND target_cohort_id = @treatment AND outcome_cohort_id = @outcome
       AND mean is not NULL
       AND analysis_id = @analysis_id
-      {@source_ids != ''} ? {AND ds.source_id IN (@source_ids)}",
+      {@source_ids != ''} ? {AND ds.database_id IN (@source_ids)}",
         stat_type = statType,
         analysis_id = analysisId,
         treatment = exposureId,

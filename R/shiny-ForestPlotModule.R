@@ -21,9 +21,11 @@
 #' @param table data.frame with columns RR, LB_95, UB_95
 #' @return ggplot plot
 forestPlot <- function(table) {
-  table$SOURCE_ID <- as.character(table$databaseId)
+
   label <- paste0("IRR= ", round(table$rr * 1, 2),
                   "; 95% CI= (", round(table$lb95, 2), " - ", round(table$ub95, 2), ")")
+  # factor to ensure meta-analysis goes last
+  table$sourceName <- factor(table$sourceName, level = rev(table$sourceName))
   plot <- ggplot2::ggplot(
     table,
     ggplot2::aes(
@@ -52,7 +54,7 @@ forestPlotUi <- function(id) {
     shiny::hr(),
     shiny::fluidRow(
       shinydashboard::box(
-        strong("Figure 1."),
+        shiny::strong("Figure 1."),
         paste("Forest plot of effect estimates from each database"),
         shiny::br(),
         shiny::downloadButton(
@@ -67,12 +69,8 @@ forestPlotUi <- function(id) {
             "Uncalibrated results" = 0,
             "Calibrated Results" = 1
           ),
-          selected = c(0, 1),
-          options = shinyWidgets::pickerOptions(
-            actionsBox = TRUE,
-            noneSelectedText = ""
-          ),
-          multiple = TRUE),
+          selected = 1,
+          multiple = FALSE),
         width = 6)
     )
   )
@@ -87,8 +85,8 @@ forestPlotServer <- function(id, model, selectedExposureOutcome) {
 
       if (length(outcomeId) & length(exposureId)) {
         shiny::updateTabsetPanel(session, "mainPanel", "Detail")
-        calibOpts <- if (length(input$forestPlotCalibrated)) input$forestPlotCalibrated else c(0, 1)
-        res <- model$getForestPlotTable(exposureId, outcomeId, s$analysisId, as.numeric(calibOpts))
+        calibOpts <- if (length(input$forestPlotCalibrated) && !is.na(input$forestPlotCalibrated)) input$forestPlotCalibrated else 1
+        res <- model$getForestPlotTable(exposureId, outcomeId, s$analysisId, as.logical(as.numeric(calibOpts)))
         return(res)
       }
       return(data.frame())
