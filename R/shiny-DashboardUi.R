@@ -22,7 +22,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
   # This hides the outcome exporues/result pairing
   metaDisplayCondtion <- "typeof input.mainTable_rows_selected  !== 'undefined' && input.mainTable_rows_selected.length > 0"
   filterBox <- shinydashboard::box(
-    shinydashboard::box(
+    shiny::column(
       shiny::selectizeInput(
         inputId = ns("targetCohorts"),
         label = "Drug exposures:",
@@ -39,9 +39,10 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
         inputId = ns("analysisId"),
         label = "Analysis setting:",
         choices = dashboardConfig$analysisSettings
-      )
+      ),
+      width = 6
     ),
-    shinydashboard::box(
+    shiny::column(
       # TODO: add these in when we have a meta-data mechanism in cohort_generator
       # shiny::selectizeInput(
       #   inputId = ns("exposureClass"),
@@ -64,12 +65,21 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       shiny::tags$p("Excludes and child concepts of specified concept ids. Separate with comma"),
       width = 6
     ),
+    shiny::fluidRow(
+      shiny::column(
+        width = 12,
+        shiny::actionButton(inputId = ns("genResults"), label = "Get Results")
+      )
+    ),
     width = 12,
     title = "Filter Cohorts",
     collapsible = TRUE
   )
 
-  mainResults <- shinydashboard::box(
+  mainResults <- shiny::conditionalPanel(
+    condition = "input.genResults > 0",
+    ns = ns,
+    shinydashboard::box(
     shiny::fluidRow(
       shiny::column(
         width = 2,
@@ -121,6 +131,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
     shiny::downloadButton(ns("downloadFullTable"), "Download"),
     width = 12
   )
+)
 
   rPanel <- shiny::conditionalPanel(
     condition = metaDisplayCondtion,

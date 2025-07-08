@@ -28,11 +28,15 @@ strQueryWrap <- function(vec) {
 #' @param output shiny output object
 #' @param session shiny session
 sccModule <- function(id = "scc-module", model) {
+  cli::cli_alert_info("Loading scc module")
   appConfig <- model$config
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
 
-    dataSourceInfo <- shiny::reactive({ model$getDataSources() })
+    dataSourceInfo <- shiny::reactive({
+      cli::cli_alert_info("Getting data sources")
+      model$getDataSources()
+    })
     output$dataSourceTable <- reactable::renderReactable({
       tbl <- dataSourceInfo() |> dplyr::select("databaseId", "cdmSourceAbbreviation", "cdmVersion")
       colnames(tbl) <- SqlRender::camelCaseToTitleCase(colnames(tbl))
@@ -40,6 +44,7 @@ sccModule <- function(id = "scc-module", model) {
     })
 
     output$requiredDataSources <- shiny::renderUI({
+      cli::cli_alert_info("render data sources")
       dsInfo <- dataSourceInfo()
       dsChoices <- dsInfo$databaseId
       names(dsChoices) <- dsInfo$cdmSourceAbbreviation
@@ -49,20 +54,6 @@ sccModule <- function(id = "scc-module", model) {
                                 options = shinyWidgets::pickerOptions(actionsBox = TRUE),
                                 multiple = TRUE)
     })
-
-
-    analysisChoices <- shiny::reactive({
-      aRes <- model$queryDb("SELECT * from @results_schema.scc_analysis_setting")
-      choices <- aRes$analysisId
-      names(choices) <- paste(aRes$analysisId, "-", aRes$description)
-    })
-
-    # shiny::observe({
-    #   shiny::updateSelectInput(
-    #     inputId = "analysisId",
-    #     choices = analysisChoices()
-    #   )
-    # })
 
     # Concepts to exclude from search
     excludedConcepts <- shiny::reactive({
@@ -75,7 +66,7 @@ sccModule <- function(id = "scc-module", model) {
       return(concepts)
     })
 
-    getMainTableParams <- shiny::reactive({
+    getMainTableParams <- shiny::eventReactive(input$genResults, {
       params <- list(benefitThreshold = input$cutrange1[2],
                      lowerBenefitThereshold = input$cutrange1[1],
                      riskThreshold = input$cutrange2,
@@ -362,6 +353,7 @@ launchDashboard <- function(connectionDetails, dashboardConfig) {
   connectionHandler <- ResultModelManager::PooledConnectionHandler$new(connectionDetails)
   model <- SccDataModel$new(connectionHandler, dashboardConfig)
 
+  cli::cli_alert_info("Launching dashboard")
   # data sources available
   dashboardConfig$dataSources <- model$getDataSources()$databaseId
 
