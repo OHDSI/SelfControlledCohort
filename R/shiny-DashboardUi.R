@@ -21,6 +21,50 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
   ns <- shiny::NS(id)
   # This hides the outcome exporues/result pairing
   metaDisplayCondtion <- "typeof input.mainTable_rows_selected  !== 'undefined' && input.mainTable_rows_selected.length > 0"
+
+  paramUi <- shinydashboard::box(
+
+    shiny::column(
+      width = 4,
+      shiny::sliderInput(ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
+      shiny::sliderInput(ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
+      shiny::sliderInput(ns("pCut"), "P-value cut off:", min = 0.0, max = 1.0, step = 0.01, value = 0.05),
+    ),
+    shiny::column(
+      width = 4,
+
+      shiny::sliderInput(
+        ns("scBenefit"),
+        "Minimum sources with self control benefit:",
+        min = 0,
+        max = length(dashboardConfig$dataSources),
+        step = 1,
+        value = 1),
+      shiny::sliderInput(
+        ns("scRisk"),
+        "Maximum sources with self control risk:",
+        min = 0,
+        max = length(dashboardConfig$dataSources),
+        step = 1,
+        value = 0
+      )
+    ),
+    shiny::column(
+      width = 4,
+      shiny::radioButtons(ns("filterThreshold"), "Threshold benefit by:", c("Data sources", "Meta analysis")),
+      # shiny::checkboxInput(ns("calibrated"), "Threshold with empirically calibrated IRR", TRUE),
+      shiny::selectInput(
+        inputId = ns("analysisId"),
+        label = "Analysis setting:",
+        choices = dashboardConfig$analysisSettings
+      ),
+      shinycssloaders::withSpinner(shiny::uiOutput(ns("requiredDataSources")))
+    ),
+    width = 12,
+    title = "Benfit/Risk parameters",
+    collapsible = TRUE
+  )
+
   filterBox <- shinydashboard::box(
     shiny::column(
       shiny::selectizeInput(
@@ -34,11 +78,6 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
         label = "Disease outcomes:",
         choices = NULL,
         multiple = TRUE
-      ),
-      shiny::selectInput(
-        inputId = ns("analysisId"),
-        label = "Analysis setting:",
-        choices = dashboardConfig$analysisSettings
       ),
       width = 6
     ),
@@ -80,58 +119,58 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
     condition = "input.genResults > 0",
     ns = ns,
     shinydashboard::box(
-    shiny::fluidRow(
-      shiny::column(
-        width = 2,
-        shiny::uiOutput(ns("mainTablePage"))
-      ),
-      shiny::column(
-        width = 6,
-        shiny::selectInput(
-          inputId = ns("mainTableSortBy"),
-          "Sort by column",
-          choices = list(
-            "Outcome id" = "OUTCOME_COHORT_ID",
-            "Exposure id" = "TARGET_COHORT_ID",
-            "Exposure name" = "TARGET_COHORT_NAME",
-            "Outcome name" = "OUTCOME_COHORT_NAME",
-            "I-squared" = "I2",
-            "IRR" = "META_RR",
-            "Sources with scc risk" = "RISK_COUNT",
-            "Sources with scc benefit" = "BENEFIT_COUNT"),
-          selected = "META_RR"
+      shiny::fluidRow(
+        shiny::column(
+          width = 2,
+          shiny::uiOutput(ns("mainTablePage"))
+        ),
+        shiny::column(
+          width = 6,
+          shiny::selectInput(
+            inputId = ns("mainTableSortBy"),
+            "Sort by column",
+            choices = list(
+              "Outcome id" = "OUTCOME_COHORT_ID",
+              "Exposure id" = "TARGET_COHORT_ID",
+              "Exposure name" = "TARGET_COHORT_NAME",
+              "Outcome name" = "OUTCOME_COHORT_NAME",
+              "I-squared" = "I2",
+              "IRR" = "META_RR",
+              "Sources with scc risk" = "RISK_COUNT",
+              "Sources with scc benefit" = "BENEFIT_COUNT"),
+            selected = "META_RR"
+          )
+        ),
+        shiny::column(
+          width = 2,
+          shiny::radioButtons(ns("mainTableOrderAscending"), "", c("Ascending" = "ASC", "Descending" = "DESC"))),
+        shiny::column(
+          width = 2,
+          shiny::selectInput(
+            ns("mainTablePageSize"),
+            "Show per page",
+            choices = c(5, 10, 15, 20, 25, 50, 100), selected = 10
+          )
         )
       ),
-      shiny::column(
-        width = 2,
-        shiny::radioButtons(ns("mainTableOrderAscending"), "", c("Ascending" = "ASC", "Descending" = "DESC"))),
-      shiny::column(
-        width = 2,
-        shiny::selectInput(
-          ns("mainTablePageSize"),
-          "Show per page",
-          choices = c(5, 10, 15, 20, 25, 50, 100), selected = 10
-        )
-      )
-    ),
-    shinycssloaders::withSpinner(DT::dataTableOutput(ns("mainTable"))),
-    shiny::hr(),
-    shiny::fluidRow(
-      shiny::column(
-        width = 4,
-        shiny::textOutput(ns("mainTableCount")),
-        shiny::actionButton(ns("mainTablePrevious"), "Previous Page")
-      ),
-      shiny::column(width = 6),
-      shiny::column(
-        width = 2,
-        shiny::textOutput(ns("mainTableNumPages")),
-        shiny::actionButton(ns("mainTableNext"), "Next Page"))),
-    shiny::hr(),
-    shiny::downloadButton(ns("downloadFullTable"), "Download"),
-    width = 12
+      shinycssloaders::withSpinner(DT::dataTableOutput(ns("mainTable"))),
+      shiny::hr(),
+      shiny::fluidRow(
+        shiny::column(
+          width = 4,
+          shiny::textOutput(ns("mainTableCount")),
+          shiny::actionButton(ns("mainTablePrevious"), "Previous Page")
+        ),
+        shiny::column(width = 6),
+        shiny::column(
+          width = 2,
+          shiny::textOutput(ns("mainTableNumPages")),
+          shiny::actionButton(ns("mainTableNext"), "Next Page"))),
+      shiny::hr(),
+      shiny::downloadButton(ns("downloadFullTable"), "Download"),
+      width = 12
+    )
   )
-)
 
   rPanel <- shiny::conditionalPanel(
     condition = metaDisplayCondtion,
@@ -174,7 +213,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
 
   tabs <- list(
     shinydashboard::tabItem(tabName = "about", aboutTab),
-    shinydashboard::tabItem(tabName = "results", shiny::fluidRow(filterBox, mainResults, rPanel))
+    shinydashboard::tabItem(tabName = "results", shiny::fluidRow(paramUi, filterBox, mainResults, rPanel))
   )
 
   body <- shinydashboard::dashboardBody(
@@ -186,29 +225,8 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       id = ns("sidebarMenu"),
       shinydashboard::menuItem("About", tabName = "about", icon = shiny::icon("rectangle-list")),
       shinydashboard::menuItem("Results", tabName = "results", icon = shiny::icon("table")),
-      shiny::p(),
-      shiny::sliderInput(ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
-      shiny::sliderInput(ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
-      shiny::sliderInput(ns("pCut"), "P-value cut off:", min = 0.0, max = 1.0, step = 0.01, value = 0.05),
-      # shiny::checkboxInput(ns("calibrated"), "Threshold with empirically calibrated IRR", TRUE),
-      shiny::radioButtons(ns("filterThreshold"), "Threshold benefit by:", c("Data sources", "Meta analysis")),
-      shiny::sliderInput(
-        ns("scBenefit"),
-        "Minimum sources with self control benefit:",
-        min = 0,
-        max = length(dashboardConfig$dataSources),
-        step = 1,
-        value = 1),
-      shiny::sliderInput(
-        ns("scRisk"),
-        "Maximum sources with self control risk:",
-        min = 0,
-        max = length(dashboardConfig$dataSources),
-        step = 1,
-        value = 0
-      ),
-      shinycssloaders::withSpinner(shiny::uiOutput(ns("requiredDataSources"))),
-      shiny::bookmarkButton()))
+      shiny::bookmarkButton())
+  )
 
   appTitle <- paste(dashboardConfig$dashboardName)
   # Put them together into a dashboardPage
