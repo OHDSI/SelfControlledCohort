@@ -33,26 +33,10 @@ sccModule <- function(id = "scc-module", model) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
 
-    dataSourceInfo <- shiny::reactive({
-      cli::cli_alert_info("Getting data sources")
-      model$getDataSources()
-    })
     output$dataSourceTable <- reactable::renderReactable({
-      tbl <- dataSourceInfo() |> dplyr::select("databaseId", "cdmSourceAbbreviation", "cdmVersion")
+      tbl <- model$getDataSources() |> dplyr::select("databaseId", "cdmSourceAbbreviation", "cdmVersion")
       colnames(tbl) <- SqlRender::camelCaseToTitleCase(colnames(tbl))
       reactable::reactable(tbl)
-    })
-
-    output$requiredDataSources <- shiny::renderUI({
-      cli::cli_alert_info("render data sources")
-      dsInfo <- dataSourceInfo()
-      dsChoices <- dsInfo$databaseId
-      names(dsChoices) <- dsInfo$cdmSourceAbbreviation
-      shinyWidgets::pickerInput(ns("requiredDataSources"),
-                                label = "Select required data sources for benefit:",
-                                choices = dsChoices,
-                                options = shinyWidgets::pickerOptions(actionsBox = TRUE),
-                                multiple = TRUE)
     })
 
     # Concepts to exclude from search
@@ -140,26 +124,38 @@ sccModule <- function(id = "scc-module", model) {
     })
 
     exposureCohorts <- shiny::reactive({
-      model$getExposureCohorts()
+      res <- model$getExposureCohorts()
+      exposureCohortChoices <- res$cohortDefinitionId
+      names(exposureCohortChoices) <- res$cohortName
+      exposureCohortChoices
     })
 
     outcomeCohorts <- shiny::reactive({
-      model$getOutcomeCohorts()
+      res <- model$getOutcomeCohorts()
+      outcomeCohortChoices <- res$cohortDefinitionId
+      names(outcomeCohortChoices) <- res$cohortName
+      outcomeCohortChoices
     })
 
-    shiny::observe({
-      ocC <- outcomeCohorts()
-      outcomeCohortChoices <- ocC$cohortDefinitionId
-      names(outcomeCohortChoices) <- ocC$cohortName
-
-      shiny::updateSelectizeInput(session, "outcomeCohorts", choices = outcomeCohortChoices, server = TRUE)
-
-      ecC <- exposureCohorts()
-      exposureCohortChoices <- ecC$cohortDefinitionId
-      names(exposureCohortChoices) <- ecC$cohortName
-
-      shiny::updateSelectizeInput(session, "targetCohorts", choices = exposureCohortChoices, server = TRUE)
-    })
+    output$targetOutcomeCohorts <- shiny::renderUI({
+      exposureCohortChoices <- exposureCohorts()
+      outcomeCohortChoices <- outcomeCohorts()
+      shiny::tagList(
+        shiny::selectizeInput(
+          inputId = ns("targetCohorts"),
+          label = "Drug exposures:",
+          choices = exposureCohortChoices,
+          multiple = TRUE
+        ),
+        shiny::selectizeInput(
+          inputId = ns("outcomeCohorts"),
+          label = "Disease outcomes:",
+          choices = outcomeCohortChoices,
+          multiple = TRUE
+        )
+      )
+    }) |>
+      shiny::bindCache(appConfig$databaseSchema, "targetOutcomeUI")
 
     # Subset of results for harm, risk and treatement categories
     # Logic: either select everything or select a user defined subset
@@ -355,17 +351,19 @@ launchDashboard <- function(connectionDetails, dashboardConfig) {
 
   cli::cli_alert_info("Launching dashboard")
   # data sources available
-  dashboardConfig$dataSources <- model$getDataSources()$databaseId
+  ds <- model$getDataSources()
+  dashboardConfig$dataSources <- ds$databaseId
+  names(dashboardConfig$dataSources) <- ds$cdmSourceAbbreviation
 
   # Settings available
-  aRes <- model$queryDb("SELECT * from @results_schema.scc_analysis_setting")
+  aRes <- model$getAnalysisSettings()
   choices <- aRes$analysisId
   names(choices) <- paste(aRes$analysisId, "-", aRes$description)
   dashboardConfig$analysisSettings <- choices
 
-    serverFunc <- function(input, output, session) {
-      sccModule(model = model)
-    }
+  serverFunc <- function(input, output, session) {
+    sccModule(model = model)
+  }
 
   shiny::shinyApp(server = serverFunc,
                   ui = sccUi(dashboardConfig = dashboardConfig),

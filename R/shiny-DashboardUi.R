@@ -26,15 +26,14 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
 
     shiny::column(
       width = 4,
-      shiny::sliderInput(ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
-      shiny::sliderInput(ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
-      shiny::sliderInput(ns("pCut"), "P-value cut off:", min = 0.0, max = 1.0, step = 0.01, value = 0.05),
+      shiny::sliderInput(inputId = ns("cutrange1"), "Benefit Threshold:", min = 0.1, max = 0.9, step = 0.1, value = c(0.2, 0.5)),
+      shiny::sliderInput(inputId = ns("cutrange2"), "Risk Threshold:", min = 1.1, max = 2.5, step = 0.1, value = 2),
+      shiny::sliderInput(inputId = ns("pCut"), "P-value cut off:", min = 0.0, max = 1.0, step = 0.01, value = 0.05),
     ),
     shiny::column(
       width = 4,
-
       shiny::sliderInput(
-        ns("scBenefit"),
+        inputId = ns("scBenefit"),
         "Minimum sources with self control benefit:",
         min = 0,
         max = length(dashboardConfig$dataSources),
@@ -58,7 +57,12 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
         label = "Analysis setting:",
         choices = dashboardConfig$analysisSettings
       ),
-      shinycssloaders::withSpinner(shiny::uiOutput(ns("requiredDataSources")))
+      shiny::selectInput(
+        inputId = ns("requiredDataSources"),
+        label = "Select required data sources for benefit:",
+        choices = dashboardConfig$dataSources,
+        multiple = TRUE
+      )
     ),
     width = 12,
     title = "Benfit/Risk parameters",
@@ -67,18 +71,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
 
   filterBox <- shinydashboard::box(
     shiny::column(
-      shiny::selectizeInput(
-        inputId = ns("targetCohorts"),
-        label = "Drug exposures:",
-        choices = NULL,
-        multiple = TRUE
-      ),
-      shiny::selectizeInput(
-        inputId = ns("outcomeCohorts"),
-        label = "Disease outcomes:",
-        choices = NULL,
-        multiple = TRUE
-      ),
+      shinycssloaders::withSpinner(shiny::uiOutput(ns("targetOutcomeCohorts"))),
       width = 6
     ),
     shiny::column(
