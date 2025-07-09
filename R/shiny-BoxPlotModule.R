@@ -69,7 +69,7 @@ boxPlotModuleServer <- function(distStatsFunc, caption, selectedExposureOutcome)
 
       output <- DT::datatable(
         data,
-        colnames = c("Source", "Mean", "sd", "Min", "P10", "P25", "Median", "P75", "P90", "Max"),
+        colnames = SqlRender::camelCaseToTitleCase(colnames(data)),
         options = list(dom = 't', columnDefs = list(list(visible = FALSE, targets = c(0)))),
         caption = caption
       )
