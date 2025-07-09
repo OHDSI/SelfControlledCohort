@@ -217,8 +217,9 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
     shinydashboard::sidebarMenu(
       id = ns("sidebarMenu"),
       shinydashboard::menuItem("About", tabName = "about", icon = shiny::icon("rectangle-list")),
-      shinydashboard::menuItem("Results", tabName = "results", icon = shiny::icon("table")),
-      shiny::bookmarkButton())
+      shinydashboard::menuItem("Results", tabName = "results", icon = shiny::icon("table"))
+      #shiny::bookmarkButton()
+    )
   )
 
   appTitle <- paste(dashboardConfig$dashboardName)
