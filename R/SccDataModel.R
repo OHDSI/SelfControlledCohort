@@ -198,6 +198,8 @@ SccDataModel <- R6::R6Class(
                                             orderByCol = NULL,
                                             ascending = NULL,
                                             excludedConcepts = NULL,
+                                            targetSearchText = "",
+                                            outcomeSearchText = "",
                                             limit = NULL,
                                             analysisId = 1,
                                             offset = NULL) {
@@ -226,6 +228,8 @@ SccDataModel <- R6::R6Class(
         exposure_classes = exposureClasses,
         required_benefit_sources = requiredBenefitSources,
         required_benefit_count = length(requiredBenefitSources),
+        outcome_search_text = outcomeSearchText,
+        target_search_text = targetSearchText,
         excluded_concepts = excludedConcepts,
         vocabulary_schema = self$resultsSchema,
         order_by = orderByCol,

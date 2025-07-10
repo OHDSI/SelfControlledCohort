@@ -71,7 +71,9 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
 
   filterBox <- shinydashboard::box(
     shiny::column(
-      shinycssloaders::withSpinner(shiny::uiOutput(ns("targetOutcomeCohorts"))),
+      shiny::p("Use text strings to filter output"),
+      shiny::textInput(inputId = ns("outcomeSearchText"), label = "Outcomes filter string", placeholder = "search"),
+      shiny::textInput(inputId = ns("targetSearchText"), label = "Exposure filter string", placeholder = "search"),
       width = 6
     ),
     shiny::column(

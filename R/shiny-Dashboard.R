@@ -63,6 +63,8 @@ sccModule <- function(id = "scc-module", model) {
                      outcomeCohorts = input$outcomeCohorts,
                      targetCohorts = input$targetCohorts,
                      analysisId = input$analysisId,
+                     targetSearchText = input$targetSearchText,
+                     outcomeSearchText = input$outcomeSearchText,
                      excludedConcepts = excludedConcepts(),
                      exposureClasses = c())
 
@@ -136,26 +138,6 @@ sccModule <- function(id = "scc-module", model) {
       names(outcomeCohortChoices) <- res$cohortName
       outcomeCohortChoices
     })
-
-    output$targetOutcomeCohorts <- shiny::renderUI({
-      exposureCohortChoices <- exposureCohorts()
-      outcomeCohortChoices <- outcomeCohorts()
-      shiny::tagList(
-        shiny::selectizeInput(
-          inputId = ns("targetCohorts"),
-          label = "Drug exposures:",
-          choices = exposureCohortChoices,
-          multiple = TRUE
-        ),
-        shiny::selectizeInput(
-          inputId = ns("outcomeCohorts"),
-          label = "Disease outcomes:",
-          choices = outcomeCohortChoices,
-          multiple = TRUE
-        )
-      )
-    }) |>
-      shiny::bindCache(appConfig$databaseSchema, "targetOutcomeUI")
 
     # Subset of results for harm, risk and treatement categories
     # Logic: either select everything or select a user defined subset
