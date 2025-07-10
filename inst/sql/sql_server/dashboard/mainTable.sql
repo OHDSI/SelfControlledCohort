@@ -17,17 +17,23 @@ WITH benefit_t AS(
     SELECT
         TARGET_COHORT_ID,
         OUTCOME_COHORT_ID,
+        {@required_benefit_sources != ''} ? {
         COUNT (
             DISTINCT CASE
-                WHEN calibrated_RR <= @benefit AND calibrated_RR >= @lower_benefit
-                        AND  DATABASE_ID != 'meta-analysis'
+                WHEN calibrated_RR <= @benefit AND calibrated_RR >= @lower_benefit AND DATABASE_ID IN (@required_benefit_sources)
+                THEN DATABASE_ID
+            END
+        ) as required_source_count,
+        }
+        COUNT (
+            DISTINCT CASE
+                WHEN calibrated_RR <= @benefit AND calibrated_RR >= @lower_benefit AND  DATABASE_ID != 'meta-analysis'
                 THEN DATABASE_ID
             END
         ) as benefit_count,
          COUNT (
             DISTINCT CASE
-                WHEN calibrated_RR >= @risk AND calibrated_RR >= @lower_benefit
-                    AND  DATABASE_ID != 'meta-analysis'
+                WHEN calibrated_RR >= @risk AND calibrated_RR >= @lower_benefit AND  DATABASE_ID != 'meta-analysis'
                 THEN DATABASE_ID
             END
         ) as risk_count
@@ -36,7 +42,6 @@ WITH benefit_t AS(
     AND calibrated_P_VALUE < @p_cut_value
     GROUP BY TARGET_COHORT_ID, OUTCOME_COHORT_ID
 )
-
 SELECT
     fr.TARGET_COHORT_ID,
     t.cohort_name as TARGET_COHORT_NAME,
@@ -52,7 +57,6 @@ SELECT
 FROM @schema.scc_result fr
 
     LEFT JOIN benefit_t ON benefit_t.TARGET_COHORT_ID = fr.TARGET_COHORT_ID AND benefit_t.OUTCOME_COHORT_ID = fr.OUTCOME_COHORT_ID
-
     INNER JOIN @schema.cg_cohort_definition t ON t.cohort_definition_id = fr.target_cohort_id
     INNER JOIN @schema.cg_cohort_definition o ON o.cohort_definition_id = fr.outcome_cohort_id
 
@@ -86,7 +90,7 @@ FROM @schema.scc_result fr
     AND COALESCE (benefit_t.benefit_count, 0) >= @benefit_count
     }
     AND COALESCE (benefit_t.risk_count, 0) < @risk_count + 1
-    {@required_benefit_sources != ''} ? {AND rbs.required_count >= @required_benefit_count}
+    {@required_benefit_sources != ''} ? {AND COALESCE (benefit_t.required_source_count, 0) >= @required_benefit_count}
     {@outcome_search_text != ''} ? {AND lower(o.cohort_name) like lower('%@outcome_search_text%')}
     {@target_search_text != ''} ? {AND lower(t.cohort_name) like lower('%@target_search_text%') }
     GROUP BY fr.target_cohort_id, fr.outcome_cohort_id, t.cohort_name, o.cohort_name, benefit_t.risk_count, benefit_t.benefit_count, mr.I2, mr.calibrated_RR, mr.calibrated_p_value

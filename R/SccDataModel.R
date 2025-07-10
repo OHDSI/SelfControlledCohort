@@ -226,7 +226,7 @@ SccDataModel <- R6::R6Class(
         target_cohort_length = length(targetCohorts) > 0,
         target_cohorts = targetCohorts,
         exposure_classes = exposureClasses,
-        required_benefit_sources = requiredBenefitSources,
+        required_benefit_sources = paste0("'", requiredBenefitSources, "'"),
         required_benefit_count = length(requiredBenefitSources),
         outcome_search_text = outcomeSearchText,
         target_search_text = targetSearchText,

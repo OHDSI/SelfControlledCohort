@@ -27,9 +27,8 @@ strQueryWrap <- function(vec) {
 #' @param input shiny input object
 #' @param output shiny output object
 #' @param session shiny session
-sccModule <- function(id = "scc-module", model) {
+sccModule <- function(id = "scc-module", model, appConfig = model$config) {
   cli::cli_alert_info("Loading scc module")
-  appConfig <- model$config
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
 
@@ -217,9 +216,11 @@ sccModule <- function(id = "scc-module", model) {
       )
     })
 
+    controlSelector <- if (isTRUE(appConfig$dashboardType == "outcome")) "outcomeCohortId" else "targetCohortId"
+
     metaAnalysisTableServer("metaTable", model, selectedExposureOutcome)
     forestPlotServer("forestPlot", model, selectedExposureOutcome)
-    calibrationPlotServer("calibrationPlot", model, selectedExposureOutcome)
+    calibrationPlotServer("calibrationPlot", model, selectedExposureOutcome, dashboardControlSelector = controlSelector)
     timeOnTreatmentServer("timeOnTreatment", model, selectedExposureOutcome)
     tabPanelTimeOnTreatment <- tabPanel("Time on treatment", boxPlotModuleUi(ns("timeOnTreatment")))
     shiny::appendTab(inputId = "outcomeResultsTabs", tabPanelTimeOnTreatment)
@@ -310,12 +311,14 @@ sccModule <- function(id = "scc-module", model) {
 #' @export
 createDashboardConfig <- function(resultsDatabaseSchema,
                                   dashboardName = "SCC dashboard",
-                                  shortName = "SCC") {
+                                  shortName = "SCC",
+                                  dashboardType = "exposure") {
   return(list(
     dashboardName = "SCC dashboard",
     shortName = shortName,
     dataSources = list(),
-    resultsDatabaseSchema = resultsDatabaseSchema
+    resultsDatabaseSchema = resultsDatabaseSchema,
+    dashboardType = dashboardType
   ))
 }
 
@@ -344,7 +347,7 @@ launchDashboard <- function(connectionDetails, dashboardConfig) {
   dashboardConfig$analysisSettings <- choices
 
   serverFunc <- function(input, output, session) {
-    sccModule(model = model)
+    sccModule(model = model, appConfig = dashboardConfig)
   }
 
   shiny::shinyApp(server = serverFunc,

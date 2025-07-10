@@ -49,7 +49,7 @@ calibrationPlotUi <- function(id,
 #' @param selectedCohort    cohort object reactive
 #'
 #' @export
-calibrationPlotServer <- function(id, model, selectedCohort) {
+calibrationPlotServer <- function(id, model, selectedCohort, dashboardControlSelector = "targetCohortId") {
   checkmate::assertR6(model, "SccDataModel")
   checkmate::assert(shiny::is.reactive(selectedCohort))
 
@@ -68,7 +68,8 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
 
       plot <- ggplot2::ggplot()
       if (!is.null(cohort)) {
-        negatives <- model$getNegativeControlSccResults(cohort$targetCohortId, databaseId = input$databaseSelection)
+        negatives <- model$getNegativeControlSccResults(cohort[dashboardControlSelector], databaseId = input$databaseSelection)
+
         if (nrow(negatives)) {
           plotNegatives <- negatives[negatives$rr > 0,]
           plot <- EmpiricalCalibration::plotCalibrationEffect(logRrNegatives = log(plotNegatives$rr),
@@ -88,7 +89,7 @@ calibrationPlotServer <- function(id, model, selectedCohort) {
 
     nullDistData <- shiny::reactive({
       cohort <- selectedCohort()
-      negatives <- model$getNegativeControlSccResults(cohort$targetCohortId, databaseId = input$databaseSelection)
+      negatives <- model$getNegativeControlSccResults(cohort[dashboardControlSelector], databaseId = input$databaseSelection)
       subset <- negatives |> dplyr::filter(.data$analysisId == cohort$analysisId &
                                              !is.na(rr) &
                                              !is.null(rr))
