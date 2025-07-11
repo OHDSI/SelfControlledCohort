@@ -58,15 +58,16 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
         table3$calibratedCi95 <- paste(table3$calibratedLb95, "-", table3$calibratedUb95)
 
         table3 <- table3 |> dplyr::select(
-          databaseId,
-          rr,
-          ci95,
-          pValue,
-          calibratedRr,
-          calibratedCi95,
-          calibratedPValue,
-          unexposedCases,
-          exposedCases
+          "databaseId",
+          "rr",
+          "ci95",
+          "pValue",
+          "calibratedRr",
+          "calibratedCi95",
+          "calibratedPValue",
+          "unexposedCases",
+          "exposedCases",
+          "totalExposed" = "tAtRisk"
         )
 
         colnames(table3) <- SqlRender::camelCaseToTitleCase(colnames(table3))

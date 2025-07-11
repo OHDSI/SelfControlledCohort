@@ -25,24 +25,28 @@ boxPlotDist <- function(data) {
     return(ggplot2::ggplot())
   }
 
-  plot <- ggplot2::ggplot(data = data) +
-    ggplot2::aes(x = cdmSourceAbbreviation,
-                 ymin = min,
-                 lower = p25,
-                 middle = median,
-                 upper = p75,
-                 ymax = max,
-                 average = mean,
-                 sd = sd,
-                 group = cdmSourceAbbreviation,
-                 y = median) +
-    ggplot2::geom_errorbar(size = 0.5) +
-    ggplot2::geom_boxplot(stat = "identity", fill = rgb(0, 0, 0.8, alpha = 0.25), size = 0.2) +
+  # Define a dodge position for side-by-side placement
+  dodge <- ggplot2::position_dodge(width = 0.75)
+
+  plot <- ggplot2::ggplot(data = data, mapping = ggplot2::aes(
+    x = cdmSourceAbbreviation,
+    y = median,
+    ymin = p10,
+    lower = p25,
+    middle = median,
+    upper = p75,
+    ymax = p90,
+    fill = statType,
+    group = interaction(cdmSourceAbbreviation, statType)
+  )) +
+    ggplot2::geom_errorbar(width = 0.2, position = dodge, size = 0.2) +
+    ggplot2::geom_boxplot(stat = "identity", position = dodge, size = 0.2, alpha = 0.25) +
     ggplot2::xlab("Data source") +
     ggplot2::ylab("Time in days")
 
   return(plot)
 }
+
 
 #' Returns a reference to a server function
 #'

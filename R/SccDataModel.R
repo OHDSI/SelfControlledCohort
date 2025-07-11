@@ -341,6 +341,7 @@ SccDataModel <- R6::R6Class(
       SELECT
         ds.cdm_source_abbreviation,
         ds.database_id,
+        stat_type,
         round(mean, 3) as mean,
         round(sd, 3) as sd,
         minimum as min,
@@ -353,12 +354,12 @@ SccDataModel <- R6::R6Class(
         total
       FROM @results_schema.scc_stat tts
       INNER JOIN @results_schema.database_meta_data ds ON tts.database_id = ds.database_id
-      WHERE stat_type = '@stat_type'
+      WHERE stat_type IN (@stat_types)
       AND target_cohort_id = @treatment AND outcome_cohort_id = @outcome
       AND mean is not NULL
       AND analysis_id = @analysis_id
       {@source_ids != ''} ? {AND ds.database_id IN (@source_ids)}",
-        stat_type = statType,
+        stat_types = paste0("'", statType, "'"),
         analysis_id = analysisId,
         treatment = exposureId,
         outcome = outcomeId,
@@ -370,7 +371,7 @@ SccDataModel <- R6::R6Class(
     #'
     #' @param ...
     getTimeToOutcomeStats = function(...) {
-      self$getSummaryStats(statType = "time_to_outcome", ...)
+      self$getSummaryStats(statType = c("time_to_outcome", "time_to_outcome_exposed", "time_to_outcome_unexposed"), ...)
     },
 
     #' getTimeOnTreatmentStats
