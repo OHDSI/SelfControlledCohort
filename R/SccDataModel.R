@@ -81,33 +81,6 @@ SccDataModel <- R6::R6Class(
     },
 
     #' @description
-    #' Get expsoure cohort concept sets
-    #' @param cohortIds         numeric vector of cohort ids or null
-    getExposureCohortConceptSets = function(cohortIds = NULL) {
-      sql <- "SELECT ccs.* FROM @results_schema.cohort_concept_set ccs
-      INNER JOIN @results_schema.exposure_cohort ec ON ccs.cohort_definition_id = ec.cohort_definition_id
-      {@cohort_ids != ''}? {WHERE ccs.cohort_definition_id IN (@cohort_ids)}
-      "
-      self$connection$queryDb(sql,
-                              cohort_ids = cohortIds,
-                              results_schema = self$resultsSchema)
-    },
-
-    #' @description
-    #' Get outcome cohort concept sets for all cohorts specified
-    #' @param cohortIds         numeric vector of cohort ids or null
-    getOutcomeCohortConceptSets = function(cohortIds = NULL) {
-      sql <-
-        "SELECT ccs.*, oc.outcome_type FROM @results_schema.cohort_concept_set ccs
-      INNER JOIN @results_schema.outcome_cohort oc ON ccs.cohort_definition_id = oc.cohort_definition_id
-      {@cohort_ids != ''}? {WHERE ccs.cohort_definition_id IN (@cohort_ids)}
-      "
-      self$connection$queryDb(sql,
-                              cohort_ids = cohortIds,
-                              results_schema = self$resultsSchema)
-    },
-
-    #' @description
     #' Get getCohort data for one cohort
     #' @param cohortDefinitionId         cohort identifier (not null, integer)
     getCohort = function(cohortDefinitionId) {
@@ -393,6 +366,24 @@ SccDataModel <- R6::R6Class(
     #' @param ...
     getTimeToOutcomeUnexposedStats = function(...) {
       self$getSummaryStats(statType = "time_to_outcome_unexposed", ...)
+    },
+
+    #' get target cohort info for the dashboard
+    #' @description
+    #' This will either be for exposures or outcomes, depending on the dashboard type
+    getTargetCohortInfo = function(targetCohortIds) {
+      checkmate::assertNumeric(targetCohortIds)
+      sql <- "
+      SELECT c.cohort_definition_id,
+            cohort_name,
+            count(sr.rr > 0) as n_estimates
+      FROM @results_schema.cg_cohort_definition c
+      INNER JOIN @results_schema.scc_result sr ON (c.cohort_definition_id = sr.target_cohort_id or c.cohort_definition_id = sr.outcome_cohort_id)
+                                                  AND sr.database_id = 'meta-analysis'
+      WHERE c.cohort_definition_id IN (@target_cohorts)
+      GROUP BY c.cohort_definition_id
+      " |>
+        self$queryDb(target_cohorts = targetCohortIds)
     },
 
     #' Count any query as subquery - (note: will be inneficient in many situations)

@@ -301,6 +301,18 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
         write.csv(mainTableDownload(), file, row.names = FALSE)
       }
     )
+
+
+    output$targetCohortTable <- reactable::renderReactable({
+      tbl <- model$getTargetCohortInfo(appConfig$targetCohortIds)
+      colnames(tbl) <- SqlRender::camelCaseToTitleCase(colnames(tbl))
+      reactable::reactable(
+        tbl,
+        columns = list(
+          "N Estimates" = reactable::colDef(format = reactable::colFormat(separators = TRUE))
+        )
+      )
+    })
   })
 }
 
@@ -308,17 +320,22 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
 #' @param resultsDatabaseSchema name of the dashboard
 #' @param dashboardName name of the dashboard
 #' @param dataSources to be used (optional, can be set on dashboard load)
+#' @param ... additional parmeters to be user defined, not used by app
 #' @export
 createDashboardConfig <- function(resultsDatabaseSchema,
                                   dashboardName = "SCC dashboard",
                                   shortName = "SCC",
-                                  dashboardType = "exposure") {
+                                  dashboardType = "exposure",
+                                  targetCohortIds,
+                                  ...) {
   return(list(
     dashboardName = "SCC dashboard",
     shortName = shortName,
     dataSources = list(),
     resultsDatabaseSchema = resultsDatabaseSchema,
-    dashboardType = dashboardType
+    dashboardType = dashboardType,
+    targetCohortIds = targetCohortIds,
+    ...
   ))
 }
 
@@ -343,7 +360,7 @@ launchDashboard <- function(connectionDetails, dashboardConfig) {
   # Settings available
   aRes <- model$getAnalysisSettings()
   choices <- aRes$analysisId
-  names(choices) <- paste(aRes$analysisId, "-", aRes$description)
+  names(choices) <- paste(aRes$description)
   dashboardConfig$analysisSettings <- choices
 
   serverFunc <- function(input, output, session) {

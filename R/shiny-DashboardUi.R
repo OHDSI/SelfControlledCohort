@@ -77,24 +77,6 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       width = 6
     ),
     shiny::column(
-      # TODO: add these in when we have a meta-data mechanism in cohort_generator
-      # shiny::selectizeInput(
-      #   inputId = ns("exposureClass"),
-      #   label = "Drug exposure classes:",
-      #   choices = NULL,
-      #   multiple = TRUE
-      # ),
-      # shinyWidgets::pickerInput(
-      #   inputId = ns("outcomeCohortTypes"),
-      #   "Outcome Cohort Types:",
-      #   choices = c("ATLAS defined" = 3, "Inpatient" = 1, "Two diagnosis codes" = 0, "One diagnosis code" = 2),
-      #   selected = c(),
-      #   options = shinyWidgets::pickerOptions(
-      #     actionsBox = TRUE,
-      #     noneSelectedText = "Filter by subset"
-      #   ),
-      #   multiple = TRUE
-      # ),
       shiny::textAreaInput(inputId = ns("excludedConcepts"), label = "Exclude concept ids", NULL),
       shiny::tags$p("Excludes and child concepts of specified concept ids. Separate with comma"),
       width = 6
@@ -183,7 +165,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       width = 12)
   )
 
-  aboutTab <- shiny::tagList(
+  aboutTab <- shiny::fluidPage(
     shinydashboard::box(
       width = 6,
       title = "Data sources",
@@ -202,6 +184,11 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       width = 6,
       title = paste("About this dashboard -", dashboardConfig$dashboardName
       )
+    ),
+    shinydashboard::box(
+      title = "Target cohorts",
+      width = 12,
+      shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("targetCohortTable")))
     )
   )
 
