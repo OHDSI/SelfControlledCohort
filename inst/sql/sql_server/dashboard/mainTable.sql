@@ -42,6 +42,13 @@ WITH benefit_t AS(
     AND calibrated_P_VALUE < @p_cut_value
     GROUP BY TARGET_COHORT_ID, OUTCOME_COHORT_ID
 )
+--{@excluded_concepts != '' & @vocabulary_schema != ''} ? {
+--, excluded_cohort_list AS (
+--    SELECT DISTINCT cohort_definition_id FROM @schema.cg_cohort_concept_set ccs
+--    INNER JOIN @vocabulary_schema.concept_ancestor ca ON ca.descendant_concept_id = ccs.concept_id
+--    WHERE ca.ancestor_concept_id IN (@excluded_concepts)
+--)
+--}
 SELECT
     fr.TARGET_COHORT_ID,
     t.cohort_name as TARGET_COHORT_NAME,
