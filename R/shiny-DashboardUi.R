@@ -71,15 +71,66 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
 
   filterBox <- shinydashboard::box(
     shiny::column(
-      shiny::p("Use text strings to filter output"),
-      shiny::textInput(inputId = ns("outcomeSearchText"), label = "Outcomes filter string", placeholder = "search"),
-      shiny::textInput(inputId = ns("targetSearchText"), label = "Exposure filter string", placeholder = "search"),
+      shiny::selectizeInput(inputId = ns("outcomeSearch"), label = "Filter outcomes", choices = c(), multiple = TRUE),
+      shiny::tags$script(shiny::HTML(sprintf("
+        $(document).on('keyup', '#%s-outcomeSearch-selectized', function(e){
+          var val = $(this).val();
+          Shiny.setInputValue('%s', val, {priority: 'event'});
+        });
+      ", id, ns("outcomeSearchBox")))),
       width = 6
     ),
     shiny::column(
-      shiny::textAreaInput(inputId = ns("excludedConcepts"), label = "Exclude concept ids", NULL),
-      shiny::tags$p("Excludes and child concepts of specified concept ids. Separate with comma"),
+      #,
+      shiny::selectizeInput(inputId = ns("targetSearch"), label = "Filter exposures", choices = c(), multiple = TRUE),
+      shiny::tags$script(shiny::HTML(sprintf("
+        $(document).on('keyup', '#%s-targetSearch-selectized', function(e){
+          var val = $(this).val();
+          Shiny.setInputValue('%s', val, {priority: 'event'});
+        });
+      ", id, ns("targetSearchBox")))),
       width = 6
+    ),
+    shiny::checkboxInput(ns("advancedSearch"), label = "Show advanced search options"),
+    shiny::conditionalPanel(
+      condition = "input.advancedSearch",
+      ns = ns,
+
+      shiny::fluidRow(
+        shiny::column(
+          #shiny::textAreaInput(inputId = ns("excludedConcepts"), label = "Exclude concept ids", NULL),
+          #shiny::tags$p("Excludes and child concepts of specified concept ids. Separate with comma"),
+          shiny::selectizeInput(inputId = ns("excludedTargetSearch"), label = "Exclude exposure cohorts", choices = c(), multiple = TRUE),
+          shiny::tags$script(shiny::HTML(sprintf("
+        $(document).on('keyup', '#%s-excludedTargetSearch-selectized', function(e){
+          var val = $(this).val();
+          Shiny.setInputValue('%s', val, {priority: 'event'});
+        });
+      ", id, ns("excludedTargetSearchBox")))),
+          width = 6
+        ),
+      shiny::column(
+         shiny::selectizeInput(inputId = ns("excludedOutcomeSearch"), label = "Exclude outcomes cohorts", choices = c(), multiple = TRUE),
+          shiny::tags$script(shiny::HTML(sprintf("
+        $(document).on('keyup', '#%s-excludedOutcomeSearch-selectized', function(e){
+          var val = $(this).val();
+          Shiny.setInputValue('%s', val, {priority: 'event'});
+        });
+      ", id, ns("excludedOutcomeSearchBox")))),
+          width = 6
+        )
+      ),
+      shiny::fluidRow(
+         shiny::column(shiny::p("Use free text strings to filter outcomes and targets"), width = 12),
+        shiny::column(
+          shiny::textInput(inputId = ns("outcomeSearchText"), label = "Outcomes filter string", placeholder = "search"),
+          width = 6
+        ),
+        shiny::column(
+          shiny::textInput(inputId = ns("targetSearchText"), label = "Exposure filter string", placeholder = "search"),
+          width = 6
+        )
+      )
     ),
     shiny::fluidRow(
       shiny::column(

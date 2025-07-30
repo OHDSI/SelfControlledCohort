@@ -87,8 +87,10 @@ FROM @schema.scc_result fr
 --            WHERE ca.ancestor_concept_id IN (@excluded_concepts)
 --        )
 --    }
-    {@outcome_cohort_length} ? {AND o.cohort_definition_id IN (@outcome_cohorts)}
-    {@target_cohort_length} ? {AND t.cohort_definition_id IN (@target_cohorts)}
+    {@outcome_cohorts != ''} ? {AND o.cohort_definition_id IN (@outcome_cohorts)}
+    {@excluded_outcome_cohorts != ''} ? {AND o.cohort_definition_id NOT IN (@excluded_outcome_cohorts)}
+    {@target_cohorts != ''} ? {AND t.cohort_definition_id IN (@target_cohorts)}
+    {@excluded_target_cohorts != ''} ? {AND t.cohort_definition_id NOT IN (@excluded_target_cohorts)}
     --{@show_exposure_classes & @exposure_classes != ''} ? {AND ec.EXPOSURE_CLASS_NAME IN (@exposure_classes)}
 
    {@filter_by_meta_analysis} ? {

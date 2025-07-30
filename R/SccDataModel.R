@@ -167,6 +167,8 @@ SccDataModel <- R6::R6Class(
                                             riskCount = 0,
                                             targetCohorts = NULL,
                                             outcomeCohorts = NULL,
+                                            excludedOutcomeCohorts = NULL,
+                                            excludedTargetCohorts = NULL,
                                             exposureClasses = NULL,
                                             orderByCol = NULL,
                                             ascending = NULL,
@@ -178,7 +180,6 @@ SccDataModel <- R6::R6Class(
                                             offset = NULL) {
       calibrated <- ifelse(calibrated, 1, 0)
       filterOutcomes <- length(outcomeCohortTypes) > 0
-
       query <- SqlRender::loadRenderTranslateSql(
         sqlFilename = file.path("dashboard", "mainTable.sql"),
         packageName = utils::packageName(),
@@ -194,10 +195,10 @@ SccDataModel <- R6::R6Class(
         # calibrated = calibrated,
         #show_exposure_classes = !self$config$exposureDashboard,
         filter_by_meta_analysis = filterByMeta,
-        outcome_cohort_length = length(outcomeCohorts) > 0,
         outcome_cohorts = outcomeCohorts,
-        target_cohort_length = length(targetCohorts) > 0,
+        excluded_outcome_cohorts = excludedOutcomeCohorts,
         target_cohorts = targetCohorts,
+        excluded_target_cohorts = excludedTargetCohorts,
         exposure_classes = exposureClasses,
         required_benefit_sources = paste0("'", requiredBenefitSources, "'"),
         required_benefit_count = length(requiredBenefitSources),

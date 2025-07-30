@@ -38,6 +38,98 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
       reactable::reactable(tbl)
     })
 
+
+    querySearchSelector <- function(search, searchType, existingValues) {
+      if (isTRUE(nchar(search) < 3 & existingValues == ""))
+        return(NULL)
+
+      # cleanup to prevent sql injection - remove bad chars and limit length
+      #search <- substr(gsub("[^\\w\\s]", "", search), 1, 100)
+      search <- paste0("'%%", search, "%%'")
+      sql <- "
+      SELECT cd.cohort_definition_id, cd.cohort_name
+         FROM (
+            SELECT
+                DISTINCT cd.cohort_definition_id, cd.cohort_name FROM @results_schema.cg_cohort_definition cd
+            INNER JOIN @results_schema.scc_outcome_exposure oe on
+            {@search_type == 'outcome'} ? {oe.outcome_cohort_id} : {oe.target_cohort_id} = cd.cohort_definition_id
+            WHERE lower(cd.cohort_name) LIKE @search
+            ORDER BY cohort_name LIMIT 10
+      ) cd
+      {@existing_ids != ''} ?{
+      UNION
+
+      SELECT cd.cohort_definition_id, cd.cohort_name FROM @results_schema.cg_cohort_definition cd
+      WHERE cd.cohort_definition_id IN (@existing_ids)
+      }
+
+      "
+      result <- model$queryDb(sql, search = tolower(search), search_type = searchType, existing_ids = existingValues)
+
+      if (nrow(result) == 0)
+        return(NULL)
+
+      choices <- result$cohortDefinitionId
+      names(choices) <- result$cohortName
+      return(choices)
+    }
+
+    shiny::observeEvent(input$outcomeSearchBox, {
+      shiny::req(input$outcomeSearchBox)
+      if (nchar(input$outcomeSearchBox) > 2) {
+        choices <- querySearchSelector(input$outcomeSearchBox, "outcome", input$outcomeSearch)
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = "outcomeSearch",
+          server = TRUE,
+          choices = choices,
+          selected = input$outcomeSearch
+        )
+      }
+    })
+
+    shiny::observeEvent(input$targetSearchBox, {
+      shiny::req(input$targetSearchBox)
+      if (nchar(input$targetSearchBox) > 2) {
+        choices <- querySearchSelector(input$targetSearchBox, "target", input$targetSearch)
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = "targetSearch",
+          server = TRUE,
+          choices = choices,
+          selected = input$targetSearch
+        )
+      }
+    })
+
+    shiny::observeEvent(input$excludedOutcomeSearchBox, {
+      shiny::req(input$excludedOutcomeSearchBox)
+      if (nchar(input$excludedOutcomeSearchBox) > 2) {
+        choices <- querySearchSelector(input$excludedOutcomeSearchBox, "outcome", input$excludedOutcomeSearch)
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = "excludedOutcomeSearch",
+          server = TRUE,
+          choices = choices,
+          selected = input$excludedOutcomeSearch
+        )
+      }
+    })
+
+    shiny::observeEvent(input$excludedTargetSearchBox, {
+      shiny::req(input$excludedTargetSearchBox)
+      if (nchar(input$excludedTargetSearchBox) > 2) {
+        choices <- querySearchSelector(input$excludedTargetSearchBox, "target", input$excludedTargetSearch)
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = "excludedTargetSearch",
+          server = TRUE,
+          choices = choices,
+          selected = input$excludedTargetSearch
+        )
+      }
+    })
+
     # Concepts to exclude from search
     excludedConcepts <- shiny::reactive({
       concepts <- c()
@@ -59,8 +151,10 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
                      calibrated = TRUE,
                      benefitCount = input$scBenefit,
                      riskCount = input$scRisk,
-                     outcomeCohorts = input$outcomeCohorts,
-                     targetCohorts = input$targetCohorts,
+                     outcomeCohorts = input$outcomeSearch,
+                     targetCohorts = input$targetSearch,
+                     excludedTargetCohorts = input$excludedTargetSearch,
+                     excludedOutcomeCohorts = input$excludedOutcomeSearch,
                      analysisId = input$analysisId,
                      targetSearchText = input$targetSearchText,
                      outcomeSearchText = input$outcomeSearchText,
@@ -122,20 +216,6 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
       endNum <- min(offset + as.integer(input$mainTablePageSize) - 1, res)
       str <- paste("Displaying", offset, "to", endNum, "of", res, "results")
       return(str)
-    })
-
-    exposureCohorts <- shiny::reactive({
-      res <- model$getExposureCohorts()
-      exposureCohortChoices <- res$cohortDefinitionId
-      names(exposureCohortChoices) <- res$cohortName
-      exposureCohortChoices
-    })
-
-    outcomeCohorts <- shiny::reactive({
-      res <- model$getOutcomeCohorts()
-      outcomeCohortChoices <- res$cohortDefinitionId
-      names(outcomeCohortChoices) <- res$cohortName
-      outcomeCohortChoices
     })
 
     # Subset of results for harm, risk and treatement categories
@@ -204,7 +284,6 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
         cohortId <- selected$outcomeCohortId
         selectedOutcomeType <- 0
         conceptSet <- conditionConceptInput()
-
       }
 
       list(
