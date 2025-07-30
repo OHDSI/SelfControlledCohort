@@ -57,7 +57,8 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
         table3$calibratedPValue <- formatC(table3$calibratedPValue, digits = 2, format = "f")
         table3$calibratedCi95 <- paste(table3$calibratedLb95, "-", table3$calibratedUb95)
 
-        table3 <- table3 |> dplyr::select(
+        table3 <- table3 |>
+          dplyr::select(
           "databaseId",
           "rr",
           "ci95",
@@ -67,13 +68,13 @@ metaAnalysisTableServer <- function(id, model, selectedExposureOutcome) {
           "calibratedPValue",
           "unexposedCases",
           "exposedCases",
-          "totalExposed" = "tAtRisk"
-        )
+          "totalExposed" = "numExposures"
+        ) |>
+          dplyr::arrange(.data$databaseId == "meta-analysis", .data$databaseId)
 
         colnames(table3) <- SqlRender::camelCaseToTitleCase(colnames(table3))
         table4 <- DT::datatable(
-          table3, rownames = FALSE, escape = FALSE, options = list(dom = 't'),
-          caption = "* Indicates values after empirical calibration"
+          table3, rownames = FALSE, escape = FALSE, options = list(dom = 't')
         )
         return(table4)
       }

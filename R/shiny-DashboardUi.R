@@ -121,7 +121,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
         )
       ),
       shiny::fluidRow(
-         shiny::column(shiny::p("Use free text strings to filter outcomes and targets"), width = 12),
+         shiny::column(shiny::p("Use free text strings to filter outcomes and targets (e.g. 'ATC' or [PL])"), width = 12),
         shiny::column(
           shiny::textInput(inputId = ns("outcomeSearchText"), label = "Outcomes filter string", placeholder = "search"),
           width = 6
