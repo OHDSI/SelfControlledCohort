@@ -23,7 +23,11 @@ calibrationPlotUi <- function(id,
     shiny::fluidRow(
       shiny::column(width = 2),
       shiny::column(
-        shinycssloaders::withSpinner(shiny::plotOutput(ns("calibrationPlot"), width = 800)),
+        shinycssloaders::withSpinner(
+          shiny::div(
+            style = "max-width: 1000px; min-width: 330px; margin-left: auto; margin-right: auto; aspect-ratio: 16/9;",
+            shiny::plotOutput(ns("calibrationPlot"), width = "100%", height = "100%"))
+        ),
         shinycssloaders::withSpinner(reactable::reactableOutput(ns("nullDistribution"))), width = 8)
     ),
     shiny::div(

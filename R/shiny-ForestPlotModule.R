@@ -26,31 +26,52 @@ forestPlot <- function(table) {
                   "; 95% CI= (", round(table$lb95, 2), " - ", round(table$ub95, 2), ")")
   # factor to ensure meta-analysis goes last
   table$sourceName <- factor(table$sourceName, level = rev(table$sourceName))
+
+  table <- table |>
+    dplyr::mutate(color = dplyr::if_else(.data$databaseId == "meta-analysis", "firebrick", "steelblue"))
+
+  rangeMin <- min(table$lb95, na.rm = TRUE)
+  rangeMax <- max(table$ub95, na.rm = TRUE)
+  minExp <- floor(log2(rangeMin))
+  maxExp <- ceiling(log2(rangeMax))
+  pow2Breaks <- round(2^(minExp:maxExp), 3)
+
   plot <- ggplot2::ggplot(
     table,
     ggplot2::aes(
       y = sourceName,
       x = rr,
-      color = databaseId,
+      color = color,
       xmin = lb95,
       xmax = ub95,
       label = label
     )
   ) +
     ggplot2::geom_pointrange() +
-    ggplot2::geom_text(vjust = 0, nudge_y = 0.2, size = 3) +
+    #ggplot2::geom_text(vjust = 0, nudge_y = 0.2, size = 3) +
+    ggplot2::geom_text(
+      ggplot2::aes(label = label, size = 5.2),
+      size = 3,
+      nudge_y = -0.1,
+      color = "black"
+    ) +
     ggplot2::geom_errorbarh(height = 0.1) +
     ggplot2::geom_vline(xintercept = 1.0, linetype = 2) +
     ggplot2::ylab("Database") +
-    ggplot2::scale_x_continuous(trans = "log2") +
+    ggplot2::scale_x_continuous(trans = "log2", breaks = pow2Breaks, labels = pow2Breaks) +
     ggplot2::xlab("Relative Risk") +
-    ggplot2::theme(text = ggplot2::element_text(size = 11), legend.position = "none")
+    ggplot2::theme(text = ggplot2::element_text(size = 15), legend.position = "none")
   return(plot)
 }
 
 forestPlotUi <- function(id) {
   shiny::tagList(
-    shinycssloaders::withSpinner(plotly::plotlyOutput(shiny::NS(id, "forestPlot"), height = 500)),
+    shinycssloaders::withSpinner(
+      shiny::div(
+        style = "max-width: 1000px; min-width: 330px; margin-left: auto; margin-right: auto; aspect-ratio: 16/9;",
+        shiny::plotOutput(shiny::NS(id, "forestPlot"), width = "100%", height = "100%")
+      )
+    ),
     shiny::hr(),
     shiny::fluidRow(
       shinydashboard::box(
@@ -92,10 +113,10 @@ forestPlotServer <- function(id, model, selectedExposureOutcome) {
       return(data.frame())
     })
 
-    output$forestPlot <- plotly::renderPlotly({
+    output$forestPlot <- shiny::renderPlot({
       df <- forestPlotTable()
       if (nrow(df) > 0) {
-        return(plotly::ggplotly(forestPlot(df)))
+        return(forestPlot(df))
       }
     })
 
