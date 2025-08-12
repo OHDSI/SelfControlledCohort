@@ -44,7 +44,7 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
         return(NULL)
 
       # cleanup to prevent sql injection - remove bad chars and limit length
-      #search <- substr(gsub("[^\\w\\s]", "", search), 1, 100)
+      search <- substr(gsub(";|\'", "", search), 1, 100)
       search <- paste0("'%%", search, "%%'")
       sql <- "
       SELECT cd.cohort_definition_id, cd.cohort_name
@@ -130,6 +130,67 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
       }
     })
 
+
+    openTargetsIngredientSearch <- function(searchString, existingValues) {
+      if (isTRUE(nchar(searchString) < 3 & existingValues == ""))
+        return(NULL)
+
+      # cleanup to prevent sql injection - remove bad chars and limit length
+      search <- substr(gsub(";|\'", "", searchString), 1, 100)
+      search <- paste0("'%%", search, "%%'")
+      sql <- "
+      SELECT *
+      FROM (
+        SELECT
+          tccs.cohort_definition_id, ot.drug_name
+        FROM @open_targets_database_schema.opentargets_to_reward_relationships ot
+        INNER JOIN @results_schema.cg_concept_set tcs ON tcs.concept_id = ot.ingredient_concept_id AND tcs.is_excluded = 0
+        INNER JOIN  @results_schema.cg_cohort_concept_set tccs ON tcs.concept_set_id = tccs.concept_set_id
+
+        WHERE lower(CONCAT(ot.drug_name, ot.drug_id)) LIKE @search
+        ORDER BY drug_name LIMIT 10
+      ) cd
+      {@existing_ids != ''} ?{
+      UNION
+
+       SELECT
+        SELECT
+          tccs.cohort_definition_id, ot.drug_name
+        FROM @open_targets_database_schema.opentargets_to_reward_relationships ot
+        INNER JOIN @results_schema.cg_concept_set tcs ON tcs.concept_id = ot.ingredient_concept_id AND tcs.is_excluded = 0
+        INNER JOIN  @results_schema.cg_cohort_concept_set tccs ON tcs.concept_set_id = tccs.concept_set_id
+      WHERE tccs.cohort_definition_id IN (@existing_ids)
+      }
+
+      "
+      result <- model$queryDb(sql,
+                              search = tolower(search),
+                              open_targets_database_schema = appConfig$openTargetsDatabaseSchema,
+                              existing_ids = existingValues)
+
+      if (nrow(result) == 0)
+        return(NULL)
+
+      choices <- result$cohortDefinitionId
+      names(choices) <- result$drugName
+      return(choices)
+
+    }
+
+    shiny::observeEvent(input$openTargetsIngredientSearchBox, {
+      shiny::req(input$openTargetsIngredientSearchBox)
+      if (nchar(input$openTargetsIngredientSearchBox) > 2) {
+        choices <- openTargetsIngredientSearch(input$openTargetsIngredientSearchBox, input$openTargetsIngredientSearch)
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = "openTargetsIngredientSearch",
+          server = TRUE,
+          choices = choices,
+          selected = input$openTargetsIngredientSearch
+        )
+      }
+    })
+
     # Concepts to exclude from search
     excludedConcepts <- shiny::reactive({
       concepts <- c()
@@ -152,7 +213,7 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
                      benefitCount = input$scBenefit,
                      riskCount = input$scRisk,
                      outcomeCohorts = input$outcomeSearch,
-                     targetCohorts = input$targetSearch,
+                     targetCohorts = c(input$targetSearch, input$openTargetsIngredientSearch),
                      excludedTargetCohorts = input$excludedTargetSearch,
                      excludedOutcomeCohorts = input$excludedOutcomeSearch,
                      analysisId = input$analysisId,

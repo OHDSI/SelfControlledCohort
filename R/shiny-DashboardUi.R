@@ -95,7 +95,20 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
     shiny::conditionalPanel(
       condition = "input.advancedSearch",
       ns = ns,
-
+      if (length(dashboardConfig$openTargetsDatabaseSchema)) {
+        shiny::fluidRow(
+          shiny::column(
+            width = 6,
+            shiny::selectizeInput(inputId = ns("openTargetsIngredientSearch"), label = "Search by open targets ingredients", choices = c(), multiple = TRUE),
+            shiny::tags$script(shiny::HTML(sprintf("
+        $(document).on('keyup', '#%s-openTargetsIngredientSearch-selectized', function(e){
+          var val = $(this).val();
+          Shiny.setInputValue('%s', val, {priority: 'event'});
+        });
+      ", id, ns("openTargetsIngredientSearchBox")))),
+          )
+        )
+      },
       shiny::fluidRow(
         shiny::column(
           #shiny::textAreaInput(inputId = ns("excludedConcepts"), label = "Exclude concept ids", NULL),
@@ -109,8 +122,8 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
       ", id, ns("excludedTargetSearchBox")))),
           width = 6
         ),
-      shiny::column(
-         shiny::selectizeInput(inputId = ns("excludedOutcomeSearch"), label = "Exclude outcomes cohorts", choices = c(), multiple = TRUE),
+        shiny::column(
+          shiny::selectizeInput(inputId = ns("excludedOutcomeSearch"), label = "Exclude outcomes cohorts", choices = c(), multiple = TRUE),
           shiny::tags$script(shiny::HTML(sprintf("
         $(document).on('keyup', '#%s-excludedOutcomeSearch-selectized', function(e){
           var val = $(this).val();
@@ -121,7 +134,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
         )
       ),
       shiny::fluidRow(
-         shiny::column(shiny::p("Use free text strings to filter outcomes and targets (e.g. 'ATC' or [PL])"), width = 12),
+        shiny::column(shiny::p("Use free text strings to filter outcomes and targets (e.g. 'ATC' or [PL])"), width = 12),
         shiny::column(
           shiny::textInput(inputId = ns("outcomeSearchText"), label = "Outcomes filter string", placeholder = "search"),
           width = 6
