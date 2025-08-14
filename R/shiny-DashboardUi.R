@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' Ui for rewardb dashboard
 #' @param request shiny request object
 #' @export
@@ -70,45 +71,34 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
   )
 
   filterBox <- shinydashboard::box(
-    shiny::column(
-      shiny::selectizeInput(inputId = ns("outcomeSearch"), label = "Filter outcomes", choices = c(), multiple = TRUE),
-      shiny::tags$script(shiny::HTML(sprintf("
+    shiny::fluidRow(
+      shiny::column(
+        shiny::selectizeInput(inputId = ns("outcomeSearch"), label = "Filter outcomes", choices = c(), multiple = TRUE),
+        shiny::tags$script(shiny::HTML(sprintf("
         $(document).on('keyup', '#%s-outcomeSearch-selectized', function(e){
           var val = $(this).val();
           Shiny.setInputValue('%s', val, {priority: 'event'});
         });
       ", id, ns("outcomeSearchBox")))),
-      width = 6
-    ),
-    shiny::column(
-      #,
-      shiny::selectizeInput(inputId = ns("targetSearch"), label = "Filter exposures", choices = c(), multiple = TRUE),
-      shiny::tags$script(shiny::HTML(sprintf("
+        width = 6
+      ),
+      shiny::column(
+        #,
+        shiny::selectizeInput(inputId = ns("targetSearch"), label = "Filter exposures", choices = c(), multiple = TRUE),
+        shiny::tags$script(shiny::HTML(sprintf("
         $(document).on('keyup', '#%s-targetSearch-selectized', function(e){
           var val = $(this).val();
           Shiny.setInputValue('%s', val, {priority: 'event'});
         });
       ", id, ns("targetSearchBox")))),
-      width = 6
+        width = 6
+      )
     ),
     shiny::checkboxInput(ns("advancedSearch"), label = "Show advanced search options"),
     shiny::conditionalPanel(
       condition = "input.advancedSearch",
       ns = ns,
-      if (length(dashboardConfig$openTargetsDatabaseSchema)) {
-        shiny::fluidRow(
-          shiny::column(
-            width = 6,
-            shiny::selectizeInput(inputId = ns("openTargetsIngredientSearch"), label = "Search by open targets ingredients", choices = c(), multiple = TRUE),
-            shiny::tags$script(shiny::HTML(sprintf("
-        $(document).on('keyup', '#%s-openTargetsIngredientSearch-selectized', function(e){
-          var val = $(this).val();
-          Shiny.setInputValue('%s', val, {priority: 'event'});
-        });
-      ", id, ns("openTargetsIngredientSearchBox")))),
-          )
-        )
-      },
+      shiny::h4("Exclusion"),
       shiny::fluidRow(
         shiny::column(
           #shiny::textAreaInput(inputId = ns("excludedConcepts"), label = "Exclude concept ids", NULL),
@@ -133,6 +123,7 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
           width = 6
         )
       ),
+      shiny::h4("Free text"),
       shiny::fluidRow(
         shiny::column(shiny::p("Use free text strings to filter outcomes and targets (e.g. 'ATC' or [PL])"), width = 12),
         shiny::column(
@@ -143,7 +134,10 @@ sccUi <- function(id = "scc-module", dashboardConfig) {
           shiny::textInput(inputId = ns("targetSearchText"), label = "Exposure filter string", placeholder = "search"),
           width = 6
         )
-      )
+      ),
+      if (length(dashboardConfig$openTargetsDatabaseSchema)) {
+        openTargetsSearchUiBlock(id = ns("openTargetsSearch"))
+      }
     ),
     shiny::fluidRow(
       shiny::column(
