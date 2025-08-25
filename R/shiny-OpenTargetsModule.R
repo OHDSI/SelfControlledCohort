@@ -75,7 +75,7 @@ openTargetsSearchUiBlock <- function(id) {
         width = 6,
         createDbSearchableSelectizeInput(
           ns("openTargetsExcludeIndicationSearch"),
-          label = "Excludde exposures by matched indications",
+          label = "Exclude exposures by matched indications",
           multiple = TRUE
         )
       )
@@ -245,6 +245,10 @@ openTargetsSearchModule <- function(id, model, openTargetsDatabaseSchema) {
                                      searchChoiceFun = openTargetsIngredientSearch)
 
     getDirectIngredientInclusion <- shiny::reactive({
+
+      if (!length(input$openTargetsIngredientsSearch))
+        return(NULL)
+
       sql <- "SELECT DISTINCT ot.ingredient_concept_id
       FROM @open_targets_database_schema.opentargets_to_reward_relationships ot
       WHERE ot.drug_id IN (@existing_ids)"
@@ -287,7 +291,7 @@ openTargetsSearchModule <- function(id, model, openTargetsDatabaseSchema) {
                               search = tolower(search),
                               warnOnMissingParameters = FALSE,
                               open_targets_database_schema = openTargetsDatabaseSchema,
-                              existing_ids = existingValues)
+                              existing_ids = glue::glue("'{existingValues}'"))
 
       if (nrow(result) == 0)
         return(NULL)
@@ -303,19 +307,25 @@ openTargetsSearchModule <- function(id, model, openTargetsDatabaseSchema) {
                                      searchChoiceFun = openTargetsIndicationsSearch)
 
     getIndicationInclusions <- shiny::reactive({
-      sql <- "SELECT DISTINCT ingredient_concept_id
+
+      if (!length(input$openTargetsIndicationSearch))
+        return(NULL)
+
+      sql <- "SELECT DISTINCT exposure_ingredient_concept_id
       FROM @open_targets_database_schema.indications
-      WHERE indication_id IN (@existing_ids)"
-
+      WHERE indication_id IN (@existing_ids)
+      {@require_approved_indications} ? {AND approved = 1}
+      "
+      
+     searchStr <- glue::glue("'{input$openTargetsIndicationSearch}'")
      result <- model$queryDb(sql,
-                            search = tolower(search),
                             warnOnMissingParameters = FALSE,
+                            require_approved_indications = isTRUE(input$openTargetsIncidationFilterUseApproved),
                             open_targets_database_schema = openTargetsDatabaseSchema,
-                            existing_ids = input$openTargetsIndicationSearch)
+                            existing_ids = searchStr)
 
-      return(result$ingredientConceptId)
+      return(result$exposureIngredientConceptId)
     })
-
 
     handleDbSearchableSelectizeInput(input = input,
                                      inputId = "openTargetsExcludeIndicationSearch",
@@ -323,22 +333,28 @@ openTargetsSearchModule <- function(id, model, openTargetsDatabaseSchema) {
                                      searchChoiceFun = openTargetsIndicationsSearch)
 
     getIndicationExclusions <- shiny::reactive({
-      sql <- "SELECT DISTINCT ingredient_concept_id
+
+      if (!length(input$openTargetsExcludeIndicationSearch))
+        return(NULL)
+
+      sql <- "SELECT DISTINCT exposure_ingredient_concept_id
       FROM @open_targets_database_schema.indications
-      WHERE indication_id IN (@existing_ids)"
-
+      WHERE indication_id IN (@existing_ids)
+      {@require_approved_indications} ? {AND approved = 1}
+      "
+     searchStr <- glue::glue("'{input$openTargetsExcludeIndicationSearch}'")
      result <- model$queryDb(sql,
-                            search = tolower(search),
                             warnOnMissingParameters = FALSE,
+                            require_approved_indications = isTRUE(input$openTargetsIncidationFilterUseApproved),
                             open_targets_database_schema = openTargetsDatabaseSchema,
-                            existing_ids = input$openTargetsExcludeIndicationSearch)
+                            existing_ids = searchStr)
 
-      return(result$ingredientConceptId)
+      return(result$exposureIngredientConceptId)
     })
 
     return(shiny::reactive({
       list(
-        includeIngredientConcepts =  c(getAppliedGeneAndMechanismConcepts(), getDirectIngredientInclusion(), getIndicationInclusions()),
+        includedIngredientConcepts =  c(getAppliedGeneAndMechanismConcepts(), getDirectIngredientInclusion(), getIndicationInclusions()),
         excludedIngredientConcepts = c(getIndicationExclusions())
       )
     }))

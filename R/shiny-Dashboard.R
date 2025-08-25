@@ -145,13 +145,30 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
     if (length(appConfig$openTargetsDatabaseSchema)) {
       otSearchConcepts <- openTargetsSearchModule("openTargetsSearch", model, appConfig$openTargetsDatabaseSchema)
     } else {
-      otSearchConcepts <- shiny::reactive({NULL})
+      otSearchConcepts <- shiny::reactive({ NULL })
     }
+
+    # Get excluded/included cohorts from open targets
+    mapOtIncludeTargetCohorts <- shiny::reactive({
+      ots <- otSearchConcepts()
+      if (length(ots$includedIngredientConcepts)) {
+        mappedCohorts <- model$getCohortsFromConceptIds(ots$includedIngredientConcepts)
+        return(mappedCohorts)
+      }
+      NULL
+    })
+
+    mapOtExcludedTargetCohorts <- shiny::reactive({
+      ots <- otSearchConcepts()
+      if (length(ots$excludedIngredientConcepts)) {
+        mappedCohorts <- model$getCohortsFromConceptIds(ots$excludedIngredientConcepts)
+        return(mappedCohorts)
+      }
+      NULL
+    })
 
     getMainTableParams <- shiny::eventReactive(input$genResults, {
       # Filter cohorts based on OpenTargets returned OMOP concepts
-      ots <- otSearchConcepts()
-
       params <- list(benefitThreshold = input$cutrange1[2],
                      lowerBenefitThereshold = input$cutrange1[1],
                      riskThreshold = input$cutrange2,
@@ -162,8 +179,8 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
                      benefitCount = input$scBenefit,
                      riskCount = input$scRisk,
                      outcomeCohorts = input$outcomeSearch,
-                     targetCohorts = c(input$targetSearch, otSearchFields$ingredientSearch),
-                     excludedTargetCohorts = input$excludedTargetSearch,
+                     targetCohorts = c(input$targetSearch, mapOtIncludeTargetCohorts()),
+                     excludedTargetCohorts = c(input$excludedTargetSearch, mapOtExcludedTargetCohorts()),
                      excludedOutcomeCohorts = input$excludedOutcomeSearch,
                      analysisId = input$analysisId,
                      targetSearchText = input$targetSearchText,
@@ -316,8 +333,6 @@ sccModule <- function(id = "scc-module", model, appConfig = model$config) {
     timeToOutcomeServer("timeToOutcome", model, selectedExposureOutcome)
     tabPanelTimeToOutcome <- tabPanel("Time to outcome", boxPlotModuleUi(ns("timeToOutcome")))
     shiny::appendTab(inputId = "outcomeResultsTabs", tabPanelTimeToOutcome)
-
-
 
 
     fullDataDownload <- shiny::reactive({

@@ -101,6 +101,24 @@ SccDataModel <- R6::R6Class(
       return(cohort)
     },
 
+    #' get cohorts from a direct concept id mapping
+    #' @description
+    #' Does not traverse heirachy, cohort ids are returned if they contain the concept id directly and it is not excluded
+    #' @param conceptIds
+    getCohortsFromConceptIds = function(conceptIds) {
+      if (!length(conceptIds))
+        return(NULL)
+
+      sql <- "
+      SELECT DISTINCT cd.cohort_definition_id
+      FROM @results_schema.cg_cohort_definition cd
+      INNER JOIN @results_schema.cg_cohort_concept_set ccs ON cd.cohort_definition_id = ccs.cohort_definition_id
+      INNER JOIN @results_schema.cg_concept_set cs ON cs.concept_set_id = ccs.concept_set_id AND is_excluded = 0
+      WHERE cs.concept_id IN (@ot_concepts)"
+      self$queryDb(sql, ot_concepts = conceptIds) |>
+          dplyr::pull()
+    },
+
     #' Get analysis settings, converting json text to list
     getAnalysisSettings = function() {
       sql <- "SELECT * FROM @results_schema.scc_analysis_setting"
