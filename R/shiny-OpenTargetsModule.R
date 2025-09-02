@@ -55,31 +55,31 @@ openTargetsSearchUiBlock <- function(id) {
         )
       )
     ),
-    shiny::fluidRow(
-      # Search only by indications - approved or not
-      shiny::column(
-        width = 6,
-        createDbSearchableSelectizeInput(
-          ns("openTargetsIndicationSearch"),
-          label = "Include exposures with only matched indications",
-          multiple = TRUE
-        ),
-        shiny::checkboxInput(
-          inputId = ns("openTargetsIncidationFilterUseApproved"),
-          value = TRUE,
-          label = "Use approved indications only"
-        )
-      ),
-      # Exclude by indication, approved or not
-      shiny::column(
-        width = 6,
-        createDbSearchableSelectizeInput(
-          ns("openTargetsExcludeIndicationSearch"),
-          label = "Exclude exposures by matched indications",
-          multiple = TRUE
-        )
-      )
-    ),
+    # shiny::fluidRow(
+    #   # Search only by indications - approved or not
+    #   shiny::column(
+    #     width = 6,
+    #     createDbSearchableSelectizeInput(
+    #       ns("openTargetsIndicationSearch"),
+    #       label = "Include exposures with only matched indications",
+    #       multiple = TRUE
+    #     ),
+    #     shiny::checkboxInput(
+    #       inputId = ns("openTargetsIncidationFilterUseApproved"),
+    #       value = TRUE,
+    #       label = "Use approved indications only"
+    #     )
+    #   ),
+    #   # Exclude by indication, approved or not
+    #   shiny::column(
+    #     width = 6,
+    #     createDbSearchableSelectizeInput(
+    #       ns("openTargetsExcludeIndicationSearch"),
+    #       label = "Exclude exposures by matched indications",
+    #       multiple = TRUE
+    #     )
+    #   )
+    # ),
     shiny::fluidRow(
       shiny::column(
         width = 6,
