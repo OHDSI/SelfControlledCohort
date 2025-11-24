@@ -48,10 +48,7 @@ Suggests:
     plotly,
     reactable,
     shinyWidgets
-Remotes:
-    OHDSI/ResultModelManager@develop,
-    OHDSI/OhdsiShinyModules
 License: Apache License 2.0
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 VignetteBuilder: knitr
 Encoding: UTF-8

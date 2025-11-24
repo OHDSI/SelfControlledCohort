@@ -33,9 +33,9 @@ computeIrrs <- function(estimates) {
       return(c(NA, 0, Inf))
     }
     test <- rateratio.test::rateratio.test(x = abs(c(numOutcomesExposed,
-                                                 numOutcomesUnexposed)),
+                                                     numOutcomesUnexposed)),
                                            n = abs(c(timeAtRiskExposed,
-                                                  timeAtRiskUnexposed)))
+                                                     timeAtRiskUnexposed)))
     return(c(test$estimate[1], test$conf.int))
   }
 
@@ -118,7 +118,7 @@ batchComputeEstimates <- function(connection,
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
       data.frame(target_cohort_id = eo[[1]], outcome_cohort_id = eo[[2]], true_effect_size = 1)
     })) |>
-      dplyr:: distinct()
+      dplyr::distinct()
     resultExportManager$exportDataFrame(ncPairsDf, "scc_outcome_exposure", append = FALSE)
 
     processControlType <- function(groupByCol, filterCol, dataCol) {
@@ -480,7 +480,8 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     hasFullTimeAtRisk = FALSE,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
-                                    computeThreads = 1,
+                                    computeThreads = getOption("strategus.SelfControlledCohort.computeThreads",
+                                                               defaultValue = parallel::detectCores() - 1),
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
                                     keepResultsTables = TRUE,
