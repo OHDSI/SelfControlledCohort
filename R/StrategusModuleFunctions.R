@@ -73,7 +73,7 @@ execute <- function(connectionDetails,
                  # resultsTable = "reward_scc_results",
                  analysisDescription = refRow$description,
                  analysisId = refRow$analysisId,
-                 tempEmulationSchema = executionSettings$tempEmulationSchema
+                 tempEmulationSchema = executionSettings$tempEmulationSchema,
                  resultExportPath = resultsExportPath,
                  computeThreads = computeThreads)
 

@@ -210,7 +210,6 @@ getSccRiskWindowStats <- function(connection,
                                   riskWindowsTable = "#risk_windows",
                                   resultExportPath = "scc_result",
                                   analysisId = 1,
-                                  keepResultsTables = TRUE,
                                   resultExportManager = ResultModelManager::createResultExportManager(
                                     tableSpecification = getResultsDataModelSpecifications(),
                                     exportDir = resultExportPath,
@@ -248,8 +247,6 @@ getSccRiskWindowStats <- function(connection,
     riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
                                           results_database_schema = resultsDatabaseSchema,
                                           risk_windows_table = riskWindowsTable)
-  } else {
-    keepResultsTables <- FALSE
   }
 
   .getSccRiskWindowStats(connection,

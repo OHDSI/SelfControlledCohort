@@ -1,5 +1,6 @@
 SelfControlledCohort 2.0.0
 ==========================
+This is a major release and breaks backwards compatability with version 1.x.x series code.
 
 Changes:
 
