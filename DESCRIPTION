@@ -17,7 +17,7 @@ BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Language: en-US
 Depends:
     DatabaseConnector (>= 5.0.0),
-	R (>= 4.0.0)
+	R (>= 4.1.0)
 Imports:
     SqlRender (>= 1.4.3),
     ParallelLogger,
