@@ -28,7 +28,10 @@ Imports:
     ResultModelManager,
     Andromeda,
     readr,
-    rlang
+    rlang,
+    CohortGenerator,
+    cli,
+    purrr
 Suggests:
     withr,
     testthat,
