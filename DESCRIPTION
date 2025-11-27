@@ -40,7 +40,6 @@ Suggests:
     tidyr,
     R.utils,
     jsonlite,
-    OhdsiShinyModules,
     DT,
     ggplot2,
     shiny,
