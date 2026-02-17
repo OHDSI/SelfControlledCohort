@@ -14,7 +14,7 @@ Features
 ========
 - Extracts the necessary data from a database in OMOP Common Data Model format.
 - Supports stratification by age, gender, and index year.
-- Comprehensive diagnostics aligned with SelfControlledCaseSeries standards (v2.1.0+):
+- Comprehensive diagnostics
   - MDRR (statistical power analysis)
   - Pre-exposure gain detection
   - Event-dependent observation checks

@@ -45,12 +45,11 @@
 #'
 #' @export
 computeMdrrForRateRatio <- function(exposedPersonTime,
-                                     unexposedPersonTime,
-                                     exposedEvents,
-                                     unexposedEvents,
-                                     alpha = 0.05,
-                                     power = 0.80) {
-
+                                    unexposedPersonTime,
+                                    exposedEvents,
+                                    unexposedEvents,
+                                    alpha = 0.05,
+                                    power = 0.80) {
   # Handle edge cases
   if (exposedPersonTime <= 0 || unexposedPersonTime <= 0) {
     return(NA_real_)
@@ -87,10 +86,10 @@ computeMdrrForRateRatio <- function(exposedPersonTime,
 
     # Calculate standard error under alternative
     # SE(log(RR)) = sqrt(1/E1 + 1/E0)
-    seLogRR <- sqrt(1/expectedExposed + 1/expectedUnexposed)
+    seLogRR <- sqrt(1 / expectedExposed + 1 / expectedUnexposed)
 
     # Calculate critical value (two-sided test)
-    zAlpha <- qnorm(1 - alpha/2)
+    zAlpha <- qnorm(1 - alpha / 2)
     zPower <- qnorm(power)
 
     # Effect size needed for detection
@@ -160,12 +159,11 @@ computeMdrrForRateRatio <- function(exposedPersonTime,
 #'
 #' @noRd
 testPreExposureGain <- function(connection,
-                                 riskWindowsTable,
-                                 outcomeTable,
-                                 outcomeDatabaseSchema,
-                                 analysisId,
-                                 tempEmulationSchema) {
-
+                                riskWindowsTable,
+                                outcomeTable,
+                                outcomeDatabaseSchema,
+                                analysisId,
+                                tempEmulationSchema) {
   # Determine outcome table columns
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
@@ -225,9 +223,10 @@ testPreExposureGain <- function(connection,
     }
     # Use binomial test
     binom.test(results$personsWithPreExposureOutcome[i],
-               results$totalPersons[i],
-               p = 0,
-               alternative = "greater")$p.value
+      results$totalPersons[i],
+      p = 0,
+      alternative = "greater"
+    )$p.value
   }, numeric(1))
 
   return(results)
@@ -275,7 +274,6 @@ testTimeTrend <- function(connection,
                           outcomeDatabaseSchema,
                           analysisId,
                           tempEmulationSchema) {
-
   # Determine outcome table columns
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
@@ -336,15 +334,15 @@ testTimeTrend <- function(connection,
   for (i in seq_len(nrow(uniquePairs))) {
     pair <- uniquePairs[i, ]
     pairData <- results[results$targetCohortId == pair$targetCohortId &
-                        results$outcomeCohortId == pair$outcomeCohortId, ]
+      results$outcomeCohortId == pair$outcomeCohortId, ]
 
     # Need at least 3 time points
     if (nrow(pairData) < 3) {
       outputRow <- data.frame(
-        target_cohort_id = pair$targetCohortId,
-        outcome_cohort_id = pair$outcomeCohortId,
-        time_trend_p_value = NA_real_,
-        time_trend_coefficient = NA_real_
+        targetCohortId = pair$targetCohortId,
+        outcomeCohortId = pair$outcomeCohortId,
+        timeTrendPValue = NA_real_,
+        timeTrendCoefficient = NA_real_
       )
       output <- rbind(output, outputRow)
       next
@@ -354,41 +352,46 @@ testTimeTrend <- function(connection,
     pairData$calendarMonthStd <- pairData$calendarMonth - min(pairData$calendarMonth)
 
     # Fit Poisson GLM
-    tryCatch({
-      model <- glm(outcomeCount ~ calendarMonthStd + offset(log(pmax(personTime, 1))),
-                   data = pairData,
-                   family = poisson(link = "log"))
+    tryCatch(
+      {
+        model <- glm(outcomeCount ~ calendarMonthStd + offset(log(pmax(personTime, 1))),
+          data = pairData,
+          family = poisson(link = "log")
+        )
 
-      # Extract coefficient and p-value for time trend
-      coefSummary <- summary(model)$coefficients
+        # Extract coefficient and p-value for time trend
+        coefSummary <- summary(model)$coefficients
 
-      if ("calendarMonthStd" %in% rownames(coefSummary)) {
-        timeTrendCoef <- coefSummary["calendarMonthStd", "Estimate"]
-        timeTrendP <- coefSummary["calendarMonthStd", "Pr(>|z|)"]
-      } else {
-        timeTrendCoef <- NA_real_
-        timeTrendP <- NA_real_
+        if ("calendarMonthStd" %in% rownames(coefSummary)) {
+          timeTrendCoef <- coefSummary["calendarMonthStd", "Estimate"]
+          timeTrendP <- coefSummary["calendarMonthStd", "Pr(>|z|)"]
+        } else {
+          timeTrendCoef <- NA_real_
+          timeTrendP <- NA_real_
+        }
+
+        outputRow <- data.frame(
+          targetCohortId = pair$targetCohortId,
+          outcomeCohortId = pair$outcomeCohortId,
+          timeTrendPValue = timeTrendP,
+          timeTrendCoefficient = timeTrendCoef
+        )
+        output <- rbind(output, outputRow)
+      },
+      error = function(e) {
+        ParallelLogger::logWarn(sprintf(
+          "Failed to fit time trend model for exposure %s, outcome %s: %s",
+          pair$targetCohortId, pair$outcomeCohortId, e$message
+        ))
+        outputRow <- data.frame(
+          targetCohortId = pair$targetCohortId,
+          outcomeCohortId = pair$outcomeCohortId,
+          timeTrendPValue = NA_real_,
+          timeTrendCoefficient = NA_real_
+        )
+        output <- rbind(output, outputRow)
       }
-
-      outputRow <- data.frame(
-        target_cohort_id = pair$targetCohortId,
-        outcome_cohort_id = pair$outcomeCohortId,
-        time_trend_p_value = timeTrendP,
-        time_trend_coefficient = timeTrendCoef
-      )
-      output <- rbind(output, outputRow)
-
-    }, error = function(e) {
-      ParallelLogger::logWarn(sprintf("Failed to fit time trend model for exposure %s, outcome %s: %s",
-                                     pair$targetCohortId, pair$outcomeCohortId, e$message))
-      outputRow <- data.frame(
-        target_cohort_id = pair$targetCohortId,
-        outcome_cohort_id = pair$outcomeCohortId,
-        time_trend_p_value = NA_real_,
-        time_trend_coefficient = NA_real_
-      )
-      output <- rbind(output, outputRow)
-    })
+    )
   }
 
   return(output)
@@ -423,7 +426,6 @@ testTimeTrend <- function(connection,
 #'
 #' @export
 checkSparseData <- function(exposedEvents, unexposedEvents, minEvents = 3) {
-
   if (length(exposedEvents) != length(unexposedEvents)) {
     stop("exposedEvents and unexposedEvents must have the same length")
   }
@@ -434,11 +436,15 @@ checkSparseData <- function(exposedEvents, unexposedEvents, minEvents = 3) {
     pass <- exposedEvents[i] >= minEvents && unexposedEvents[i] >= minEvents
 
     if (pass) {
-      message <- sprintf("Adequate data: %d exposed events, %d unexposed events",
-                        exposedEvents[i], unexposedEvents[i])
+      message <- sprintf(
+        "Adequate data: %d exposed events, %d unexposed events",
+        exposedEvents[i], unexposedEvents[i]
+      )
     } else {
-      message <- sprintf("Sparse data: %d exposed events, %d unexposed events (minimum %d required)",
-                        exposedEvents[i], unexposedEvents[i], minEvents)
+      message <- sprintf(
+        "Sparse data: %d exposed events, %d unexposed events (minimum %d required)",
+        exposedEvents[i], unexposedEvents[i], minEvents
+      )
     }
 
     results[[i]] <- list(pass = pass, message = message)
