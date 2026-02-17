@@ -38,13 +38,13 @@ scc_stat,p75,float,No,No,No,75th percentile value
 scc_stat,p90,float,No,No,No,9Noth percentile value
 scc_stat,maximum,float,No,No,No,Maximum value in the dataset
 scc_stat,total,float,No,No,No,Total count or total value of the statistic
-scc_diagnostics_summary,database_id,bigint,Yes,Yes,No,Unique identifier for the database
+scc_diagnostics_summary,database_id,varchar,Yes,Yes,No,Unique identifier for the database
 scc_diagnostics_summary,analysis_id,int,Yes,Yes,No,Identifier for the associated analysis
 scc_diagnostics_summary,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort
 scc_diagnostics_summary,target_cohort_id,bigint,Yes,Yes,No,Identifier for the target cohort
+scc_diagnostics_summary,diagnostic_name,varchar,Yes,Yes,No,Name of the diagnostic test
 scc_diagnostics_summary,diagnostic_value,float,No,No,No,Value associated with the diagnostic test
 scc_diagnostics_summary,pass,int,No,No,No,Indicator of whether the diagnostic test passed
-scc_diagnostics_summary,diagnostic_name,varchar,Yes,Yes,No,Name of the diagnostic test
 scc_outcome_exposure,outcome_cohort_id,bigint,Yes,Yes,No,Identifier for the outcome cohort
 scc_outcome_exposure,target_cohort_id,bigint,Yes,Yes,No,Identifier for the target cohort
 scc_outcome_exposure,true_effect_size,float,No,No,No,Is the outcome/exposure pair a control?

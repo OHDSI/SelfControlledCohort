@@ -72,7 +72,7 @@ create TABLE @database_schema.@table_prefix@scc_diagnostics_summary (
     diagnostic_value NUMERIC,
     pass INT,
     diagnostic_name TEXT NOT NULL,
-    PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id)
+    PRIMARY KEY (database_id, analysis_id, outcome_cohort_id, target_cohort_id, diagnostic_name)
 );
 
 create TABLE @database_schema.@table_prefix@scc_outcome_exposure (

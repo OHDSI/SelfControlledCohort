@@ -1,16 +1,10 @@
 ---
 title: "Using SelfControlledCohort"
 date: "`r Sys.Date()`"
-always_allow_html: yes
 output:
-  pdf_document:
+  rmarkdown::html_vignette:
     number_sections: yes
     toc: yes
-    template: null
-  html_document:
-    number_sections: yes
-    toc: yes
-  rmarkdown::html_vignette: default
 vignette: |
   %\VignetteIndexEntry{Using SelfControlledCohort}
   %\VignetteEngine{knitr::rmarkdown}
@@ -20,399 +14,276 @@ vignette: |
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
 )
 ```
 
-```{css echo=FALSE}
-h1  {
-  margin-top: 60px;
-}
-```
+The **SelfControlledCohort** package estimates the association between an exposure and an outcome by comparing the rate of outcomes during exposed time to the rate of outcomes during unexposed time within the same cohort of people. It is "self-controlled" because each person serves as their own control.
 
-The Self Controlled Cohort method measures the association between an
-exposure and an outcome by comparing the number of outcomes during an
-unexposed time at risk to the number of outcomes during an exposed time
-at risk. The method is called "Self-Controlled" because each individual
-in the study contributes person-time to both the exposed and unexposed
-cohorts. Since each person contributes both exposed and unexposed time
-to the study only persons who experience the exposure can be used. The
-inputs to the analysis are the exposures and outcomes of interest, the
-unexposed time at risk and exposed time at risk dates for each person,
-and various analysis parameter settings that will be discussed in more
-detail.
+This vignette demonstrates how to run a Self-Controlled Cohort (SCC) analysis using the `Eunomia` example dataset.
 
-There are seven time points to consider when defining this analysis.
+# Setup and Data
 
-![Figure: example exposure windows](ExposureWindowsDiagram.png)
+First, we need to load the necessary packages and set up a connection to the `Eunomia` database. `Eunomia` provides a small, simulated Common Data Model (CDM) database for demonstration purposes.
 
-For each exposure-outcome pair the following statistics are calculated:
-
--   Number of persons with the exposure
-
--   Total number of exposures (A person can experience the exposure
-    multiple times.)
-
--   Number of outcomes during the exposed time at risk
-
--   Number of outcomes during the unexposed time at risk
-
--   Total exposed person-time at risk
-
--   Total unexposed person-time at risk
-
--   Incidence rate ratio (incidence rate during exposed time)/(incidence
-    rate during unexposed time) -
-
--   95% confidence interval for the incidence rate ratio
-
--   The log of the incidence rate ratio - The standard error of the log
-    incidence rate ratio
-
-Each person's exposure start date is taken as the index date or *Time
-0*. The unexposed risk window is defined prior to Time 0 and represents
-a duration of time when the person was not exposed but could have
-experienced the outcome. The exposed risk window is defined as a period
-of time after the Time 0 and represents a duration of time when the
-person was exposed and could have experienced the outcome. Both of these
-time windows must be contained within a continuous period of
-observation. The details about when the risk windows start and end can
-be adjusted to meet the analysis specifications.
-
-The time between the start of the observation period and Time 0 is
-called the washout period and a minimum allowed washout period can be
-set when defining the analysis. Similarly the time between Time 0 and
-the observation period end date is the followup period. A minimum
-followup period can also be set.
-
-A common type of exposure is exposure to a drug but an exposure could be
-any set of characteristics that are captured in your data. We will look
-at a few different ways to define exposures.
-
-# Tables used in the analysis
-
-There are two primary tables needed for the self controlled cohort
-analysis along with a few supporting tables that are part of the OMOP
-Common Data Model.
-
-<center>**Exposure Table**</center>
-
-+--------------------+----------------+
-| Field              | Data type      |
-+====================+================+
-| person_id          | Integer        |
-+--------------------+----------------+
-| e                  | Integer        |
-| xposure_concept_id |                |
-+--------------------+----------------+
-| e                  | Date           |
-| xposure_start_date |                |
-+--------------------+----------------+
-| exposure_end_date  | Date           |
-+--------------------+----------------+
-
-<center>**Outcome Table**</center>
-
-+--------------------+----------------+
-| Field              | Data type      |
-+====================+================+
-| person_id          | Integer        |
-+--------------------+----------------+
-| outcome_concept_id | Integer        |
-+--------------------+----------------+
-| outcome_start_date | Date           |
-+--------------------+----------------+
-
-These tables can be created manually or standard CDM tables can be used.
-For example by default the drug_era is used as the exposure_table and
-the condition_era table is used as the outcome_table. Every
-exposure-outcome combination in these tables will be included in the
-analysis unless otherwise specified. The additional CDM tables that are
-required for this analysis are `observation_period`, necessary for
-observation start and end dates, and `person`, necessary for year of
-birth.
-
-# A first example
-
-The SelfControlledCohort package makes it easy to calculate the
-association between every drug and every condition in a CDM database.
-The Eunomia package provides a mini CDM that runs entirely within R that
-we can use for examples.
-
-```{r, include=FALSE, eval=F}
+```{r setup}
 library(SelfControlledCohort)
 library(Eunomia)
+library(DatabaseConnector)
+library(dplyr)
 
-connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+# Create a temporary SQLite database with Eunomia data
+connectionDetails <- getEunomiaConnectionDetails()
+connection <- connect(connectionDetails)
 
-result <- runSelfControlledCohort(
+# We will use the 'main' schema for this example
+cdmDatabaseSchema <- "main"
+```
+
+# Running a Basic Analysis
+
+For a first example, let's run an analysis across **all drugs** (exposure) and **all conditions** (outcome) available in the database. 
+
+We specify:
+* `exposureTable` / `outcomeTable`: We use the standard CDM tables `drug_era` and `condition_era`.
+* `exposureIds`: Left empty to include all drugs.
+* `outcomeIds`: Left empty to include all conditions.
+
+```{r basic_run}
+# Define a temporary folder for results
+outputFolder <- tempfile("scc_output")
+dir.create(outputFolder)
+
+# Run the analysis
+runSelfControlledCohort(
   connectionDetails = connectionDetails,
-  cdmDatabaseSchema = "main",
-  exposureIds = '', # include all drugs as exposures
-  outcomeIds = '', # include all conditions as outcomes
-  resultExportPath = "scc_result"
+  cdmDatabaseSchema = cdmDatabaseSchema,
+  exposureTable = "drug_era",
+  outcomeTable = "condition_era",
+  resultExportPath = outputFolder,
+  databaseId = 1,
+  analysisId = 1,
+  runDiagnostics = FALSE
 )
 ```
 
-```{r, eval=F, message=F}
-library(dplyr)
-estimates %>%
-  arrange(desc(irr)) %>% 
-  head()
+Now we can read the results and inspect the estimates.
+
+```{r read_results}
+results <- read.csv(file.path(outputFolder, "scc_result.csv"))
+
+# Display the top 5 associations by Relative Risk
+results %>%
+  filter(analysis_id == 1) %>%
+  arrange(desc(rr)) %>%
+  head(5) %>%
+  select(target_cohort_id, outcome_cohort_id, rr, lb_95, ub_95, p_value) %>%
+  knitr::kable(digits = 3)
 ```
 
-The result of our analysis is a dataframe with one row per
-exposure-outcome pair along with all the relevant statistics. Let's
-interpret the results for amoxicillin exposure (concept ID 1713332) and
-the outcome of Chronic sinusitis (concept ID 257012)
+The `rr` column shows the Incidence Rate Ratio. An IRR > 1 indicates an increased risk.
 
-```{r eval=F}
-example <- estimates %>%
-  filter(exposureId == 1713332, outcomeId == 257012) 
+# Using Custom Cohorts
 
-example %>% 
-  tidyr::gather() %>% 
-  mutate(value = format(round(value,1), scientific = F)) %>% 
-  rename(column = key) %>% 
-  knitr::kable(align = c("lr"))
+In practice, we often want to study specific cohorts defined by complex logic (e.g., "New users of NSAIDs"). We can create these cohorts and pass them to the function.
+
+`Eunomia` includes definitions for NSAIDs and GI Bleed. Let's create them.
+
+```{r create_cohorts}
+# Create standard cohorts in the 'cohort' table:
+# 1 = Celecoxib
+# 2 = Diclofenac
+# 3 = GI Bleed
+# 4 = NSAIDs
+createCohorts(connectionDetails)
 ```
 
-We can see that `example$numPersons` were exposed to amoxicillin. When
-we add up all the time before the exposure we get
-`example$timeAtRiskUnexposed` person-years. Similarly when we add up
-all the time after the exposure, the "Exposed time at risk", we get
-`example$timeAtRiskExposed` person-years.
+Now run the analysis using these specific cohorts.
 
-The incidence of Chronic sinusitis during the "Unexposed time at risk"
-is
-
-$$
-\frac{224 \ \ events}{45796.0 \ \ person \ years} =  0.00489
-$$
-
-The incidence of Chronic sinusitis during the "Exposed time at risk" is
-
-$$
-\frac{65 \ \ events}{277.4 \ \ person \ years} =  0.234
-$$
-
-The incidence rate ratio is
-$$
-\frac{234}{0.00489} = 47.9
-$$
-with a 95% confidence interval of $[35.8, 63.4]$ See
-`vignette("rateratio.test", package = "rateratio.test")` for method
-details.
-
-# Custom exposure-outcome pairs
-
-In addition to using all drugs as exposures and all conditions as
-outcomes we can come up with much more specific definitions of exposures
-and outcomes using cohorts. A cohort is a set of persons who satisfy one
-or more inclusion criteria for a duration of time. We can define cohorts
-using Atlas or by writing SQL code. If we use Atlas then the cohort will
-be stored in the Atlas "results" schema associated with your CDM
-database. If you want to write SQL then you will need write access to a
-schema in your CDM database.
-
-We will simulate using cohorts created in Atlas by using the pre-built
-cohorts in Eunomia.
-
-```{r, eval=F, include=FALSE}
-Eunomia::createCohorts(connectionDetails)
-```
-
-Suppose we are interested in the exposure of NSAID (cohort \#4) and the
-outcome of GiBleed (cohort \#3). Even though this is a drug-condition
-pair these cohorts could be defined using combinations of data elements
-from any domain.
-
-```{r, eval=F, include=FALSE}
-
+```{r custom_cohort_run}
 runSelfControlledCohort(
   connectionDetails = connectionDetails,
-  cdmDatabaseSchema = "main",
-  exposureIds = c(1,4), # The NSAIDs cohort #4 and the Celecoxib cohort #1
-  outcomeIds = 3, # The GiBleed cohort #3
+  cdmDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "cohort",
   outcomeTable = "cohort",
-  resultExportPath = "scc_result"
+  exposureIds = c(1, 2, 4), # Celecoxib, Diclofenac, NSAIDs
+  outcomeIds = c(3), # GI Bleed
+  databaseId = 1,
+  analysisId = 2, # Unique ID for this run
+  resultExportPath = outputFolder,
+  runDiagnostics = FALSE
 )
-
-estimates <- read.csv("results/scc_result")
 ```
 
-```{r eval=F}
-result$estimates %>% 
-  filter(exposureId == 4, outcomeId == 3) %>% 
-  tidyr::gather() %>% 
-  mutate(value = format(round(value,1), scientific = F)) %>% 
-  rename(column = key) %>% 
-  knitr::kable(align = c("lr"))
+```{r view_custom_results}
+results <- read.csv(file.path(outputFolder, "scc_result.csv"))
+
+results %>%
+  filter(analysis_id == 2) %>%
+  select(target_cohort_id, outcome_cohort_id, rr, p_value) %>%
+  knitr::kable(digits = 3)
 ```
 
-In this case the risk of being in the GI Bleed cohort before entering
-the exposure cohort is zero which means our rate ratio is infinite.
+# Diagnostics and Tiered Blinding
 
+Reliable evidence requires that the analysis assumptions are met. The package includes diagnostics to check for issues like:
+*   **MDRR**: Is there enough statistical power?
+*   **Time Trend**: Is the outcome risk changing over time unrelated to exposure?
+*   **Pre-exposure Gain**: Are outcomes occurring unusually often just before exposure?
+*   **Event-dependent Observation**: Does the outcome affect the observation period (e.g., death)?
 
-Even though this example uses a drug-condition pair for the exposure and
-the outcome, it demonstrates how we can use any cohorts created in Atlas
-as exposures and outcomes in a self controlled cohort study.
+We implement a **Tiered Blinding** system:
+1.  **Tier 1 (Unblind for Calibration)**: If core diagnostics pass, the result can be used as a negative control for calibration.
+2.  **Tier 2 (Unblind)**: If *all* diagnostics (including power) pass, the result is considered valid for unblinding.
 
-Let's demonstrate custom exposure outcome pairs using SQL by asking "Do
-patients tend to get more measurements in the year after a condition
-diagnosis than the year before?"
+Let's run the cohort analysis again with diagnostics enabled.
 
-```{r eval=F}
-con <- DatabaseConnector::connect(connectionDetails)
-```
-
-
-
-```{r, eval=F, include=FALSE}
+```{r diagnostics_run}
 runSelfControlledCohort(
   connectionDetails = connectionDetails,
-  cdmDatabaseSchema = "main",
-  exposureIds = '', # use all rows in exposure table
-  outcomeIds = '', # use all rows in outcome table
-  exposureDatabaseSchema = "main",
-  exposureTable = "condition_cohort",
-  outcomeDatabaseSchema = "main",
-  outcomeTable = "measurement_cohort",
-  riskWindowStartExposed = 1,
-  riskWindowEndExposed = 365,
-  riskWindowEndUnexposed = -1,
-  riskWindowStartUnexposed = -365,
-  resultExportPath = "scc_result"
+  cdmDatabaseSchema = cdmDatabaseSchema,
+  exposureTable = "cohort",
+  outcomeTable = "cohort",
+  exposureIds = c(4), # NSAIDs
+  outcomeIds = c(3), # GI Bleed
+  analysisId = 3, # Unique ID for this run
+  runDiagnostics = TRUE, # <--- Enable diagnostics
+  resultExportPath = outputFolder,
+  databaseId = 1
 )
 ```
 
-Using the `riskWindow` arguments we can set the time at risk to one year
-before and one year after each condition exposure.
+We can inspect the diagnostic summary to see the blinding status.
 
-```{r eval=F}
-estimates %>% 
-  tidyr::gather() %>% 
-  mutate(value = format(round(value,1), scientific = F)) %>% 
-  rename(column = key) %>% 
-  knitr::kable(align = c("lr"))
+```{r view_blinding}
+diagnostics <- read.csv(file.path(outputFolder, "scc_diagnostics_summary.csv"))
+
+# Check blinding status for this analysis
+diagnostics %>%
+  filter(analysis_id == 3) %>%
+  filter(diagnostic_name %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION")) %>%
+  select(target_cohort_id, outcome_cohort_id, diagnostic_name, pass) %>%
+  knitr::kable()
 ```
 
-Indeed it does appear that in Eunomia patients tend to get more tests
-after a diagnosis than before.
+If `UNBLIND` is 1, the result is safe to view. If it is 0, one or more diagnostics failed. You can check which specific diagnostics failed:
 
-
-# Running multiple analyses
-
-The SelfControlledCohort package supports performing multiple analyses at once 
-and provides functions to specify the details of each analysis to be performed.
-
-
-Start by creating an sccAnalysis object for each analysis type to be performed.
-We will create one analysis that uses 30 day exposure windows and another with
-365 day exposure windows.
-
-
-```{r eval=F}
-	
-sccArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
-                                              firstOutcomeOnly = TRUE,
-                                              minAge = "",
-                                              maxAge = "",
-                                              studyStartDate = "",
-                                              studyEndDate = "",
-                                              addLengthOfExposureExposed = TRUE,
-                                              riskWindowStartExposed = 1,
-                                              riskWindowEndExposed = 30,
-                                              addLengthOfExposureUnexposed = TRUE,
-                                              riskWindowEndUnexposed = -1,
-                                              riskWindowStartUnexposed = -30,
-                                              hasFullTimeAtRisk = FALSE,
-                                              computeTarDistribution = TRUE,
-                                              washoutPeriod = 0,
-                                              followupPeriod = 0)
-
-sccArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE,
-                                              firstOutcomeOnly = TRUE,
-                                              minAge = "",
-                                              maxAge = "",
-                                              studyStartDate = "",
-                                              studyEndDate = "",
-                                              addLengthOfExposureExposed = TRUE,
-                                              riskWindowStartExposed = 1,
-                                              riskWindowEndExposed = 365,
-                                              addLengthOfExposureUnexposed = TRUE,
-                                              riskWindowEndUnexposed = -1,
-                                              riskWindowStartUnexposed = -365,
-                                              hasFullTimeAtRisk = FALSE,
-                                              computeTarDistribution = TRUE,
-                                              washoutPeriod = 0,
-                                              followupPeriod = 0)
-
-sccAnalysis1 <- createSccAnalysis(analysisId = 1,
-                              description = "30 day risk windows",
-                              exposureType = NULL, # What are the valid values for this argument?
-                              outcomeType = NULL,
-                              runSelfControlledCohortArgs = sccArgs1)
-
-
-sccAnalysis2 <- createSccAnalysis(analysisId = 2,
-                              description = "365 day risk windows",
-                              exposureType = NULL,
-                              outcomeType = NULL,
-                              runSelfControlledCohortArgs = sccArgs1)
-
-sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
-
+```{r view_failures}
+diagnostics %>%
+  filter(analysis_id == 3, pass == 0) %>%
+  select(diagnostic_name, diagnostic_value, pass) %>%
+  knitr::kable()
 ```
 
+# Empirical Calibration
 
-Then create a list with all exposure outcome pairs to be analyzed. These can 
-be concept IDs if you are using the condition_occurrence and drug_era tables or
-cohort IDs if you are using a cohort table for exposures and outcomes. 
+Observational studies often suffer from systematic error (bias). We can use **Empirical Calibration** to adjust for this bias using negative controls—pairs of exposures and outcomes where we believe the true effect size is 1 (no effect).
 
+In this example, we will treat **Celecoxib (1)** and **Diclofenac (2)** combined with **GI Bleed (3)** as "negative controls" purely for demonstration purposes.
 
-```{r eval=F}
+We supply the `negativeControlPairs` argument. These pairs are used to fit a null distribution which is then used to calibrate the p-values and confidence intervals of our target analysis (**NSAIDs (4)** vs **GI Bleed (3)**).
 
-exposureOutcomeList <- list(createExposureOutcome(exposureId = 4, outcomeId = 3),
-                            createExposureOutcome(exposureId = 1, outcomeId = 3))
-  
+```{r calibration_run}
+# Define negative controls (formatted as list of vectors: c(exposureId, outcomeId))
+negativeControls <- list(
+  c(1, 3), # Celecoxib - GI Bleed (Demo only!)
+  c(2, 3) # Diclofenac - GI Bleed (Demo only!)
+)
+
+runSelfControlledCohort(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = cdmDatabaseSchema,
+  exposureTable = "cohort",
+  outcomeTable = "cohort",
+  exposureIds = c(4), # Target: NSAIDs
+  outcomeIds = c(3), # Outcome: GI Bleed
+  analysisId = 4, # Unique ID for this calibration run
+  negativeControlPairs = negativeControls, # <--- Supply negative controls
+  runDiagnostics = TRUE,
+  resultExportPath = outputFolder,
+  databaseId = 1
+)
 ```
 
+The results file now contains calibrated estimates (`calibrated_rr`, `calibrated_ci`, etc.).
 
-The total number of rate ratios will be `length(sccAnalysisList) * length(exposureOutcomesList)`
-since every analysis will be executed for every exposure-outcome pair.
+```{r view_calibration}
+results <- read.csv(file.path(outputFolder, "scc_result.csv"))
 
-```{r eval=F}
-	
-results <- runSccAnalyses(connectionDetails,
-                          cdmDatabaseSchema = "main",
-                          exposureTable = "cohort",
-                          outcomeTable = "cohort",
-                          resultsFolder = "./SelfControlledCohortOutput",
-                          sccAnalysisList = sccAnalysisList,
-                          exposureOutcomeList = exposureOutcomeList,
-                          analysisThreads = 1,
-                          computeThreads = 1)
-
-
-summarizeAnalyses(results, "./SelfControlledCohortOutput")
+results %>%
+  filter(analysis_id == 4, target_cohort_id == 4) %>%
+  select(target_cohort_id, rr, calibrated_rr, calibrated_p_value) %>%
+  knitr::kable(digits = 3)
 ```
 
+*Note: With only 2 negative controls, the calibration will be very approximate. Real studies should use dozens of negative controls.*
 
-Analysis result objects are saved to the output folder and are aggregated by
-the `summarizeAnalyses` function which returns a results dataframe with one row
-for each result.
+# Working with the Results Database
 
+The `SelfControlledCohort` package provides tools to create a robust results data model. This is useful for sharing results or powering a Shiny application.
 
-# Correcting bias with EmpiricalCalibration
+In this section, we will:
+1.  Create a local SQLite database to store our results.
+2.  Create the standard results schema tables.
+3.  Upload the CSV results we generated above into this database.
+4.  Query the database to see the results.
 
-Effect estimates generated from observational data likely suffer from significant
-systematic bias. For example, this study design has the flaw that an exposure may
-look protective due to confounding by indication where patients are commonly exposed
-to a medication that is used to treat a comorbidity. For this reason, the
-`SelfControlledCohort` is often used with the
-[`EmpiricalCalibration`](https://github.com/OHDSI/EmpiricalCalibration) package
-to adjust effect estimates using negative control cohorts.
+First, let's create a new local SQLite database file for the results.
 
+```{r results_db_creation}
+resultsDbFile <- tempfile("scc_results_db", fileext = ".sqlite")
+resultsConnectionDetails <- createConnectionDetails(dbms = "sqlite", server = resultsDbFile)
+```
 
+Next, we use `createResultsDataModel` to create the tables. For SQLite, we must use the 'main' schema.
+
+```{r create_model}
+createResultsDataModel(
+  connectionDetails = resultsConnectionDetails,
+  databaseSchema = "main"
+)
+```
+
+Now we upload the results from our `outputFolder` (which contains the CSVs from all the runs above) into the database.
+
+```{r upload_results}
+# For this example, we will upload the main results and settings.
+# We remove other tables to simplify the upload for this demonstration.
+filesToRemove <- c("scc_diagnostics_summary.csv", "scc_stat.csv", "scc_outcome_exposure.csv")
+for (f in filesToRemove) {
+  if (file.exists(file.path(outputFolder, f))) {
+    unlink(file.path(outputFolder, f))
+  }
+}
+
+uploadResults(
+  connectionDetails = resultsConnectionDetails,
+  schema = "main",
+  resultsFolder = outputFolder
+)
+```
+
+Finally, we can connect to this results database and query it like any other OMOP CDM database.
+
+```{r query_results_db}
+resultsConn <- connect(resultsConnectionDetails)
+
+# Query the scc_result table
+resultsDb <- querySql(resultsConn, "SELECT * FROM main.scc_result WHERE analysis_id = 4")
+
+# Show the results from the database
+resultsDb %>%
+  select(target_cohort_id, outcome_cohort_id, rr, calibrated_rr) %>%
+  knitr::kable(digits = 3)
+
+disconnect(resultsConn)
+```
+
+```{r cleanup, include=FALSE}
+# Clean up
+on.exit(disconnect(connection))
+unlink(outputFolder, recursive = TRUE)
+unlink(resultsDbFile)
+```
