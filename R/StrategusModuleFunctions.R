@@ -17,19 +17,129 @@
 # limitations under the License.
 
 
+#' Get module information
+#'
+#' @return A list with module metadata
+#' @export
+getModuleInfo <- function() {
+  desc <- utils::packageDescription("SelfControlledCohort")
+
+  return(list(
+    name = desc$Package,
+    version = desc$Version,
+    description = desc$Title,
+    author = desc$Author,
+    maintainer = desc$Maintainer,
+    date = desc$Date
+  ))
+}
+
+#' Create Self-Controlled Cohort Module Specifications
+#'
+#' @description
+#' Creates a specifications object for the Self-Controlled Cohort module
+#' to be used within the OHDSI Strategus framework.
+#'
+#' @param analysisSettings A list of analysis settings containing the analysis
+#'   configuration and parameters for self-controlled cohort analyses.
+#' @param exposureCohortIds A numeric vector of cohort IDs representing the
+#'   exposures of interest.
+#' @param outcomeCohortIds A numeric vector of cohort IDs representing the
+#'   outcomes of interest.
+#' @param negativeControls A data frame with columns `exposureId` and `outcomeId`
+#'   representing negative control exposure-outcome pairs. Default is NULL.
+#' @param controlType Character string specifying the type of control. Options
+#'   are "outcome" or "exposure". Default is "outcome".
+#' @param computeThreads Integer specifying the number of threads to use for
+#'   parallel computation. Default is the number of available cores minus 1.
+#' @param runDiagnostics Logical indicating whether to run diagnostic tests on
+#'   the results. Default is TRUE.
+#' @param diagnostics Character vector specifying which diagnostics to run.
+#'   Options: "all", "counts", "event_dependent", "pre_exposure", "window_balance",
+#'   "cohort_stability". Default is "all".
+#' @param diagnosticThresholds Named list of diagnostic thresholds. See
+#'   getDefaultDiagnosticThresholds() for defaults.
+#'
+#' @return A list object of class `SelfControlledCohortModuleSpecifications` and
+#'   `ModuleSpecifications` containing the module name, version, repository
+#'   information, and analysis settings.
+#'
+#' @export
+createSelfControlledCohortModuleSpecifications <- function(
+  analysisSettings,
+  exposureCohortIds,
+  outcomeCohortIds,
+  negativeControls = NULL,
+  controlType = "outcome",
+  computeThreads = parallel::detectCores() - 1,
+  runDiagnostics = TRUE,
+  diagnostics = c("all"),
+  diagnosticThresholds = getDefaultDiagnosticThresholds()
+) {
+  moduleInfo <- getModuleInfo()
+
+  specifications <- list(
+    module = moduleInfo$name,
+    version = moduleInfo$version,
+    remoteRepo = "github.com/OHDSI/SelfControlledCohort",
+    remoteUsername = "ohdsi",
+    settings = list(
+      analysisSettings = analysisSettings,
+      exposureCohortIds = exposureCohortIds,
+      outcomeCohortIds = outcomeCohortIds,
+      negativeControls = negativeControls,
+      controlType = controlType,
+      computeThreads = computeThreads,
+      runDiagnostics = runDiagnostics,
+      diagnostics = diagnostics,
+      diagnosticThresholds = diagnosticThresholds
+    )
+  )
+
+  class(specifications) <- c("SelfControlledCohortModuleSpecifications", "ModuleSpecifications")
+  return(specifications)
+}
+
 #' Execute function for strategus
 #'
+#' @description
+#' Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework.
 #'
-execute <- function(connectionDetails,
-                    executionSettings,
-                    dashboard = NULL,
-                    analysisSettings = getSccAnalysisList(),
-                    computeThreads = getOption("strategus.SelfControlledCohort.computeThreads",
-                                               default = parallel::detectCores() - 1),
-                    exposureCohortIds = getExposureCohortIds(),
-                    outcomeCohortIds = getOutcomeCohortIds(),
-                    negativeControls = NULL,
-                    controlType = "outcome") {
+#' @param jobContext A list containing execution context including connectionDetails,
+#'   executionSettings, and moduleExecutionSettings from Strategus.
+#'
+#' @export
+execute <- function(jobContext) {
+  # Extract settings from jobContext
+  connectionDetails <- jobContext$connectionDetails
+  executionSettings <- jobContext$executionSettings
+  moduleSettings <- jobContext$moduleExecutionSettings$settings
+
+  # Version check
+  checkModuleVersion(jobContext$moduleExecutionSettings$version)
+
+  # Extract module-specific settings
+  analysisSettings <- moduleSettings$analysisSettings
+  exposureCohortIds <- moduleSettings$exposureCohortIds
+  outcomeCohortIds <- moduleSettings$outcomeCohortIds
+  negativeControls <- moduleSettings$negativeControls
+  controlType <- moduleSettings$controlType
+  computeThreads <- moduleSettings$computeThreads
+  runDiagnostics <- moduleSettings$runDiagnostics
+  diagnostics <- moduleSettings$diagnostics
+  diagnosticThresholds <- moduleSettings$diagnosticThresholds
+
+  # Set defaults for backwards compatibility
+  if (is.null(runDiagnostics)) {
+    runDiagnostics <- TRUE
+  }
+  if (is.null(diagnostics)) {
+    diagnostics <- c("all")
+  }
+  if (is.null(diagnosticThresholds)) {
+    diagnosticThresholds <- getDefaultDiagnosticThresholds()
+  }
+
   cli::cli_alert_info("Running scc on {executionSettings$databaseId}")
 
   if (length(negativeControls) == 0) {
@@ -42,43 +152,82 @@ execute <- function(connectionDetails,
     list(exposureId, outcomeId)
   })
 
-  tableSpace <- dashboard$config$databaseSchema
-  if (is.null(tableSpace))
-    tableSpace <- "all_by_all"
+  # Use Strategus-compliant results path
+  resultsPath <- file.path(
+    executionSettings$resultsFolder,
+    "selfControlledCohort"
+  )
 
-  resultsPath <- file.path("exec", "results", executionSettings$databaseId, tableSpace, "scc_result")
+  dir.create(resultsPath, recursive = TRUE, showWarnings = FALSE)
+
   cli::cli_alert_info("Starting scc execution")
   for (refRow in analysisSettings) {
     getrunSelfControlledCohortArgs <- refRow$runSelfControlledCohortArgs
     resultsExportPath <- file.path(resultsPath, paste0("A_", refRow$analysisId))
 
-    if (file.exists(file.path(resultsExportPath, paste0("manifest.json")))) {
+    if (file.exists(file.path(resultsExportPath, "manifest.json"))) {
       cli::cli_alert_info("Results manifest found in {resultsExportPath} skipping analysis")
       next
     }
 
-    args <- list(connectionDetails = connectionDetails,
-                 cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
-                 exposureDatabaseSchema = executionSettings$workDatabaseSchema,
-                 resultsDatabaseSchema = executionSettings$workDatabaseSchema,
-                 exposureTable = cohortTableNames$cohortTable,
-                 outcomeDatabaseSchema = executionSettings$workDatabaseSchema,
-                 outcomeTable = cohortTableNames$cohortTable,
-                 exposureIds = exposureCohortIds,
-                 outcomeIds = outcomeCohortIds,
-                 databaseId = executionSettings$databaseId,
-                 controlType = controlType,
-                 negativeControlPairs = negativeControlsList,
-                 # riskWindowsTable =  "reward_scc_risk_windows",
-                 # resultsTable = "reward_scc_results",
-                 analysisDescription = refRow$description,
-                 analysisId = refRow$analysisId,
-                 tempEmulationSchema = executionSettings$tempEmulationSchema,
-                 resultExportPath = resultsExportPath,
-                 computeThreads = computeThreads)
+    args <- list(
+      connectionDetails = connectionDetails,
+      cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
+      exposureDatabaseSchema = executionSettings$workDatabaseSchema,
+      resultsDatabaseSchema = executionSettings$workDatabaseSchema,
+      exposureTable = cohortTableNames$cohortTable,
+      outcomeDatabaseSchema = executionSettings$workDatabaseSchema,
+      outcomeTable = cohortTableNames$cohortTable,
+      exposureIds = exposureCohortIds,
+      outcomeIds = outcomeCohortIds,
+      databaseId = executionSettings$databaseId,
+      controlType = controlType,
+      negativeControlPairs = negativeControlsList,
+      analysisDescription = refRow$description,
+      analysisId = refRow$analysisId,
+      tempEmulationSchema = executionSettings$tempEmulationSchema,
+      resultExportPath = resultsExportPath,
+      computeThreads = computeThreads,
+      runDiagnostics = runDiagnostics,
+      diagnostics = diagnostics,
+      diagnosticThresholds = diagnosticThresholds
+    )
 
     args <- append(args, getrunSelfControlledCohortArgs)
     do.call(runSelfControlledCohort, args)
   }
   cli::cli_alert_success("Scc analysis complete for {executionSettings$databaseId}")
+}
+
+#' Check module version compatibility
+#'
+#' @param moduleVersion Character string of the module version from specifications.
+#'
+#' @return NULL (invisibly). Stops execution if incompatible, warns if older version.
+checkModuleVersion <- function(moduleVersion) {
+  currentVersion <- getModuleInfo()$version
+
+  # Parse versions
+  current <- package_version(currentVersion)
+  module <- package_version(moduleVersion)
+
+  # Check if module version is newer than current package
+  if (module > current) {
+    stop(sprintf(
+      "Module specifications version (%s) is newer than installed package version (%s). Please update the SelfControlledCohort package.",
+      moduleVersion,
+      currentVersion
+    ))
+  }
+
+  # Check if using older specifications with v2+ package
+  if (current >= "2.0.0" && module < current) {
+    warning(sprintf(
+      "Module specifications version (%s) is older than installed package version (%s). This may work but is not recommended. Consider regenerating module specifications.",
+      moduleVersion,
+      currentVersion
+    ))
+  }
+
+  invisible(NULL)
 }

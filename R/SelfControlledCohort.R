@@ -433,6 +433,11 @@ exportEstimates <- function(connectionDetails,
 #'                                         an alternative mechanism for exporting results
 #' @param analysisId                       An integer unique to this analysis
 #' @param analysisDescription              A string description of the analysis (optional)
+#' @param runDiagnostics                   If TRUE, run diagnostic tests on the results
+#' @param diagnostics                      Character vector specifying which diagnostics to run.
+#'                                         Options: "all", "counts", "event_dependent", "pre_exposure",
+#'                                         "window_balance", "cohort_stability". Default is "all".
+#' @param diagnosticThresholds             Named list of diagnostic thresholds. See getDefaultDiagnosticThresholds()
 #'
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
@@ -492,7 +497,10 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     databaseId,
                                     analysisId = 1,
                                     analysisDescription = paste("SCC analysis", analysisId),
-                                    resultExportManager = getDefaultExportManager(resultExportPath, databaseId)) {
+                                    resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
+                                    runDiagnostics = TRUE,
+                                    diagnostics = c("all"),
+                                    diagnosticThresholds = getDefaultDiagnosticThresholds()) {
   if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
     stop("Risk window end (exposed) should be on or after risk window start")
   if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
@@ -645,6 +653,25 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                     outputFolder = outputFolder,
                     resultExportManager = resultExportManager,
                     controlType = controlType)
+
+    # Run diagnostics if requested
+    if (runDiagnostics) {
+      ParallelLogger::logInfo("Running diagnostics")
+      runSccDiagnostics(
+        connection = connection,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        tempEmulationSchema = tempEmulationSchema,
+        resultsTable = resultsTable,
+        riskWindowsTable = riskWindowsTable,
+        outcomeTable = outcomeTable,
+        outcomeDatabaseSchema = outcomeDatabaseSchema,
+        analysisId = analysisId,
+        databaseId = databaseId,
+        diagnostics = diagnostics,
+        thresholds = diagnosticThresholds,
+        resultExportManager = resultExportManager
+      )
+    }
   }
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")

@@ -32,8 +32,8 @@ runSelfControlledCohort(
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
   followupPeriod = 0,
-  computeThreads = getOption("strategus.SelfControlledCohort.computeThreads",
-    defaultValue = parallel::detectCores() - 1),
+  computeThreads = getOption("strategus.SelfControlledCohort.computeThreads", default =
+    parallel::detectCores() - 1),
   riskWindowsTable = "#risk_windows",
   resultsTable = "#results",
   keepResultsTables = TRUE,
@@ -44,7 +44,10 @@ runSelfControlledCohort(
   databaseId,
   analysisId = 1,
   analysisDescription = paste("SCC analysis", analysisId),
-  resultExportManager = getDefaultExportManager(resultExportPath, databaseId)
+  resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
+  runDiagnostics = TRUE,
+  diagnostics = c("all"),
+  diagnosticThresholds = getDefaultDiagnosticThresholds()
 )
 }
 \arguments{
@@ -180,6 +183,14 @@ riskWindowsTable are temporary.}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}
+
+\item{runDiagnostics}{If TRUE, run diagnostic tests on the results}
+
+\item{diagnostics}{Character vector specifying which diagnostics to run.
+Options: "all", "counts", "event_dependent", "pre_exposure",
+"window_balance", "cohort_stability". Default is "all".}
+
+\item{diagnosticThresholds}{Named list of diagnostic thresholds. See getDefaultDiagnosticThresholds()}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.

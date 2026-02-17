@@ -1,3 +1,44 @@
+SelfControlledCohort 2.1.0
+==========================
+
+This release implements revised diagnostics aligned with SelfControlledCaseSeries package standards.
+
+**Breaking Changes:**
+
+- Diagnostic names and thresholds have changed to match SCCS standards
+- Old diagnostics (`counts`, `window_balance`, `cohort_stability`, `pre_exposure`) have been removed
+- `getDefaultDiagnosticThresholds()` now returns different threshold names
+
+**New Diagnostics:**
+
+- **MDRR** - Minimum Detectable Relative Risk (power analysis)
+- **PRE_EXPOSURE_PROPORTION** - Tests for outcomes before exposure start
+- **PRE_EXPOSURE_P_VALUE** - Statistical test for pre-exposure gain
+- **TIME_TREND_P_VALUE** - Tests for temporal trends in outcome risk
+- **SPARSE_EXPOSED** / **SPARSE_UNEXPOSED** - Checks for sufficient events in both windows
+- **EVENT_DEPENDENT_OBSERVATION** - Retained from previous version
+
+**New Functions:**
+
+- `computeMdrrForRateRatio()` - Calculate MDRR for power assessment
+- `testPreExposureGain()` - Test for pre-exposure outcomes
+- `testTimeTrend()` - Test for time trends using Poisson GLM
+- `checkSparseData()` - Check for sparse data issues
+
+**Migration Guide:**
+
+See `MIGRATION_v2.1.md` for detailed information on updating existing code.
+
+Changes:
+
+- Revised diagnostic framework to align with SCCS package
+- Added power analysis (MDRR) diagnostic
+- Added pre-exposure gain detection
+- Added time trend analysis with Poisson GLM
+- Removed design-related diagnostics (window balance, cohort stability)
+- Updated diagnostic thresholds to match SCCS standards
+- Improved diagnostic result formatting with values in failure messages
+
 SelfControlledCohort 2.0.0
 ==========================
 This is a major release and breaks backwards compatability with version 1.x.x series code.
