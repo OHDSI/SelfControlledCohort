@@ -89,6 +89,18 @@ test_that("execute function runs correctly", {
 
     # Mock runSelfControlledCohort to avoid dependency on database/Eunomia for this test
     testthat::with_mocked_bindings(
+        {
+            # Also need to mock getCohortTableNames since we use a mock connection
+            testthat::with_mocked_bindings(
+                {
+                    expect_no_error(execute(jobContext))
+                },
+                getCohortTableNames = function(baseName) {
+                    list(cohortTable = baseName)
+                },
+                .package = "CohortGenerator"
+            )
+        },
         runSelfControlledCohort = function(...) {
             args <- list(...)
             # Create the expected output directory and files
@@ -96,18 +108,6 @@ test_that("execute function runs correctly", {
             write.csv(data.frame(target_cohort_id = 1), file.path(args$resultExportPath, "scc_result.csv"))
             write("{}", file.path(args$resultExportPath, "manifest.json"))
             return(invisible(NULL))
-        },
-        {
-            # Also need to mock getCohortTableNames since we use a mock connection
-            testthat::with_mocked_bindings(
-                getCohortTableNames = function(baseName) {
-                    list(cohortTable = baseName)
-                },
-                {
-                    expect_no_error(execute(jobContext))
-                },
-                .package = "CohortGenerator"
-            )
         },
         .package = "SelfControlledCohort"
     )
@@ -119,11 +119,44 @@ test_that("execute function runs correctly", {
 
     # Test skipping analysis if manifest exists
     testthat::with_mocked_bindings(
+        {
+            expect_message(execute(jobContext), "Results manifest found.*skipping analysis")
+        },
         runSelfControlledCohort = function(...) {
             stop("Should not be called because manifest exists")
         },
+        .package = "SelfControlledCohort"
+    )
+
+    # Test execute with NULL diagnostics settings to trigger defaults
+    jobContext$moduleExecutionSettings$settings$runDiagnostics <- NULL
+    jobContext$moduleExecutionSettings$settings$diagnostics <- NULL
+    jobContext$moduleExecutionSettings$settings$diagnosticThresholds <- NULL
+    # Remove manifest to allow execution
+    unlink(file.path(sccResultsPath, "manifest.json"))
+
+    testthat::with_mocked_bindings(
         {
-            expect_message(execute(jobContext), "Results manifest found.*skipping analysis")
+            testthat::with_mocked_bindings(
+                {
+                    expect_no_error(execute(jobContext))
+                },
+                getCohortTableNames = function(baseName) {
+                    list(cohortTable = baseName)
+                },
+                .package = "CohortGenerator"
+            )
+        },
+        runSelfControlledCohort = function(...) {
+            args <- list(...)
+            # Verify defaults are set
+            expect_true(args$runDiagnostics)
+            expect_equal(args$diagnostics, "all")
+            expect_type(args$diagnosticThresholds, "list")
+
+            dir.create(args$resultExportPath, recursive = TRUE, showWarnings = FALSE)
+            write("{}", file.path(args$resultExportPath, "manifest.json"))
+            return(invisible(NULL))
         },
         .package = "SelfControlledCohort"
     )
