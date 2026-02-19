@@ -207,19 +207,23 @@ combination of exposure and outcome.
 }
 \examples{
 \dontrun{
-connectionDetails <- createConnectionDetails(dbms = "sql server",
-                                             server = "RNDUSRDHIT07.jnj.com")
+connectionDetails <- createConnectionDetails(
+  dbms = "sql server",
+  server = "RNDUSRDHIT07.jnj.com"
+)
 sccResult <- runSelfControlledCohort(connectionDetails,
-                                     cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-                                     exposureIds = c(767410, 1314924, 907879),
-                                     outcomeIds = 444382,
-                                     outcomeTable = "condition_era")
+  cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+  exposureIds = c(767410, 1314924, 907879),
+  outcomeIds = 444382,
+  outcomeTable = "condition_era"
+)
 runSelfControlledCohort(connectionDetails,
-                        cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-                        exposureIds = c(767410, 1314924, 907879),
-                        outcomeIds = 444382,
-                        outcomeTable = "condition_era",
-                        returnEstimates = FALSE)
+  cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+  exposureIds = c(767410, 1314924, 907879),
+  outcomeIds = 444382,
+  outcomeTable = "condition_era",
+  returnEstimates = FALSE
+)
 }
 }
 \references{

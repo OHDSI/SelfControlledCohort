@@ -7,6 +7,7 @@
 exportEstimates(
   connectionDetails,
   connection,
+  cdmDatabaseSchema,
   resultsTable,
   riskWindowsTable,
   negativeControlPairs = NULL,
@@ -25,7 +26,8 @@ exportEstimates(
   resultExportPath = "scc_result",
   outputFolder = "scc_work",
   resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
-  controlType = "outcomes"
+  controlType = "outcomes",
+  diagnosticResults = NULL
 )
 }
 \arguments{
@@ -34,6 +36,9 @@ the function \code{createConnectionDetails} in the
 \code{DatabaseConnector} package.}
 
 \item{connection}{DatabaseConnector connection instance}
+
+\item{cdmDatabaseSchema}{Name of database schema that contains the OMOP CDM and
+vocabulary.}
 
 \item{resultsTable}{string - must be a permanent table}
 
