@@ -27,27 +27,33 @@
 "_PACKAGE"
 
 computeIrrs <- function(estimates) {
-
   computeIrr <- function(numOutcomesExposed, numOutcomesUnexposed, timeAtRiskExposed, timeAtRiskUnexposed) {
-    if (numOutcomesExposed == 0 & numOutcomesUnexposed == 0) {
+    if (numOutcomesExposed == 0 && numOutcomesUnexposed == 0) {
       return(c(NA, 0, Inf))
     }
-    test <- rateratio.test::rateratio.test(x = abs(c(numOutcomesExposed,
-                                                     numOutcomesUnexposed)),
-                                           n = abs(c(timeAtRiskExposed,
-                                                     timeAtRiskUnexposed)))
+    test <- rateratio.test::rateratio.test(
+      x = abs(c(
+        numOutcomesExposed,
+        numOutcomesUnexposed
+      )),
+      n = abs(c(
+        timeAtRiskExposed,
+        timeAtRiskUnexposed
+      ))
+    )
     return(c(test$estimate[1], test$conf.int))
   }
 
   irrs <- mapply(computeIrr,
-                 numOutcomesExposed = estimates$num_outcomes_exposed,
-                 numOutcomesUnexposed = estimates$num_outcomes_unexposed,
-                 timeAtRiskExposed = estimates$time_at_risk_exposed,
-                 timeAtRiskUnexposed = estimates$time_at_risk_unexposed)
+    numOutcomesExposed = estimates$num_outcomes_exposed,
+    numOutcomesUnexposed = estimates$num_outcomes_unexposed,
+    timeAtRiskExposed = estimates$time_at_risk_exposed,
+    timeAtRiskUnexposed = estimates$time_at_risk_unexposed
+  )
 
-  estimates$rr <- irrs[1,]
-  estimates$lb_95 <- irrs[2,]
-  estimates$ub_95 <- irrs[3,]
+  estimates$rr <- irrs[1, ]
+  estimates$lb_95 <- irrs[2, ]
+  estimates$ub_95 <- irrs[3, ]
 
   estimates$log_rr <- log(estimates$rr)
   estimates$se_log_rr <- (log(estimates$ub_95) - log(estimates$lb_95)) / (2 * qnorm(0.975))
@@ -64,15 +70,19 @@ batchComputeEstimates <- function(connection,
                                   resultExportManager,
                                   negativeControlPairs,
                                   controlType,
-                                  tempEmulationSchema) {
+                                  tempEmulationSchema,
+                                  diagnosticResults = NULL) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
   andromeda <- Andromeda::andromeda()
   # Clean up, regardless of status
-  on.exit({
-    ParallelLogger::stopCluster(cluster)
-    Andromeda::close(andromeda)
-  }, add = TRUE)
+  on.exit(
+    {
+      ParallelLogger::stopCluster(cluster)
+      Andromeda::close(andromeda)
+    },
+    add = TRUE
+  )
 
   # Writes both to CSV and andromeda object for later calibrated results
   batchComputeCallBack <- function(rows, position, cluster, andromeda) {
@@ -99,11 +109,12 @@ batchComputeEstimates <- function(connection,
             AND time_at_risk_exposed > 0
             AND time_at_risk_unexposed > 0"
   DatabaseConnector::renderTranslateQueryApplyBatched(connection,
-                                                      rsql,
-                                                      results_table = resultsTable,
-                                                      fun = batchComputeCallBack,
-                                                      tempEmulationSchema = tempEmulationSchema,
-                                                      args = args)
+    rsql,
+    results_table = resultsTable,
+    fun = batchComputeCallBack,
+    tempEmulationSchema = tempEmulationSchema,
+    args = args
+  )
 
   if (is.null(andromeda$estimates) || andromeda$estimates |>
     dplyr::count() |>
@@ -142,28 +153,54 @@ batchComputeEstimates <- function(connection,
 
             outcomeExposurePairs <- estimates |>
               dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]]) |>
-              dplyr::select(dataCol, filterCol) |>
+              dplyr::select(dplyr::all_of(c(dataCol, filterCol))) |>
               dplyr::mutate(true_effect_size = NA) |>
               dplyr::distinct()
 
             resultExportManager$exportDataFrame(outcomeExposurePairs,
-                                                "scc_outcome_exposure",
-                                                append = TRUE)
+              "scc_outcome_exposure",
+              append = TRUE
+            )
 
             colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
             colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
 
-            calibratedEstimates <- computeCalibratedRows(
-              positives = estimates,
-              negatives = negatives
-            )
+            # Filter negatives based on diagnostics if available
+            if (!is.null(diagnosticResults)) {
+              blindingSummary <- getDiagnosticsSummary(diagnosticResults)
+              if (nrow(blindingSummary) > 0) {
+                # Keep only negatives that are unblind_for_calibration
+                negatives <- negatives |>
+                  dplyr::inner_join(
+                    blindingSummary |>
+                      dplyr::filter(.data$UNBLIND_FOR_CALIBRATION == 1) |>
+                      dplyr::select("target_cohort_id", "outcome_cohort_id"),
+                    by = c("targetCohortId" = "target_cohort_id", "outcomeCohortId" = "outcome_cohort_id")
+                  )
+              }
+            }
+
+            if (nrow(negatives) > 0) {
+              calibratedEstimates <- computeCalibratedRows(
+                positives = estimates,
+                negatives = negatives
+              )
+            } else {
+              # No valid negative controls for calibration, return estimates with NA calibration
+              calibratedEstimates <- estimates
+              cols <- c("calibratedRr", "calibratedSeLogRr", "calibratedLb95", "calibratedUb95", "calibratedPValue")
+              for (name in cols) {
+                calibratedEstimates[[name]] <- NA_real_
+              }
+            }
 
             colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
             calibratedEstimates$i2 <- NA
             calibratedEstimates$analysis_id <- analysisId
             resultExportManager$exportDataFrame(calibratedEstimates,
-                                                "scc_result",
-                                                append = !first)
+              "scc_result",
+              append = !first
+            )
             first <<- FALSE
           }
         })
@@ -187,8 +224,10 @@ batchComputeEstimates <- function(connection,
       }
 
       outcomeExposurePairs <- batch |>
-        dplyr::select("targetCohortId" = "target_cohort_id",
-                      "outcomeCohortId" = "outcome_cohort_id") |>
+        dplyr::select(
+          "targetCohortId" = "target_cohort_id",
+          "outcomeCohortId" = "outcome_cohort_id"
+        ) |>
         dplyr::mutate(true_effect_size = NA) |>
         dplyr::distinct()
 
@@ -229,6 +268,7 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' @param riskWindowsTable  string - must be a permanent table
 exportEstimates <- function(connectionDetails,
                             connection,
+                            cdmDatabaseSchema,
                             resultsTable,
                             riskWindowsTable,
                             negativeControlPairs = NULL,
@@ -247,7 +287,8 @@ exportEstimates <- function(connectionDetails,
                             resultExportPath = "scc_result",
                             outputFolder = "scc_work",
                             resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
-                            controlType = "outcomes") {
+                            controlType = "outcomes",
+                            diagnosticResults = NULL) {
   checkmate::assertR6(resultExportManager, "ResultExportManager")
   checkmate::assertList(negativeControlPairs, null.ok = TRUE)
   checkmate::assertChoice(controlType, choices = c("outcome", "exposure"))
@@ -263,18 +304,22 @@ exportEstimates <- function(connectionDetails,
   }
 
   if (!is.null(exposureIds)) {
-    DatabaseConnector::insertTable(connection = connection,
-                                   tableName = "#scc_exposure_ids",
-                                   data = data.frame(exposure_id = exposureIds),
-                                   tempTable = TRUE)
+    DatabaseConnector::insertTable(
+      connection = connection,
+      tableName = "#scc_exposure_ids",
+      data = data.frame(exposure_id = exposureIds),
+      tempTable = TRUE
+    )
   }
 
 
   if (!is.null(outcomeIds)) {
-    DatabaseConnector::insertTable(connection = connection,
-                                   tableName = "#scc_outcome_ids",
-                                   data = data.frame(outcome_id = outcomeIds),
-                                   tempTable = TRUE)
+    DatabaseConnector::insertTable(
+      connection = connection,
+      tableName = "#scc_outcome_ids",
+      data = data.frame(outcome_id = outcomeIds),
+      tempTable = TRUE
+    )
   }
 
   outcomeTable <- tolower(outcomeTable)
@@ -292,32 +337,39 @@ exportEstimates <- function(connectionDetails,
     outcomePersonId <- "subject_id"
   }
 
-  .getSccRiskWindowStats(connection,
-                         tempEmulationSchema,
-                         outcomeIds,
-                         outcomeDatabaseSchema,
-                         outcomeTable,
-                         outcomeStartDate,
-                         outcomeId,
-                         outcomePersonId,
-                         analysisId,
-                         firstOutcomeOnly,
-                         riskWindowsTable,
-                         resultExportManager)
+  .getSccRiskWindowStats(
+    connection,
+    tempEmulationSchema,
+    outcomeIds,
+    outcomeDatabaseSchema,
+    outcomeTable,
+    outcomeStartDate,
+    outcomeId,
+    outcomePersonId,
+    analysisId,
+    firstOutcomeOnly,
+    riskWindowsTable,
+    resultExportManager
+  )
 
   ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  batchComputeEstimates(connection = connection,
-                        analysisId = analysisId,
-                        computeThreads = computeThreads,
-                        resultsTable = resultsTable,
-                        resultExportManager = resultExportManager,
-                        negativeControlPairs = negativeControlPairs,
-                        controlType = controlType,
-                        tempEmulationSchema = tempEmulationSchema)
+  batchComputeEstimates(
+    connection = connection,
+    analysisId = analysisId,
+    computeThreads = computeThreads,
+    resultsTable = resultsTable,
+    resultExportManager = resultExportManager,
+    negativeControlPairs = negativeControlPairs,
+    controlType = controlType,
+    tempEmulationSchema = tempEmulationSchema,
+    diagnosticResults = diagnosticResults
+  )
 
 
-  resultExportManager$writeManifest(packageName = utils::packageName(),
-                                    packageVersion = utils::packageVersion(utils::packageName()))
+  resultExportManager$writeManifest(
+    packageName = utils::packageName(),
+    packageVersion = utils::packageVersion(utils::packageName())
+  )
 }
 
 #' @title
@@ -443,19 +495,23 @@ exportEstimates <- function(connectionDetails,
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
 #' \dontrun{
-#' connectionDetails <- createConnectionDetails(dbms = "sql server",
-#'                                              server = "RNDUSRDHIT07.jnj.com")
+#' connectionDetails <- createConnectionDetails(
+#'   dbms = "sql server",
+#'   server = "RNDUSRDHIT07.jnj.com"
+#' )
 #' sccResult <- runSelfControlledCohort(connectionDetails,
-#'                                      cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-#'                                      exposureIds = c(767410, 1314924, 907879),
-#'                                      outcomeIds = 444382,
-#'                                      outcomeTable = "condition_era")
+#'   cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+#'   exposureIds = c(767410, 1314924, 907879),
+#'   outcomeIds = 444382,
+#'   outcomeTable = "condition_era"
+#' )
 #' runSelfControlledCohort(connectionDetails,
-#'                         cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-#'                         exposureIds = c(767410, 1314924, 907879),
-#'                         outcomeIds = 444382,
-#'                         outcomeTable = "condition_era",
-#'                         returnEstimates = FALSE)
+#'   cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+#'   exposureIds = c(767410, 1314924, 907879),
+#'   outcomeIds = 444382,
+#'   outcomeTable = "condition_era",
+#'   returnEstimates = FALSE
+#' )
 #' }
 #' @export
 runSelfControlledCohort <- function(connectionDetails = NULL,
@@ -486,7 +542,8 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     washoutPeriod = 0,
                                     followupPeriod = 0,
                                     computeThreads = getOption("strategus.SelfControlledCohort.computeThreads",
-                                                               default = parallel::detectCores() - 1),
+                                      default = parallel::detectCores() - 1
+                                    ),
                                     riskWindowsTable = "#risk_windows",
                                     resultsTable = "#results",
                                     keepResultsTables = TRUE,
@@ -501,10 +558,12 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     runDiagnostics = TRUE,
                                     diagnostics = c("all"),
                                     diagnosticThresholds = getDefaultDiagnosticThresholds()) {
-  if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed)
+  if (riskWindowEndExposed < riskWindowStartExposed && !addLengthOfExposureExposed) {
     stop("Risk window end (exposed) should be on or after risk window start")
-  if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed)
+  }
+  if (riskWindowEndUnexposed < riskWindowStartUnexposed && !addLengthOfExposureUnexposed) {
     stop("Risk window end (unexposed) should be on or after risk window start")
+  }
   start <- Sys.time()
 
   outcomeTable <- tolower(outcomeTable)
@@ -532,12 +591,14 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   }
 
   if (resultsTable != "#results") {
-    if (is.null(resultsDatabaseSchema))
+    if (is.null(resultsDatabaseSchema)) {
       stop("Results table is not temporary and resultsDatabaseSchema is not set")
+    }
 
     resultsTable <- SqlRender::render("@results_database_schema.@results_table",
-                                      results_database_schema = resultsDatabaseSchema,
-                                      results_table = resultsTable)
+      results_database_schema = resultsDatabaseSchema,
+      results_table = resultsTable
+    )
   }
 
   # Check if connection already open:
@@ -552,112 +613,102 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   }
 
   if (!is.null(outcomeIds)) {
-    DatabaseConnector::insertTable(connection = connection,
-                                   tableName = "#scc_outcome_ids",
-                                   data = data.frame(outcome_id = outcomeIds),
-                                   tempTable = TRUE)
+    DatabaseConnector::insertTable(
+      connection = connection,
+      tableName = "#scc_outcome_ids",
+      data = data.frame(outcome_id = outcomeIds),
+      tempTable = TRUE
+    )
   }
 
-  settingsString <- list(firstExposureOnly = firstExposureOnly,
-                         firstOutcomeOnly = firstExposureOnly,
-                         minAge = minAge,
-                         maxAge = maxAge,
-                         studyStartDate = studyStartDate,
-                         studyEndDate = studyEndDate,
-                         addLengthOfExposureExposed = addLengthOfExposureExposed,
-                         riskWindowStartExposed = riskWindowStartExposed,
-                         riskWindowEndExposed = riskWindowEndExposed,
-                         addLengthOfExposureUnexposed = addLengthOfExposureUnexposed,
-                         riskWindowEndUnexposed = riskWindowEndUnexposed,
-                         riskWindowStartUnexposed = riskWindowStartUnexposed,
-                         hasFullTimeAtRisk = hasFullTimeAtRisk,
-                         washoutPeriod = washoutPeriod,
-                         followupPeriod = followupPeriod) |>
+  settingsString <- list(
+    firstExposureOnly = firstExposureOnly,
+    firstOutcomeOnly = firstExposureOnly,
+    minAge = minAge,
+    maxAge = maxAge,
+    studyStartDate = studyStartDate,
+    studyEndDate = studyEndDate,
+    addLengthOfExposureExposed = addLengthOfExposureExposed,
+    riskWindowStartExposed = riskWindowStartExposed,
+    riskWindowEndExposed = riskWindowEndExposed,
+    addLengthOfExposureUnexposed = addLengthOfExposureUnexposed,
+    riskWindowEndUnexposed = riskWindowEndUnexposed,
+    riskWindowStartUnexposed = riskWindowStartUnexposed,
+    hasFullTimeAtRisk = hasFullTimeAtRisk,
+    washoutPeriod = washoutPeriod,
+    followupPeriod = followupPeriod
+  ) |>
     ParallelLogger::convertSettingsToJson() |>
     as.character()
 
-  sccAnalysisSetting <- data.frame(analysis_id = analysisId,
-                                   description = analysisDescription,
-                                   settings = settingsString)
+  sccAnalysisSetting <- data.frame(
+    analysis_id = analysisId,
+    description = analysisDescription,
+    settings = settingsString
+  )
 
   resultExportManager$exportDataFrame(sccAnalysisSetting, "scc_analysis_setting", append = FALSE)
 
-  runSccRiskWindows(connection = connection,
-                    cdmDatabaseSchema = cdmDatabaseSchema,
-                    tempEmulationSchema = tempEmulationSchema,
-                    exposureIds = exposureIds,
-                    exposureDatabaseSchema = exposureDatabaseSchema,
-                    exposureTable = exposureTable,
-                    firstExposureOnly = firstExposureOnly,
-                    minAge = minAge,
-                    maxAge = maxAge,
-                    studyStartDate = studyStartDate,
-                    studyEndDate = studyEndDate,
-                    addLengthOfExposureExposed = addLengthOfExposureExposed,
-                    riskWindowStartExposed = riskWindowStartExposed,
-                    riskWindowEndExposed = riskWindowEndExposed,
-                    addLengthOfExposureUnexposed = addLengthOfExposureUnexposed,
-                    riskWindowEndUnexposed = riskWindowEndUnexposed,
-                    riskWindowStartUnexposed = riskWindowStartUnexposed,
-                    hasFullTimeAtRisk = hasFullTimeAtRisk,
-                    washoutPeriod = washoutPeriod,
-                    followupPeriod = followupPeriod,
-                    riskWindowsTable = riskWindowsTable,
-                    keepResultsTables = keepResultsTables,
-                    resultsDatabaseSchema = resultsDatabaseSchema)
+  runSccRiskWindows(
+    connection = connection,
+    cdmDatabaseSchema = cdmDatabaseSchema,
+    tempEmulationSchema = tempEmulationSchema,
+    exposureIds = exposureIds,
+    exposureDatabaseSchema = exposureDatabaseSchema,
+    exposureTable = exposureTable,
+    firstExposureOnly = firstExposureOnly,
+    minAge = minAge,
+    maxAge = maxAge,
+    studyStartDate = studyStartDate,
+    studyEndDate = studyEndDate,
+    addLengthOfExposureExposed = addLengthOfExposureExposed,
+    riskWindowStartExposed = riskWindowStartExposed,
+    riskWindowEndExposed = riskWindowEndExposed,
+    addLengthOfExposureUnexposed = addLengthOfExposureUnexposed,
+    riskWindowEndUnexposed = riskWindowEndUnexposed,
+    riskWindowStartUnexposed = riskWindowStartUnexposed,
+    hasFullTimeAtRisk = hasFullTimeAtRisk,
+    washoutPeriod = washoutPeriod,
+    followupPeriod = followupPeriod,
+    riskWindowsTable = riskWindowsTable,
+    keepResultsTables = keepResultsTables,
+    resultsDatabaseSchema = resultsDatabaseSchema
+  )
   if (riskWindowsTable != "#risk_windows") {
     riskWindowsTable <- SqlRender::render("@results_database_schema.@risk_windows_table",
-                                          results_database_schema = resultsDatabaseSchema,
-                                          risk_windows_table = riskWindowsTable)
-
+      results_database_schema = resultsDatabaseSchema,
+      risk_windows_table = riskWindowsTable
+    )
   } else {
     keepResultsTables <- FALSE
   }
 
   ParallelLogger::logInfo("Retrieving counts from database")
-  renderedSql <- SqlRender::loadRenderTranslateSql(sqlFilename = "Scc.sql",
-                                                   packageName = "SelfControlledCohort",
-                                                   dbms = DatabaseConnector::dbms(connection),
-                                                   tempEmulationSchema = tempEmulationSchema,
-                                                   outcome_ids = outcomeIds,
-                                                   outcome_database_schema = outcomeDatabaseSchema,
-                                                   outcome_table = outcomeTable,
-                                                   outcome_start_date = outcomeStartDate,
-                                                   outcome_id = outcomeId,
-                                                   analysis_id = analysisId,
-                                                   drop_results_table = !keepResultsTables,
-                                                   outcome_person_id = outcomePersonId,
-                                                   first_outcome_only = firstOutcomeOnly,
-                                                   risk_windows_table = riskWindowsTable,
-                                                   results_table = resultsTable)
+  renderedSql <- SqlRender::loadRenderTranslateSql(
+    sqlFilename = "Scc.sql",
+    packageName = "SelfControlledCohort",
+    dbms = DatabaseConnector::dbms(connection),
+    tempEmulationSchema = tempEmulationSchema,
+    outcome_ids = outcomeIds,
+    outcome_database_schema = outcomeDatabaseSchema,
+    outcome_table = outcomeTable,
+    outcome_start_date = outcomeStartDate,
+    outcome_id = outcomeId,
+    analysis_id = analysisId,
+    drop_results_table = !keepResultsTables,
+    outcome_person_id = outcomePersonId,
+    first_outcome_only = firstOutcomeOnly,
+    risk_windows_table = riskWindowsTable,
+    results_table = resultsTable
+  )
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (extractResults) {
-    exportEstimates(connection = connection,
-                    exposureIds = exposureIds,
-                    outcomeIds = outcomeIds,
-                    exposureDatabaseSchema = exposureDatabaseSchema,
-                    exposureTable = exposureTable,
-                    negativeControlPairs = negativeControlPairs,
-                    outcomeDatabaseSchema = outcomeDatabaseSchema,
-                    outcomeTable = outcomeTable,
-                    databaseId = databaseId,
-                    analysisId = analysisId,
-                    computeThreads = computeThreads,
-                    firstOutcomeOnly = firstOutcomeOnly,
-                    riskWindowsTable = riskWindowsTable,
-                    tempEmulationSchema = tempEmulationSchema,
-                    resultsDatabaseSchema = resultsDatabaseSchema,
-                    resultExportPath = resultExportPath,
-                    resultsTable = resultsTable,
-                    outputFolder = outputFolder,
-                    resultExportManager = resultExportManager,
-                    controlType = controlType)
-
-    # Run diagnostics if requested
+    # Run diagnostics if requested before estimation so we can gate calibration
+    diagnosticResults <- NULL
     if (runDiagnostics) {
       ParallelLogger::logInfo("Running diagnostics")
-      runSccDiagnostics(
+      diagnosticResults <- runSccDiagnostics(
         connection = connection,
         cdmDatabaseSchema = cdmDatabaseSchema,
         tempEmulationSchema = tempEmulationSchema,
@@ -672,22 +723,47 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
         resultExportManager = resultExportManager
       )
     }
+
+    exportEstimates(
+      connection = connection,
+      exposureIds = exposureIds,
+      outcomeIds = outcomeIds,
+      exposureDatabaseSchema = exposureDatabaseSchema,
+      exposureTable = exposureTable,
+      negativeControlPairs = negativeControlPairs,
+      outcomeDatabaseSchema = outcomeDatabaseSchema,
+      outcomeTable = outcomeTable,
+      databaseId = databaseId,
+      analysisId = analysisId,
+      computeThreads = computeThreads,
+      firstOutcomeOnly = firstOutcomeOnly,
+      riskWindowsTable = riskWindowsTable,
+      tempEmulationSchema = tempEmulationSchema,
+      resultsDatabaseSchema = resultsDatabaseSchema,
+      resultExportPath = resultExportPath,
+      resultsTable = resultsTable,
+      outputFolder = outputFolder,
+      resultExportManager = resultExportManager,
+      controlType = controlType,
+      diagnosticResults = diagnosticResults
+    )
   }
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
-  sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CleanupTables.sql",
-                                           packageName = "SelfControlledCohort",
-                                           dbms = connection@dbms,
-                                           tempEmulationSchema = tempEmulationSchema,
-                                           outcome_ids = outcomeIds,
-                                           exposure_ids = exposureIds,
-                                           risk_windows_table = riskWindowsTable,
-                                           drop_results_table = !keepResultsTables,
-                                           results_table = resultsTable)
+  sql <- SqlRender::loadRenderTranslateSql(
+    sqlFilename = "CleanupTables.sql",
+    packageName = "SelfControlledCohort",
+    dbms = connection@dbms,
+    tempEmulationSchema = tempEmulationSchema,
+    outcome_ids = outcomeIds,
+    exposure_ids = exposureIds,
+    risk_windows_table = riskWindowsTable,
+    drop_results_table = !keepResultsTables,
+    results_table = resultsTable
+  )
   DatabaseConnector::executeSql(connection, sql)
   delta <- Sys.time() - start
   ParallelLogger::logInfo(paste("Performing SCC analysis took", signif(delta, 3), attr(delta, "units")))
 
   return(invisible())
 }
-

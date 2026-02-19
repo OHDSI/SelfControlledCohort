@@ -36,12 +36,12 @@
 #' @export
 getDefaultDiagnosticThresholds <- function() {
   list(
-    mdrrMaxAcceptable = 2.0,                      # Max MDRR for adequate power
-    maxPreExposureProportion = 0.05,              # Max 5% with pre-exposure outcomes
-    preExposurePThreshold = 0.05,                 # Significance level for pre-exposure test
-    maxEventDependentCensoring = 0.10,            # Max 10% censored within 30 days of outcome
-    timeTrendPThreshold = 0.05,                   # Significance level for time trend
-    minEventsPerWindow = 3                        # Min 3 events in each window
+    mdrrMaxAcceptable = 2.0, # Max MDRR for adequate power
+    maxPreExposureProportion = 0.05, # Max 5% with pre-exposure outcomes
+    preExposurePThreshold = 0.05, # Significance level for pre-exposure test
+    maxEventDependentCensoring = 0.10, # Max 10% censored within 30 days of outcome
+    timeTrendPThreshold = 0.05, # Significance level for time trend
+    minEventsPerWindow = 3 # Min 3 events in each window
   )
 }
 
@@ -94,7 +94,6 @@ runSccDiagnostics <- function(connection,
                               diagnostics = c("all"),
                               thresholds = getDefaultDiagnosticThresholds(),
                               resultExportManager) {
-
   if (!DatabaseConnector::dbIsValid(connection)) {
     stop("Invalid connection object")
   }
@@ -102,14 +101,16 @@ runSccDiagnostics <- function(connection,
   checkmate::assertR6(resultExportManager, "ResultExportManager")
 
   # Expand "all" to specific diagnostics
-  allDiagnostics <- c("mdrr", "pre_exposure_gain", "event_dependent",
-                      "time_trend", "sparse_data")
+  allDiagnostics <- c(
+    "mdrr", "pre_exposure_gain", "event_dependent",
+    "time_trend", "sparse_data"
+  )
 
   if ("all" %in% diagnostics) {
     diagnostics <- allDiagnostics
   }
 
-  ParallelLogger::logInfo("Running SCC diagnostics (v1.6.0+)")
+  ParallelLogger::logInfo("Running SCC diagnostics")
 
   diagnosticResults <- data.frame()
 
@@ -192,28 +193,43 @@ runSccDiagnostics <- function(connection,
 
     # Reorder columns to match schema
     diagnosticResults <- diagnosticResults |>
-      dplyr::select("database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id",
-                    "diagnostic_name", "diagnostic_value", "pass")
+      dplyr::select(
+        "database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id",
+        "diagnostic_name", "diagnostic_value", "pass"
+      )
 
     # Export results
+    # Check if file exists to determine if we should append
+    # If we append to a non-existent file, headers are not written
+    outputFile <- file.path(resultExportManager$exportDir, "scc_diagnostics_summary.csv")
+    append <- file.exists(outputFile)
+
     resultExportManager$exportDataFrame(diagnosticResults,
-                                       "scc_diagnostics_summary",
-                                       append = FALSE)
+      "scc_diagnostics_summary",
+      append = append
+    )
 
     ParallelLogger::logInfo(sprintf("Completed %d diagnostic tests", nrow(diagnosticResults)))
 
-    # Summary of failures
+    # Compute blinding status
+    blindingRows <- .computeBlindingStatus(diagnosticResults)
+    if (nrow(blindingRows) > 0) {
+      diagnosticResults <- rbind(diagnosticResults, blindingRows)
+    }
+
     failures <- diagnosticResults |>
-      dplyr::filter(.data$pass == 0)
+      dplyr::filter(.data$pass == 0 & !(.data$diagnostic_name %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION")))
 
     if (nrow(failures) > 0) {
       ParallelLogger::logWarn(sprintf("%d diagnostic test(s) failed:", nrow(failures)))
       for (i in seq_len(nrow(failures))) {
-        ParallelLogger::logWarn(sprintf("  - %s (Target: %s, Outcome: %s, Value: %.3f)",
-                                       failures$diagnostic_name[i],
-                                       failures$target_cohort_id[i],
-                                       failures$outcome_cohort_id[i],
-                                       failures$diagnostic_value[i]))
+        ParallelLogger::logWarn(sprintf(
+          "  - %s (Target: %s, Outcome: %s, Value: %.3f)",
+          failures$diagnostic_name[i],
+          failures$target_cohort_id[i],
+          failures$outcome_cohort_id[i],
+          failures$diagnostic_value[i]
+        ))
       }
     } else {
       ParallelLogger::logInfo("All diagnostic tests passed")
@@ -225,14 +241,85 @@ runSccDiagnostics <- function(connection,
   return(invisible(diagnosticResults))
 }
 
+#' Get diagnostics summary
+#'
+#' @description
+#' Returns a summary of diagnostic results for each target-outcome pair, including
+#' blinding status.
+#'
+#' @param diagnosticResults  Data frame of diagnostic results as returned by runSccDiagnostics
+#'
+#' @return
+#' A data frame with blinding status per target-outcome pair
+#'
+#' @export
+getDiagnosticsSummary <- function(diagnosticResults) {
+  if (is.null(diagnosticResults) || nrow(diagnosticResults) == 0) {
+    return(data.frame())
+  }
+
+  summary <- diagnosticResults |>
+    dplyr::filter(.data$diagnostic_name %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION")) |>
+    tidyr::pivot_wider(
+      names_from = "diagnostic_name",
+      values_from = "pass",
+      id_cols = c("database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id")
+    )
+
+  return(summary)
+}
+
+#' Compute blinding status rows
+#' @noRd
+.computeBlindingStatus <- function(diagnosticResults) {
+  if (nrow(diagnosticResults) == 0) {
+    return(data.frame())
+  }
+
+  # Group by target-outcome pair and compute aggregate pass status
+  blindingStatus <- diagnosticResults |>
+    dplyr::group_by(.data$database_id, .data$analysis_id, .data$target_cohort_id, .data$outcome_cohort_id) |>
+    dplyr::summarize(
+      # Tier 1: unblind_for_calibration - all non-MDRR diagnostics must pass
+      pass_for_calibration = as.integer(all(.data$pass[.data$diagnostic_name != "MDRR"] == 1)),
+      # Tier 2: unblind - all diagnostics must pass (including MDRR)
+      pass_all = as.integer(all(.data$pass == 1)),
+      .groups = "drop"
+    )
+
+  # Create new rows for the summary
+  unblindRows <- blindingStatus |>
+    dplyr::transmute(
+      .data$database_id,
+      .data$analysis_id,
+      .data$target_cohort_id,
+      .data$outcome_cohort_id,
+      diagnostic_name = "UNBLIND",
+      diagnostic_value = NA_real_,
+      pass = .data$pass_all
+    )
+
+  unblindCalibrationRows <- blindingStatus |>
+    dplyr::transmute(
+      .data$database_id,
+      .data$analysis_id,
+      .data$target_cohort_id,
+      .data$outcome_cohort_id,
+      diagnostic_name = "UNBLIND_FOR_CALIBRATION",
+      diagnostic_value = NA_real_,
+      pass = .data$pass_for_calibration
+    )
+
+  return(rbind(unblindRows, unblindCalibrationRows))
+}
+
 #' Compute MDRR (power) diagnostic
 #' @noRd
 .computeMdrrDiagnostic <- function(connection,
-                                    resultsTable,
-                                    analysisId,
-                                    thresholds,
-                                    tempEmulationSchema) {
-
+                                   resultsTable,
+                                   analysisId,
+                                   thresholds,
+                                   tempEmulationSchema) {
   sql <- "
   SELECT
     target_cohort_id,
@@ -275,7 +362,7 @@ runSccDiagnostics <- function(connection,
 
     # Check if MDRR is acceptable
     pass <- if (is.na(mdrr)) {
-      0L  # Fail if MDRR cannot be computed
+      0L # Fail if MDRR cannot be computed
     } else {
       as.integer(mdrr <= thresholds$mdrrMaxAcceptable)
     }
@@ -297,14 +384,13 @@ runSccDiagnostics <- function(connection,
 #' Compute pre-exposure gain diagnostic
 #' @noRd
 .computePreExposureGainDiagnostic <- function(connection,
-                                               cdmDatabaseSchema,
-                                               riskWindowsTable,
-                                               outcomeTable,
-                                               outcomeDatabaseSchema,
-                                               analysisId,
-                                               thresholds,
-                                               tempEmulationSchema) {
-
+                                              cdmDatabaseSchema,
+                                              riskWindowsTable,
+                                              outcomeTable,
+                                              outcomeDatabaseSchema,
+                                              analysisId,
+                                              thresholds,
+                                              tempEmulationSchema) {
   preExpData <- testPreExposureGain(
     connection = connection,
     riskWindowsTable = riskWindowsTable,
@@ -326,7 +412,7 @@ runSccDiagnostics <- function(connection,
     # Test passes if proportion <= threshold AND p-value > threshold
     pass <- as.integer(
       row$proportion <= thresholds$maxPreExposureProportion &&
-      row$pValue > thresholds$preExposurePThreshold
+        row$pValue > thresholds$preExposurePThreshold
     )
 
     # Add proportion diagnostic
@@ -365,7 +451,6 @@ runSccDiagnostics <- function(connection,
                                              analysisId,
                                              thresholds,
                                              tempEmulationSchema) {
-
   # Determine outcome table columns
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
@@ -445,13 +530,12 @@ runSccDiagnostics <- function(connection,
 #' Compute time trend diagnostic
 #' @noRd
 .computeTimeTrendDiagnostic <- function(connection,
-                                         riskWindowsTable,
-                                         outcomeTable,
-                                         outcomeDatabaseSchema,
-                                         analysisId,
-                                         thresholds,
-                                         tempEmulationSchema) {
-
+                                        riskWindowsTable,
+                                        outcomeTable,
+                                        outcomeDatabaseSchema,
+                                        analysisId,
+                                        thresholds,
+                                        tempEmulationSchema) {
   timeTrendData <- testTimeTrend(
     connection = connection,
     riskWindowsTable = riskWindowsTable,
@@ -471,10 +555,11 @@ runSccDiagnostics <- function(connection,
     row <- timeTrendData[i, ]
 
     # Test passes if p-value > threshold (no significant time trend)
-    pass <- if (is.na(row$timeTrendPValue)) {
-      1L  # Pass if cannot compute (not enough data)
+    pVal <- row$timeTrendPValue
+    pass <- if (is.null(pVal) || length(pVal) == 0 || is.na(pVal)) {
+      1L # Pass if cannot compute (not enough data)
     } else {
-      as.integer(row$timeTrendPValue > thresholds$timeTrendPThreshold)
+      as.integer(pVal > thresholds$timeTrendPThreshold)
     }
 
     diagRow <- data.frame(
@@ -482,7 +567,7 @@ runSccDiagnostics <- function(connection,
       target_cohort_id = row$targetCohortId,
       outcome_cohort_id = row$outcomeCohortId,
       diagnostic_name = "TIME_TREND_P_VALUE",
-      diagnostic_value = row$timeTrendPValue,
+      diagnostic_value = if (is.null(pVal) || length(pVal) == 0) NA_real_ else pVal,
       pass = pass
     )
     diagnostics <- rbind(diagnostics, diagRow)
@@ -494,11 +579,10 @@ runSccDiagnostics <- function(connection,
 #' Compute sparse data diagnostic
 #' @noRd
 .computeSparseDataDiagnostic <- function(connection,
-                                          resultsTable,
-                                          analysisId,
-                                          thresholds,
-                                          tempEmulationSchema) {
-
+                                         resultsTable,
+                                         analysisId,
+                                         thresholds,
+                                         tempEmulationSchema) {
   sql <- "
   SELECT
     target_cohort_id,
