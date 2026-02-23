@@ -6,44 +6,20 @@
 \usage{
 createSelfControlledCohortModuleSpecifications(
   analysisSettings,
-  exposureCohortIds,
-  outcomeCohortIds,
-  negativeControls = NULL,
-  controlType = "outcome",
-  computeThreads = parallel::detectCores() - 1,
-  runDiagnostics = TRUE,
-  diagnostics = c("all"),
-  diagnosticThresholds = getDefaultDiagnosticThresholds()
+  exposureOutcomeList,
+  computeThreads = parallel::detectCores() - 1
 )
 }
 \arguments{
 \item{analysisSettings}{A list of analysis settings containing the analysis
 configuration and parameters for self-controlled cohort analyses.}
 
-\item{exposureCohortIds}{A numeric vector of cohort IDs representing the
-exposures of interest.}
-
-\item{outcomeCohortIds}{A numeric vector of cohort IDs representing the
-outcomes of interest.}
-
-\item{negativeControls}{A data frame with columns `exposureId` and `outcomeId`
-representing negative control exposure-outcome pairs. Default is NULL.}
-
-\item{controlType}{Character string specifying the type of control. Options
-are "outcome" or "exposure". Default is "outcome".}
+\item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
+the \code{\link{createExposureOutcome}} function. Each object defines an exposure-outcome
+pair with exposureId, outcomeId, and optionally trueEffectSize (set to 1 for negative controls).}
 
 \item{computeThreads}{Integer specifying the number of threads to use for
 parallel computation. Default is the number of available cores minus 1.}
-
-\item{runDiagnostics}{Logical indicating whether to run diagnostic tests on
-the results. Default is TRUE.}
-
-\item{diagnostics}{Character vector specifying which diagnostics to run.
-Options: "all", "counts", "event_dependent", "pre_exposure", "window_balance",
-"cohort_stability". Default is "all".}
-
-\item{diagnosticThresholds}{Named list of diagnostic thresholds. See
-getDefaultDiagnosticThresholds() for defaults.}
 }
 \value{
 A list object of class `SelfControlledCohortModuleSpecifications` and

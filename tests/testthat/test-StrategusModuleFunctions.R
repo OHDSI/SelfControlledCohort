@@ -30,23 +30,27 @@ test_that("createSelfControlledCohortModuleSpecifications returns correct struct
         list(
             analysisId = 1,
             description = "Test",
-            runSelfControlledCohortArgs = list()
+            runSelfControlledCohortArgs = list(),
+            controlType = "outcome",
+            runDiagnostics = TRUE,
+            diagnostics = c("all"),
+            diagnosticThresholds = list()
         )
     )
-    exposureCohortIds <- c(1, 2)
-    outcomeCohortIds <- c(3, 4)
+    exposureOutcome1 <- createExposureOutcome(1, 3)
+    exposureOutcome2 <- createExposureOutcome(2, 4)
+    exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2)
 
     specs <- createSelfControlledCohortModuleSpecifications(
         analysisSettings = analysisSettings,
-        exposureCohortIds = exposureCohortIds,
-        outcomeCohortIds = outcomeCohortIds
+        exposureOutcomeList = exposureOutcomeList
     )
 
     expect_s3_class(specs, "SelfControlledCohortModuleSpecifications")
     expect_s3_class(specs, "ModuleSpecifications")
     expect_equal(specs$module, "SelfControlledCohort")
-    expect_equal(specs$settings$exposureCohortIds, exposureCohortIds)
-    expect_equal(specs$settings$outcomeCohortIds, outcomeCohortIds)
+    expect_equal(specs$settings$exposureOutcomeList, exposureOutcomeList)
+    expect_equal(specs$settings$analysisSettings[[1]]$controlType, "outcome")
 })
 
 test_that("execute function runs correctly", {
@@ -54,6 +58,10 @@ test_that("execute function runs correctly", {
     tempResultsDir <- tempfile("scc_strategus_results")
     dir.create(tempResultsDir)
     withr::defer(unlink(tempResultsDir, recursive = TRUE))
+
+    exposureOutcome1 <- createExposureOutcome(1, 3)
+    exposureOutcome2 <- createExposureOutcome(1, 4, trueEffectSize = 1)  # negative control
+    exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2)
 
     jobContext <- list(
         connectionDetails = list(), # Mock connection details
@@ -72,17 +80,15 @@ test_that("execute function runs correctly", {
                     list(
                         analysisId = 1,
                         description = "Test Analysis",
-                        runSelfControlledCohortArgs = list()
+                        runSelfControlledCohortArgs = list(),
+                        controlType = "outcome",
+                        runDiagnostics = FALSE,
+                        diagnostics = "all",
+                        diagnosticThresholds = list()
                     )
                 ),
-                exposureCohortIds = c(1),
-                outcomeCohortIds = c(3),
-                negativeControls = data.frame(exposureId = 1, outcomeId = 3),
-                controlType = "outcome",
-                computeThreads = 1,
-                runDiagnostics = FALSE,
-                diagnostics = "all",
-                diagnosticThresholds = list()
+                exposureOutcomeList = exposureOutcomeList,
+                computeThreads = 1
             )
         )
     )
@@ -128,10 +134,11 @@ test_that("execute function runs correctly", {
         .package = "SelfControlledCohort"
     )
 
-    # Test execute with NULL diagnostics settings to trigger defaults
-    jobContext$moduleExecutionSettings$settings$runDiagnostics <- NULL
-    jobContext$moduleExecutionSettings$settings$diagnostics <- NULL
-    jobContext$moduleExecutionSettings$settings$diagnosticThresholds <- NULL
+    # Test execute with NULL diagnostics settings in analysis to trigger defaults
+    jobContext$moduleExecutionSettings$settings$analysisSettings[[1]]$runDiagnostics <- NULL
+    jobContext$moduleExecutionSettings$settings$analysisSettings[[1]]$diagnostics <- NULL
+    jobContext$moduleExecutionSettings$settings$analysisSettings[[1]]$diagnosticThresholds <- NULL
+    jobContext$moduleExecutionSettings$settings$analysisSettings[[1]]$controlType <- NULL
     # Remove manifest to allow execution
     unlink(file.path(sccResultsPath, "manifest.json"))
 
@@ -153,6 +160,7 @@ test_that("execute function runs correctly", {
             expect_true(args$runDiagnostics)
             expect_equal(args$diagnostics, "all")
             expect_type(args$diagnosticThresholds, "list")
+            expect_equal(args$controlType, "outcome")
 
             dir.create(args$resultExportPath, recursive = TRUE, showWarnings = FALSE)
             write("{}", file.path(args$resultExportPath, "manifest.json"))

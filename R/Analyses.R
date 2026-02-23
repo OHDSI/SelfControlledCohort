@@ -32,13 +32,26 @@
 #'                                      in this analysis.
 #' @param runSelfControlledCohortArgs   An object representing the arguments to be used when calling
 #'                                      the \code{\link{runSelfControlledCohort}} function.
+#' @param controlType                   Character string specifying the type of control. Options
+#'                                      are "outcome" or "exposure". Default is "outcome".
+#' @param runDiagnostics                Logical indicating whether to run diagnostic tests on
+#'                                      the results. Default is TRUE.
+#' @param diagnostics                   Character vector specifying which diagnostics to run.
+#'                                      Options: "all", "counts", "event_dependent", "pre_exposure",
+#'                                      "window_balance", "cohort_stability". Default is "all".
+#' @param diagnosticThresholds          Named list of diagnostic thresholds. See
+#'                                      getDefaultDiagnosticThresholds() for defaults.
 #'
 #' @export
 createSccAnalysis <- function(analysisId = 1,
                               description = "",
                               exposureType = NULL,
                               outcomeType = NULL,
-                              runSelfControlledCohortArgs) {
+                              runSelfControlledCohortArgs,
+                              controlType = "outcome",
+                              runDiagnostics = TRUE,
+                              diagnostics = c("all"),
+                              diagnosticThresholds = getDefaultDiagnosticThresholds()) {
   # First: get the default values:
   analysis <- list()
   for (name in names(formals(createSccAnalysis))) {

@@ -9,7 +9,11 @@ createSccAnalysis(
   description = "",
   exposureType = NULL,
   outcomeType = NULL,
-  runSelfControlledCohortArgs
+  runSelfControlledCohortArgs,
+  controlType = "outcome",
+  runDiagnostics = TRUE,
+  diagnostics = c("all"),
+  diagnosticThresholds = getDefaultDiagnosticThresholds()
 )
 }
 \arguments{
@@ -28,6 +32,19 @@ in this analysis.}
 
 \item{runSelfControlledCohortArgs}{An object representing the arguments to be used when calling
 the \code{\link{runSelfControlledCohort}} function.}
+
+\item{controlType}{Character string specifying the type of control. Options
+are "outcome" or "exposure". Default is "outcome".}
+
+\item{runDiagnostics}{Logical indicating whether to run diagnostic tests on
+the results. Default is TRUE.}
+
+\item{diagnostics}{Character vector specifying which diagnostics to run.
+Options: "all", "counts", "event_dependent", "pre_exposure",
+"window_balance", "cohort_stability". Default is "all".}
+
+\item{diagnosticThresholds}{Named list of diagnostic thresholds. See
+getDefaultDiagnosticThresholds() for defaults.}
 }
 \description{
 Create a SelfControlledCohort analysis specification

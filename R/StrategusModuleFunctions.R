@@ -42,23 +42,11 @@ getModuleInfo <- function() {
 #'
 #' @param analysisSettings A list of analysis settings containing the analysis
 #'   configuration and parameters for self-controlled cohort analyses.
-#' @param exposureCohortIds A numeric vector of cohort IDs representing the
-#'   exposures of interest.
-#' @param outcomeCohortIds A numeric vector of cohort IDs representing the
-#'   outcomes of interest.
-#' @param negativeControls A data frame with columns `exposureId` and `outcomeId`
-#'   representing negative control exposure-outcome pairs. Default is NULL.
-#' @param controlType Character string specifying the type of control. Options
-#'   are "outcome" or "exposure". Default is "outcome".
+#' @param exposureOutcomeList A list of objects of type \code{exposureOutcome} as created using
+#'   the \code{\link{createExposureOutcome}} function. Each object defines an exposure-outcome
+#'   pair with exposureId, outcomeId, and optionally trueEffectSize (set to 1 for negative controls).
 #' @param computeThreads Integer specifying the number of threads to use for
 #'   parallel computation. Default is the number of available cores minus 1.
-#' @param runDiagnostics Logical indicating whether to run diagnostic tests on
-#'   the results. Default is TRUE.
-#' @param diagnostics Character vector specifying which diagnostics to run.
-#'   Options: "all", "counts", "event_dependent", "pre_exposure", "window_balance",
-#'   "cohort_stability". Default is "all".
-#' @param diagnosticThresholds Named list of diagnostic thresholds. See
-#'   getDefaultDiagnosticThresholds() for defaults.
 #'
 #' @return A list object of class `SelfControlledCohortModuleSpecifications` and
 #'   `ModuleSpecifications` containing the module name, version, repository
@@ -67,15 +55,16 @@ getModuleInfo <- function() {
 #' @export
 createSelfControlledCohortModuleSpecifications <- function(
   analysisSettings,
-  exposureCohortIds,
-  outcomeCohortIds,
-  negativeControls = NULL,
-  controlType = "outcome",
-  computeThreads = parallel::detectCores() - 1,
-  runDiagnostics = TRUE,
-  diagnostics = c("all"),
-  diagnosticThresholds = getDefaultDiagnosticThresholds()
+  exposureOutcomeList,
+  computeThreads = parallel::detectCores() - 1
 ) {
+  # Validate exposureOutcomeList
+  stopifnot(is.list(exposureOutcomeList))
+  stopifnot(length(exposureOutcomeList) > 0)
+  for (i in seq_along(exposureOutcomeList)) {
+    stopifnot(class(exposureOutcomeList[[i]]) == "exposureOutcome")
+  }
+
   moduleInfo <- getModuleInfo()
 
   specifications <- list(
@@ -85,14 +74,8 @@ createSelfControlledCohortModuleSpecifications <- function(
     remoteUsername = "ohdsi",
     settings = list(
       analysisSettings = analysisSettings,
-      exposureCohortIds = exposureCohortIds,
-      outcomeCohortIds = outcomeCohortIds,
-      negativeControls = negativeControls,
-      controlType = controlType,
-      computeThreads = computeThreads,
-      runDiagnostics = runDiagnostics,
-      diagnostics = diagnostics,
-      diagnosticThresholds = diagnosticThresholds
+      exposureOutcomeList = exposureOutcomeList,
+      computeThreads = computeThreads
     )
   )
 
@@ -120,37 +103,52 @@ execute <- function(jobContext) {
 
   # Extract module-specific settings
   analysisSettings <- moduleSettings$analysisSettings
-  exposureCohortIds <- moduleSettings$exposureCohortIds
-  outcomeCohortIds <- moduleSettings$outcomeCohortIds
-  negativeControls <- moduleSettings$negativeControls
-  controlType <- moduleSettings$controlType
+  exposureOutcomeList <- moduleSettings$exposureOutcomeList
   computeThreads <- moduleSettings$computeThreads
-  runDiagnostics <- moduleSettings$runDiagnostics
-  diagnostics <- moduleSettings$diagnostics
-  diagnosticThresholds <- moduleSettings$diagnosticThresholds
 
-  # Set defaults for backwards compatibility
-  if (is.null(runDiagnostics)) {
-    runDiagnostics <- TRUE
+  # Validate exposureOutcomeList
+  stopifnot(is.list(exposureOutcomeList))
+  stopifnot(length(exposureOutcomeList) > 0)
+  for (i in seq_along(exposureOutcomeList)) {
+    stopifnot(class(exposureOutcomeList[[i]]) == "exposureOutcome")
   }
-  if (is.null(diagnostics)) {
-    diagnostics <- c("all")
+
+  # Extract unique exposure and outcome IDs from exposureOutcomeList
+  exposureCohortIds <- unique(unlist(lapply(exposureOutcomeList, function(eo) {
+    if (is.list(eo$exposureId)) {
+      return(unlist(eo$exposureId))
+    } else {
+      return(eo$exposureId)
+    }
+  })))
+
+  outcomeCohortIds <- unique(unlist(lapply(exposureOutcomeList, function(eo) {
+    if (is.list(eo$outcomeId)) {
+      return(unlist(eo$outcomeId))
+    } else {
+      return(eo$outcomeId)
+    }
+  })))
+
+  # Extract negative control pairs from exposureOutcomeList
+  negativeControlsList <- list()
+  for (exposureOutcome in exposureOutcomeList) {
+    if (isTRUE(exposureOutcome$trueEffectSize == 1)) {
+      exposureId <- if (is.list(exposureOutcome$exposureId)) exposureOutcome$exposureId[[1]] else exposureOutcome$exposureId
+      outcomeId <- if (is.list(exposureOutcome$outcomeId)) exposureOutcome$outcomeId[[1]] else exposureOutcome$outcomeId
+      negativeControlsList[[length(negativeControlsList) + 1]] <- c(exposureId, outcomeId)
+    }
   }
-  if (is.null(diagnosticThresholds)) {
-    diagnosticThresholds <- getDefaultDiagnosticThresholds()
-  }
+
 
   cli::cli_alert_info("Running scc on {executionSettings$databaseId}")
 
-  if (length(negativeControls) == 0) {
+  if (length(negativeControlsList) == 0) {
     cli::cli_alert_warning("No negative controls found. Results will not be calibrated")
   }
 
   cohortTableNames <- CohortGenerator::getCohortTableNames(executionSettings$cohortTable)
 
-  negativeControlsList <- purrr::pmap(negativeControls, function(exposureId, outcomeId, ...) {
-    list(exposureId, outcomeId)
-  })
 
   # Use Strategus-compliant results path
   resultsPath <- file.path(
@@ -169,6 +167,12 @@ execute <- function(jobContext) {
       cli::cli_alert_info("Results manifest found in {resultsExportPath} skipping analysis")
       next
     }
+
+    # Extract analysis-specific diagnostic settings with defaults
+    controlType <- if (!is.null(refRow$controlType)) refRow$controlType else "outcome"
+    runDiagnostics <- if (!is.null(refRow$runDiagnostics)) refRow$runDiagnostics else TRUE
+    diagnostics <- if (!is.null(refRow$diagnostics)) refRow$diagnostics else c("all")
+    diagnosticThresholds <- if (!is.null(refRow$diagnosticThresholds)) refRow$diagnosticThresholds else getDefaultDiagnosticThresholds()
 
     args <- list(
       connectionDetails = connectionDetails,
