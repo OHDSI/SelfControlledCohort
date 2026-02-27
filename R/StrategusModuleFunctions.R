@@ -65,21 +65,20 @@ createSelfControlledCohortModuleSpecifications <- function(
     stopifnot(class(exposureOutcomeList[[i]]) == "exposureOutcome")
   }
 
+  stopifnot(is.list(analysisSettings))
+  stopifnot(length(analysisSettings) > 0)
+
   moduleInfo <- getModuleInfo()
 
   specifications <- list(
-    module = moduleInfo$name,
-    version = moduleInfo$version,
-    remoteRepo = "github.com/OHDSI/SelfControlledCohort",
-    remoteUsername = "ohdsi",
-    settings = list(
+    module = "SelfControlledCohortModule",
+    parameters = list(
+      version = moduleInfo$version, # Duplicated here because strategus hides the full context!!
       analysisSettings = analysisSettings,
       exposureOutcomeList = exposureOutcomeList,
       computeThreads = computeThreads
     )
   )
-
-  class(specifications) <- c("SelfControlledCohortModuleSpecifications", "ModuleSpecifications")
   return(specifications)
 }
 
@@ -92,19 +91,14 @@ createSelfControlledCohortModuleSpecifications <- function(
 #'   executionSettings, and moduleExecutionSettings from Strategus.
 #'
 #' @export
-execute <- function(jobContext) {
-  # Extract settings from jobContext
-  connectionDetails <- jobContext$connectionDetails
-  executionSettings <- jobContext$executionSettings
-  moduleSettings <- jobContext$moduleExecutionSettings$settings
-
+execute <- function(connectionDetails, executionSettings, analysisSpecifications, databaseId) {
   # Version check
-  checkModuleVersion(jobContext$moduleExecutionSettings$version)
+  checkModuleVersion(analysisSpecifications$version)
 
   # Extract module-specific settings
-  analysisSettings <- moduleSettings$analysisSettings
-  exposureOutcomeList <- moduleSettings$exposureOutcomeList
-  computeThreads <- moduleSettings$computeThreads
+  analysisSettings <- analysisSpecifications$analysisSettings
+  exposureOutcomeList <- analysisSpecifications$exposureOutcomeList
+  computeThreads <- analysisSpecifications$computeThreads
 
   # Validate exposureOutcomeList
   stopifnot(is.list(exposureOutcomeList))
@@ -141,14 +135,13 @@ execute <- function(jobContext) {
   }
 
 
-  cli::cli_alert_info("Running scc on {executionSettings$databaseId}")
+  cli::cli_alert_info("Running scc on {databaseId}")
 
   if (length(negativeControlsList) == 0) {
     cli::cli_alert_warning("No negative controls found. Results will not be calibrated")
   }
 
-  cohortTableNames <- CohortGenerator::getCohortTableNames(executionSettings$cohortTable)
-
+  cohortTableNames <- executionSettings$cohortTableNames
 
   # Use Strategus-compliant results path
   resultsPath <- file.path(
@@ -184,7 +177,7 @@ execute <- function(jobContext) {
       outcomeTable = cohortTableNames$cohortTable,
       exposureIds = exposureCohortIds,
       outcomeIds = outcomeCohortIds,
-      databaseId = executionSettings$databaseId,
+      databaseId = databaseId,
       controlType = controlType,
       negativeControlPairs = negativeControlsList,
       analysisDescription = refRow$description,
