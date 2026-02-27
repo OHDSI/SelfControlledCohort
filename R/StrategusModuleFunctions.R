@@ -199,6 +199,20 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
   cli::cli_alert_success("Scc analysis complete for {executionSettings$databaseId}")
 }
 
+#' Get results folders for an analysis specification
+#' @param analysisSpecification An analysis specification object containing analysis settings and exposure-outcome pairs.
+#'
+#' @return A character vector of paths to results folders for each analysis setting.
+#' @export
+getResultsFolders <- function(analysisSpecification, exportFolder) {
+  exportPaths <- lapply(analysisSpecification, function(refRow) {
+    getrunSelfControlledCohortArgs <- refRow$runSelfControlledCohortArgs
+    resultsExportPath <- file.path(exportFolder, paste0("A_", refRow$analysisId))
+    return(resultsExportPath)
+  })
+  return(unlist(exportPaths))
+}
+
 #' Check module version compatibility
 #'
 #' @param moduleVersion Character string of the module version from specifications.
