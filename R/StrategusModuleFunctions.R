@@ -82,16 +82,25 @@ createSelfControlledCohortModuleSpecifications <- function(
   return(specifications)
 }
 
-#' Execute function for strategus
+#' Execute Self-Controlled Cohort Analyses for Strategus
 #'
 #' @description
-#' Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework.
+#' Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework using the provided analysis specifications and settings.
 #'
-#' @param jobContext A list containing execution context including connectionDetails,
-#'   executionSettings, and moduleExecutionSettings from Strategus.
+#' @param connectionDetails An object containing the details required to connect to the database.
+#' @param executionSettings A list of settings for execution, including database schemas and cohort table names.
+#' @param analysisSpecifications A list containing analysis settings, exposure-outcome pairs, and compute thread count.
+#' @param databaseId A string identifier for the target database.
+#' @param exportFolder Path to the folder where results and exports will be written.
+#'
+#' @details
+#' This function validates the input specifications, extracts unique exposure and outcome cohort IDs, identifies negative control pairs, and iterates over each analysis setting to run the Self-Controlled Cohort analysis. Results are exported to the specified folder. Diagnostic settings are handled per-analysis, and warnings are issued if no negative controls are found.
+#'
+#' @return
+#' No return value. Results are written to the specified export folder as a side effect.
 #'
 #' @export
-execute <- function(connectionDetails, executionSettings, analysisSpecifications, databaseId) {
+execute <- function(connectionDetails, executionSettings, analysisSpecifications, databaseId, exportFolder) {
   # Version check
   checkModuleVersion(analysisSpecifications$version)
 
@@ -143,18 +152,12 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 
   cohortTableNames <- executionSettings$cohortTableNames
 
-  # Use Strategus-compliant results path
-  resultsPath <- file.path(
-    executionSettings$resultsFolder,
-    "SelfControlledCohortModule"
-  )
-
-  dir.create(resultsPath, recursive = TRUE, showWarnings = FALSE)
+  dir.create(exportFolder, recursive = TRUE, showWarnings = FALSE)
 
   cli::cli_alert_info("Starting scc execution")
   for (refRow in analysisSettings) {
     getrunSelfControlledCohortArgs <- refRow$runSelfControlledCohortArgs
-    resultsExportPath <- file.path(resultsPath, paste0("A_", refRow$analysisId))
+    resultsExportPath <- file.path(exportFolder, paste0("A_", refRow$analysisId))
 
     if (file.exists(file.path(resultsExportPath, "manifest.json"))) {
       cli::cli_alert_info("Results manifest found in {resultsExportPath} skipping analysis")

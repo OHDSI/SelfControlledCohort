@@ -2,19 +2,33 @@
 % Please edit documentation in R/StrategusModuleFunctions.R
 \name{execute}
 \alias{execute}
-\title{Execute function for strategus}
+\title{Execute Self-Controlled Cohort Analyses for Strategus}
 \usage{
 execute(
   connectionDetails,
   executionSettings,
   analysisSpecifications,
-  databaseId
+  databaseId,
+  exportFolder
 )
 }
 \arguments{
-\item{jobContext}{A list containing execution context including connectionDetails,
-executionSettings, and moduleExecutionSettings from Strategus.}
+\item{connectionDetails}{An object containing the details required to connect to the database.}
+
+\item{executionSettings}{A list of settings for execution, including database schemas and cohort table names.}
+
+\item{analysisSpecifications}{A list containing analysis settings, exposure-outcome pairs, and compute thread count.}
+
+\item{databaseId}{A string identifier for the target database.}
+
+\item{exportFolder}{Path to the folder where results and exports will be written.}
+}
+\value{
+No return value. Results are written to the specified export folder as a side effect.
 }
 \description{
-Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework.
+Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework using the provided analysis specifications and settings.
+}
+\details{
+This function validates the input specifications, extracts unique exposure and outcome cohort IDs, identifies negative control pairs, and iterates over each analysis setting to run the Self-Controlled Cohort analysis. Results are exported to the specified folder. Diagnostic settings are handled per-analysis, and warnings are issued if no negative controls are found.
 }
