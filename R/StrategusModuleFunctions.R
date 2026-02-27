@@ -206,7 +206,6 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 #' @export
 getResultsFolders <- function(analysisSpecification, exportFolder) {
   exportPaths <- lapply(analysisSpecification, function(refRow) {
-    getrunSelfControlledCohortArgs <- refRow$runSelfControlledCohortArgs
     resultsExportPath <- file.path(exportFolder, paste0("A_", refRow$analysisId))
     return(resultsExportPath)
   })
