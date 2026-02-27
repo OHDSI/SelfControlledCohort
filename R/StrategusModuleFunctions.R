@@ -146,7 +146,7 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
   # Use Strategus-compliant results path
   resultsPath <- file.path(
     executionSettings$resultsFolder,
-    "selfControlledCohort"
+    "SelfControlledCohortModule"
   )
 
   dir.create(resultsPath, recursive = TRUE, showWarnings = FALSE)
