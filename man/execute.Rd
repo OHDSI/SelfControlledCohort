@@ -4,7 +4,12 @@
 \alias{execute}
 \title{Execute function for strategus}
 \usage{
-execute(jobContext)
+execute(
+  connectionDetails,
+  executionSettings,
+  analysisSpecifications,
+  databaseId
+)
 }
 \arguments{
 \item{jobContext}{A list containing execution context including connectionDetails,

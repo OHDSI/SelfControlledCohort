@@ -40,7 +40,6 @@ runSelfControlledCohort(
   extractResults = TRUE,
   resultsDatabaseSchema = NULL,
   resultExportPath = "scc_result",
-  outputFolder = "scc_work",
   databaseId,
   analysisId = 1,
   analysisDescription = paste("SCC analysis", analysisId),
@@ -172,8 +171,6 @@ If set to false, no relative risk ratios will be produced.}
 riskWindowsTable are temporary.}
 
 \item{resultExportPath}{Folder where result files are exported}
-
-\item{outputFolder}{Folder where intermediate files are stored}
 
 \item{databaseId}{Unique identifier for database - required}
 

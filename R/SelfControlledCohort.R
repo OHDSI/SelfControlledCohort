@@ -285,7 +285,6 @@ exportEstimates <- function(connectionDetails,
                             resultsDatabaseSchema = NULL,
                             firstOutcomeOnly = TRUE,
                             resultExportPath = "scc_result",
-                            outputFolder = "scc_work",
                             resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
                             controlType = "outcomes",
                             diagnosticResults = NULL) {
@@ -479,7 +478,6 @@ exportEstimates <- function(connectionDetails,
 #' @param computeThreads                   Number of parallel threads for computing IRRs with exact
 #'                                         confidence intervals.
 #' @param resultExportPath                 Folder where result files are exported
-#' @param outputFolder                     Folder where intermediate files are stored
 #' @param databaseId                       Unique identifier for database - required
 #' @param resultExportManager              ResultModelManager::ResultExportManager instance - customize this to implement
 #'                                         an alternative mechanism for exporting results
@@ -550,7 +548,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
                                     extractResults = TRUE,
                                     resultsDatabaseSchema = NULL,
                                     resultExportPath = "scc_result",
-                                    outputFolder = "scc_work",
                                     databaseId,
                                     analysisId = 1,
                                     analysisDescription = paste("SCC analysis", analysisId),
@@ -585,10 +582,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
 
   checkmate::assertList(negativeControlPairs, null.ok = TRUE)
   checkmate::assertChoice(controlType, choices = c("outcome", "exposure"))
-
-  if (!dir.exists(outputFolder)) {
-    dir.create(outputFolder)
-  }
 
   if (resultsTable != "#results") {
     if (is.null(resultsDatabaseSchema)) {
@@ -742,7 +735,6 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
       resultsDatabaseSchema = resultsDatabaseSchema,
       resultExportPath = resultExportPath,
       resultsTable = resultsTable,
-      outputFolder = outputFolder,
       resultExportManager = resultExportManager,
       controlType = controlType,
       diagnosticResults = diagnosticResults

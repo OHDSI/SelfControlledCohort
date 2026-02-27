@@ -24,7 +24,6 @@ exportEstimates(
   resultsDatabaseSchema = NULL,
   firstOutcomeOnly = TRUE,
   resultExportPath = "scc_result",
-  outputFolder = "scc_work",
   resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
   controlType = "outcomes",
   diagnosticResults = NULL
@@ -94,8 +93,6 @@ riskWindowsTable are temporary.}
 id for each person.}
 
 \item{resultExportPath}{Folder where result files are exported}
-
-\item{outputFolder}{Folder where intermediate files are stored}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
 an alternative mechanism for exporting results}
