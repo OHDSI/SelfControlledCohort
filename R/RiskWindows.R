@@ -1,3 +1,11 @@
+convertToDateFormat <- function(dateStr) {
+  if (nchar(dateStr) == 8 && grepl("^\\d{8}$", dateStr)) {
+    return(format(as.Date(dateStr, "%Y%m%d"), "%Y-%m-%d"))
+  }
+  return(dateStr)
+}
+
+
 #' @title
 #' Run Self-Controlled Cohort Risk Windows
 #' @description
@@ -85,8 +93,8 @@ runSccRiskWindows <- function(connection,
                                                    first_exposure_only = firstExposureOnly,
                                                    min_age = minAge,
                                                    max_age = maxAge,
-                                                   study_start_date = studyStartDate,
-                                                   study_end_date = studyEndDate,
+                                                   study_start_date = convertToDateFormat(studyStartDate),
+                                                   study_end_date = convertToDateFormat(studyEndDate),
                                                    add_length_of_exposure_exposed = addLengthOfExposureExposed,
                                                    risk_window_start_exposed = riskWindowStartExposed,
                                                    risk_window_end_exposed = riskWindowEndExposed,
@@ -136,19 +144,19 @@ runSccRiskWindows <- function(connection,
 
   resultQuery <- "
   SELECT @analysis_id as analysis_id,
-        EXPOSURE_ID as target_cohort_id,
-        OUTCOME_ID as outcome_cohort_id,
-        MEAN,
-        SD,
+        exposure_id as target_cohort_id,
+        outcome_id as outcome_cohort_id,
+        mean,
+        sd,
         MIN as minimum,
-        P10,
-        P25,
-        MEDIAN,
-        P75,
-        P90,
-        MAX as maximum,
-        TOTAL,
-        STAT_TYPE
+        p10,
+        p25,
+        median,
+        p75,
+        p90,
+        max as maximum,
+        total,
+        stat_type
   FROM @table"
 
   tables <- c("#tx_distribution", "#time_to_dist", "#time_to_dist_exposed", "#time_to_dist_unex")

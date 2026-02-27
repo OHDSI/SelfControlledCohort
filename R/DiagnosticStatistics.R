@@ -434,19 +434,6 @@ checkSparseData <- function(exposedEvents, unexposedEvents, minEvents = 3) {
 
   for (i in seq_along(exposedEvents)) {
     pass <- exposedEvents[i] >= minEvents && unexposedEvents[i] >= minEvents
-
-    if (pass) {
-      message <- sprintf(
-        "Adequate data: %d exposed events, %d unexposed events",
-        exposedEvents[i], unexposedEvents[i]
-      )
-    } else {
-      message <- sprintf(
-        "Sparse data: %d exposed events, %d unexposed events (minimum %d required)",
-        exposedEvents[i], unexposedEvents[i], minEvents
-      )
-    }
-
     results[[i]] <- list(pass = pass, message = message)
   }
 

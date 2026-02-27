@@ -1,6 +1,17 @@
-SelfControlledCohort 2.1.0
+SelfControlledCohort 2.0.0
 ==========================
+This is a major release and breaks backwards compatability with version 1.x.x series code.
 
+Changes:
+
+- Introduced a results data model definition csv file in line with other OHDSI HADES analytics packages
+- Removal of use of remotes for Eunomia
+- Creation of results data model sql for analysis in database
+- Export of large result sets from database with export managers
+- Calibration of effect estimates now computed with EmpiricalCalibration package
+- Storing risk window statistics is no longer an optional parameter
+- Removed support for CDM versions < 5.0 (and no longer includes check or parameter)
+- 
 This release implements revised diagnostics aligned with SelfControlledCaseSeries package standards.
 
 **Breaking Changes:**
@@ -9,7 +20,7 @@ This release implements revised diagnostics aligned with SelfControlledCaseSerie
 - Old diagnostics (`counts`, `window_balance`, `cohort_stability`, `pre_exposure`) have been removed
 - `getDefaultDiagnosticThresholds()` now returns different threshold names
 
-**New Diagnostics:**
+**New study Diagnostic functions**
 
 - **MDRR** - Minimum Detectable Relative Risk (power analysis)
 - **PRE_EXPOSURE_PROPORTION** - Tests for outcomes before exposure start
@@ -24,10 +35,7 @@ This release implements revised diagnostics aligned with SelfControlledCaseSerie
 - `testPreExposureGain()` - Test for pre-exposure outcomes
 - `testTimeTrend()` - Test for time trends using Poisson GLM
 - `checkSparseData()` - Check for sparse data issues
-
-**Migration Guide:**
-
-See `MIGRATION_v2.1.md` for detailed information on updating existing code.
+- Strategus compatability functions 
 
 Changes:
 
@@ -39,19 +47,6 @@ Changes:
 - Updated diagnostic thresholds to match SCCS standards
 - Improved diagnostic result formatting with values in failure messages
 
-SelfControlledCohort 2.0.0
-==========================
-This is a major release and breaks backwards compatability with version 1.x.x series code.
-
-Changes:
-
-- Introduced a results data model definition csv file in line with other OHDSI HADES analytics packages
-- Removal of use of remotes for Eunomia
-- Creation of results data model sql for analysis in database
-- Export of large result sets from database with export managers
-- Calibration of effect estimates now computed with EmpiricalCalibration package
-- Storing risk window statistics is no longer an optional parameter
-- Removed support for CDM versions < 5.0 (and no longer includes check or parameter)
 
 SelfControlledCohort 1.6.0
 ==========================

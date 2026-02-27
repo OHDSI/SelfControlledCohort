@@ -221,16 +221,7 @@ runSccDiagnostics <- function(connection,
       dplyr::filter(.data$pass == 0 & !(.data$diagnostic_name %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION")))
 
     if (nrow(failures) > 0) {
-      ParallelLogger::logWarn(sprintf("%d diagnostic test(s) failed:", nrow(failures)))
-      for (i in seq_len(nrow(failures))) {
-        ParallelLogger::logWarn(sprintf(
-          "  - %s (Target: %s, Outcome: %s, Value: %.3f)",
-          failures$diagnostic_name[i],
-          failures$target_cohort_id[i],
-          failures$outcome_cohort_id[i],
-          failures$diagnostic_value[i]
-        ))
-      }
+      ParallelLogger::logInfo(sprintf("%d diagnostic test(s) failed:", nrow(failures)))
     } else {
       ParallelLogger::logInfo("All diagnostic tests passed")
     }
