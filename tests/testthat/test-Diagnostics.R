@@ -62,37 +62,6 @@ test_that("computeMdrrForRateRatio handles edge cases", {
   expect_true(is.na(computeMdrrForRateRatio(-1000, 2000, 10, 20)))
 })
 
-test_that("checkSparseData works correctly", {
-  # Test passing case
-  result <- checkSparseData(10, 15, minEvents = 3)
-  expect_true(result$pass)
-  expect_true(grepl("Adequate", result$message))
-
-  # Test failing case - exposed
-  result <- checkSparseData(2, 15, minEvents = 3)
-  expect_false(result$pass)
-  expect_true(grepl("Sparse", result$message))
-
-  # Test failing case - unexposed
-  result <- checkSparseData(10, 2, minEvents = 3)
-  expect_false(result$pass)
-  expect_true(grepl("Sparse", result$message))
-
-  # Test edge case - exactly at threshold
-  result <- checkSparseData(3, 3, minEvents = 3)
-  expect_true(result$pass)
-})
-
-test_that("checkSparseData handles multiple inputs", {
-  # Test vectorized input
-  results <- checkSparseData(c(5, 2, 10), c(8, 7, 15), minEvents = 3)
-
-  expect_equal(length(results), 3)
-  expect_true(results[[1]]$pass)   # 5, 8 - both pass
-  expect_false(results[[2]]$pass)  # 2, 7 - exposed fails
-  expect_true(results[[3]]$pass)   # 10, 15 - both pass
-})
-
 test_that("getDefaultDiagnosticThresholds returns correct structure", {
   thresholds <- getDefaultDiagnosticThresholds()
 

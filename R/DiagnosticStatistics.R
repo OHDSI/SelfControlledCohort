@@ -430,16 +430,16 @@ checkSparseData <- function(exposedEvents, unexposedEvents, minEvents = 3) {
     stop("exposedEvents and unexposedEvents must have the same length")
   }
 
-  results <- list()
+  res <- list()
 
   for (i in seq_along(exposedEvents)) {
-    pass <- exposedEvents[i] >= minEvents && unexposedEvents[i] >= minEvents
-    results[[i]] <- list(pass = pass, message = message)
+    pass <- isTRUE(exposedEvents[i] >= minEvents && unexposedEvents[i] >= minEvents)
+    res[[i]] <- list(pass = pass, message = message)
   }
 
-  if (length(results) == 1) {
-    return(results[[1]])
+  if (length(res) == 1) {
+    return(res[[1]])
   }
 
-  return(results)
+  return(res)
 }

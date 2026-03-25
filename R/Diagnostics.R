@@ -64,7 +64,7 @@ getDefaultDiagnosticThresholds <- function() {
 #' @param databaseId                  Database identifier for results export
 #' @param diagnostics                 Character vector of diagnostics to run. Options:
 #'                                    "all", "mdrr", "pre_exposure_gain", "event_dependent",
-#'                                    "time_trend", "sparse_data"
+#'                                    "time_trend"
 #' @param thresholds                  Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)
 #' @param resultExportManager         ResultModelManager::ResultExportManager instance
 #'
@@ -103,7 +103,7 @@ runSccDiagnostics <- function(connection,
   # Expand "all" to specific diagnostics
   allDiagnostics <- c(
     "mdrr", "pre_exposure_gain", "event_dependent",
-    "time_trend", "sparse_data"
+    "time_trend"
   )
 
   if ("all" %in% diagnostics) {
@@ -172,19 +172,6 @@ runSccDiagnostics <- function(connection,
       tempEmulationSchema = tempEmulationSchema
     )
     diagnosticResults <- rbind(diagnosticResults, timeTrendResult)
-  }
-
-  # Run sparse data diagnostic
-  if ("sparse_data" %in% diagnostics) {
-    ParallelLogger::logInfo("- Running sparse data diagnostic")
-    sparseResult <- .computeSparseDataDiagnostic(
-      connection = connection,
-      resultsTable = resultsTable,
-      analysisId = analysisId,
-      thresholds = thresholds,
-      tempEmulationSchema = tempEmulationSchema
-    )
-    diagnosticResults <- rbind(diagnosticResults, sparseResult)
   }
 
   # Add database_id to results
@@ -562,76 +549,6 @@ getDiagnosticsSummary <- function(diagnosticResults) {
       pass = pass
     )
     diagnostics <- rbind(diagnostics, diagRow)
-  }
-
-  return(diagnostics)
-}
-
-#' Compute sparse data diagnostic
-#' @noRd
-.computeSparseDataDiagnostic <- function(connection,
-                                         resultsTable,
-                                         analysisId,
-                                         thresholds,
-                                         tempEmulationSchema) {
-  sql <- "
-  SELECT
-    target_cohort_id,
-    outcome_cohort_id,
-    num_outcomes_exposed,
-    num_outcomes_unexposed
-  FROM @results_table
-  WHERE analysis_id = @analysis_id
-  "
-
-  results <- DatabaseConnector::renderTranslateQuerySql(
-    connection = connection,
-    sql = sql,
-    results_table = resultsTable,
-    analysis_id = analysisId,
-    tempEmulationSchema = tempEmulationSchema,
-    snakeCaseToCamelCase = TRUE
-  )
-
-  if (nrow(results) == 0) {
-    return(data.frame())
-  }
-
-  diagnostics <- data.frame()
-
-  for (i in seq_len(nrow(results))) {
-    row <- results[i, ]
-
-    # Check if both windows have sufficient events
-    sparseCheck <- checkSparseData(
-      exposedEvents = row$numOutcomesExposed,
-      unexposedEvents = row$numOutcomesUnexposed,
-      minEvents = thresholds$minEventsPerWindow
-    )
-
-    pass <- as.integer(sparseCheck$pass)
-
-    # Add exposed window check
-    diagRow1 <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "SPARSE_EXPOSED",
-      diagnostic_value = row$numOutcomesExposed,
-      pass = as.integer(row$numOutcomesExposed >= thresholds$minEventsPerWindow)
-    )
-    diagnostics <- rbind(diagnostics, diagRow1)
-
-    # Add unexposed window check
-    diagRow2 <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "SPARSE_UNEXPOSED",
-      diagnostic_value = row$numOutcomesUnexposed,
-      pass = as.integer(row$numOutcomesUnexposed >= thresholds$minEventsPerWindow)
-    )
-    diagnostics <- rbind(diagnostics, diagRow2)
   }
 
   return(diagnostics)
