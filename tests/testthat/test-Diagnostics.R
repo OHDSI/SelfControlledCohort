@@ -76,7 +76,7 @@ test_that("getDefaultDiagnosticThresholds returns correct structure", {
   expect_true("minEventsPerWindow" %in% names(thresholds))
 
   # Check values are sensible
-  expect_equal(thresholds$mdrrMaxAcceptable, 2.0)
+  expect_equal(thresholds$mdrrMaxAcceptable, 10.0)
   expect_equal(thresholds$maxPreExposureProportion, 0.05)
   expect_equal(thresholds$preExposurePThreshold, 0.05)
   expect_equal(thresholds$maxEventDependentCensoring, 0.10)
