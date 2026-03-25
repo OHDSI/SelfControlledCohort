@@ -64,8 +64,7 @@ runSelfControlledCohort(
   outcomeTable = "condition_era",
   resultExportPath = outputFolder,
   databaseId = 1,
-  analysisId = 1,
-  runDiagnostics = FALSE
+  analysisId = 1
 )
 ```
 
@@ -84,6 +83,15 @@ results %>%
 ```
 
 The `rr` column shows the Incidence Rate Ratio. An IRR > 1 indicates an increased risk.
+
+# Understanding Risk Windows
+
+To perform the comparison, each person's observation time is partitioned into "exposed" and "unexposed" risk windows relative to their exposure start and end dates. 
+
+You control these windows using the `runSelfControlledCohort()` arguments:
+
+* **Exposed time:** Defined by `riskWindowStartExposed` and `riskWindowEndExposed`. If `addLengthOfExposureExposed = TRUE`, the end window is added to the exposure *end* date instead of the start date.
+* **Unexposed time:** Defined by `riskWindowStartUnexposed` and `riskWindowEndUnexposed`. These are typically set to negative values (e.g., `-30` to `-1`) to create a pre-exposure baseline window.
 
 # Using Custom Cohorts
 
@@ -112,8 +120,7 @@ runSelfControlledCohort(
   outcomeIds = c(3), # GI Bleed
   databaseId = 1,
   analysisId = 2, # Unique ID for this run
-  resultExportPath = outputFolder,
-  runDiagnostics = FALSE
+  resultExportPath = outputFolder
 )
 ```
 
@@ -128,54 +135,35 @@ results %>%
 
 # Diagnostics and Tiered Blinding
 
-Reliable evidence requires that the analysis assumptions are met. The package includes diagnostics to check for issues like:
-*   **MDRR**: Is there enough statistical power?
-*   **Time Trend**: Is the outcome risk changing over time unrelated to exposure?
-*   **Pre-exposure Gain**: Are outcomes occurring unusually often just before exposure?
-*   **Event-dependent Observation**: Does the outcome affect the observation period (e.g., death)?
+Reliable evidence requires that the analysis assumptions are met. The package evaluates five diagnostics (aligned with the Self-Controlled Case Series package) to check for issues like lack of statistical power or time-trend confounding. Diagnostics are run by default when `runDiagnostics = TRUE`.
 
-We implement a **Tiered Blinding** system:
-1.  **Tier 1 (Unblind for Calibration)**: If core diagnostics pass, the result can be used as a negative control for calibration.
+The default thresholds can be viewed or modified:
+
+```{r view_diagnostic_thresholds}
+thresholds <- getDefaultDiagnosticThresholds()
+str(thresholds)
+```
+
+We implement a **Tiered Blinding** system based on these diagnostics:
+1.  **Tier 1 (Unblind for Calibration)**: If core diagnostics pass but power (MDRR) is insufficient, the result can still be used as a negative control for calibration.
 2.  **Tier 2 (Unblind)**: If *all* diagnostics (including power) pass, the result is considered valid for unblinding.
 
-Let's run the cohort analysis again with diagnostics enabled.
+Let's look at the raw diagnostic results:
 
-```{r diagnostics_run}
-runSelfControlledCohort(
-  connectionDetails = connectionDetails,
-  cdmDatabaseSchema = cdmDatabaseSchema,
-  exposureTable = "cohort",
-  outcomeTable = "cohort",
-  exposureIds = c(4), # NSAIDs
-  outcomeIds = c(3), # GI Bleed
-  analysisId = 3, # Unique ID for this run
-  runDiagnostics = TRUE, # <--- Enable diagnostics
-  resultExportPath = outputFolder,
-  databaseId = 1
-)
-```
-
-We can inspect the diagnostic summary to see the blinding status.
-
-```{r view_blinding}
+```{r view_diagnostics}
 diagnostics <- read.csv(file.path(outputFolder, "scc_diagnostics_summary.csv"))
 
-# Check blinding status for this analysis
+# Show the diagnostic results for analysis 2
 diagnostics %>%
-  filter(analysis_id == 3) %>%
-  filter(diagnostic_name %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION")) %>%
-  select(target_cohort_id, outcome_cohort_id, diagnostic_name, pass) %>%
+  filter(analysis_id == 2) %>%
+  select(target_cohort_id, outcome_cohort_id, diagnostic_name, diagnostic_value, pass) %>%
+  head(10) %>%
   knitr::kable()
 ```
 
-If `UNBLIND` is 1, the result is safe to view. If it is 0, one or more diagnostics failed. You can check which specific diagnostics failed:
+If the `pass` column is 0, the diagnostic failed. *See the **Study Diagnostics** vignette for a detailed explanation of each test.*
 
-```{r view_failures}
-diagnostics %>%
-  filter(analysis_id == 3, pass == 0) %>%
-  select(diagnostic_name, diagnostic_value, pass) %>%
-  knitr::kable()
-```
+*Note: Blinding rules (`UNBLIND` and `UNBLIND_FOR_CALIBRATION`) can be computed from this test data using the `getDiagnosticsSummary()` function on the returned `.runSccDiagnostics` object in memory, or by applying the tiered blinding logic to the CSV table manually.*
 
 # Empirical Calibration
 
@@ -184,6 +172,8 @@ Observational studies often suffer from systematic error (bias). We can use **Em
 In this example, we will treat **Celecoxib (1)** and **Diclofenac (2)** combined with **GI Bleed (3)** as "negative controls" purely for demonstration purposes.
 
 We supply the `negativeControlPairs` argument. These pairs are used to fit a null distribution which is then used to calibrate the p-values and confidence intervals of our target analysis (**NSAIDs (4)** vs **GI Bleed (3)**).
+
+*Note: When negative controls are supplied, the package also calculates the Expected Absolute Systematic Error (EASE) diagnostic.*
 
 ```{r calibration_run}
 # Define negative controls (formatted as list of vectors: c(exposureId, outcomeId))
@@ -201,24 +191,91 @@ runSelfControlledCohort(
   outcomeIds = c(3), # Outcome: GI Bleed
   analysisId = 4, # Unique ID for this calibration run
   negativeControlPairs = negativeControls, # <--- Supply negative controls
-  runDiagnostics = TRUE,
   resultExportPath = outputFolder,
   databaseId = 1
 )
 ```
 
-The results file now contains calibrated estimates (`calibrated_rr`, `calibrated_ci`, etc.).
+The results file now contains calibrated estimates (`calibrated_rr`, `calibrated_lb_95`, `calibrated_ub_95`, `calibrated_p_value`).
 
 ```{r view_calibration}
 results <- read.csv(file.path(outputFolder, "scc_result.csv"))
 
 results %>%
   filter(analysis_id == 4, target_cohort_id == 4) %>%
-  select(target_cohort_id, rr, calibrated_rr, calibrated_p_value) %>%
+  select(target_cohort_id, rr, calibrated_rr, p_value, calibrated_p_value) %>%
   knitr::kable(digits = 3)
 ```
 
 *Note: With only 2 negative controls, the calibration will be very approximate. Real studies should use dozens of negative controls.*
+
+# Multi-Analysis Workflow
+
+For larger studies, it is common practice to perform multiple distinct analyses (using different risk window settings) across several exposure-outcome pairs simultaneously. You can use the `runSccAnalyses` function to handle this workflow.
+
+First, define the parameters for each analysis:
+
+```{r setup_analyses}
+# Analysis 1: Standard risk windows (1-30 days exposed vs pre-exposure)
+sccArgs1 <- createRunSelfControlledCohortArgs(
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 30,
+  addLengthOfExposureExposed = FALSE,
+  riskWindowStartUnexposed = -30,
+  riskWindowEndUnexposed = -1,
+  addLengthOfExposureUnexposed = FALSE
+)
+analysis1 <- createSccAnalysis(
+  analysisId = 101,
+  description = "Standard 30-day windows",
+  runSelfControlledCohortArgs = sccArgs1
+)
+
+# Analysis 2: Longer exposure risk window (1-90 days exposed)
+sccArgs2 <- createRunSelfControlledCohortArgs(
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 90,
+  addLengthOfExposureExposed = FALSE,
+  riskWindowStartUnexposed = -90,
+  riskWindowEndUnexposed = -1,
+  addLengthOfExposureUnexposed = FALSE
+)
+analysis2 <- createSccAnalysis(
+  analysisId = 102,
+  description = "Extended 90-day windows",
+  runSelfControlledCohortArgs = sccArgs2
+)
+```
+
+Next, define your exposure-outcome hypotheses:
+
+```{r setup_hypotheses}
+# Create hypotheses (treating IDs 1 and 2 as negative controls)
+eo1 <- createExposureOutcome(exposureId = 4, outcomeId = 3) # Target (NSAIDs - GiBleed)
+eo2 <- createExposureOutcome(exposureId = 1, outcomeId = 3, trueEffectSize = 1) # Control 1
+eo3 <- createExposureOutcome(exposureId = 2, outcomeId = 3, trueEffectSize = 1) # Control 2
+```
+
+Finally, execute the analyses spanning all combinations:
+
+```{r run_multiple_analyses}
+multiResultsFolder <- tempfile("scc_multi")
+
+runSccAnalyses(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = cdmDatabaseSchema,
+  exposureTable = "cohort",
+  outcomeTable = "cohort",
+  resultsFolder = multiResultsFolder,
+  sccAnalysisList = list(analysis1, analysis2),
+  exposureOutcomeList = list(eo1, eo2, eo3),
+  databaseId = 1,
+  computeThreads = 1,
+  analysisThreads = 1 # Serial execution for Eunomia SQLite
+)
+```
+
+This generates comprehensive outputs across the entire combinatorics of tests.
 
 # Working with the Results Database
 
@@ -227,7 +284,7 @@ The `SelfControlledCohort` package provides tools to create a robust results dat
 In this section, we will:
 1.  Create a local SQLite database to store our results.
 2.  Create the standard results schema tables.
-3.  Upload the CSV results we generated above into this database.
+3.  Upload the CSV results we generated into this database.
 4.  Query the database to see the results.
 
 First, let's create a new local SQLite database file for the results.
@@ -246,9 +303,9 @@ createResultsDataModel(
 )
 ```
 
-Now we upload the results from our `outputFolder` (which contains the CSVs from all the runs above) into the database.
+Now we upload the results from our `outputFolder` into the database.
 
-```{r upload_results}
+```r
 # For this example, we will upload the main results and settings.
 # We remove other tables to simplify the upload for this demonstration.
 filesToRemove <- c("scc_diagnostics_summary.csv", "scc_stat.csv", "scc_outcome_exposure.csv")
@@ -270,7 +327,7 @@ Finally, we can connect to this results database and query it like any other OMO
 ```{r query_results_db}
 resultsConn <- connect(resultsConnectionDetails)
 
-# Query the scc_result table
+# Query the scc_result table for our calibrated run (Analysis 4)
 resultsDb <- querySql(resultsConn, "SELECT * FROM main.scc_result WHERE analysis_id = 4")
 
 # Show the results from the database
@@ -285,5 +342,6 @@ disconnect(resultsConn)
 # Clean up
 on.exit(disconnect(connection))
 unlink(outputFolder, recursive = TRUE)
+unlink(multiResultsFolder, recursive = TRUE)
 unlink(resultsDbFile)
 ```
