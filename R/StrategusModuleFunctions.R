@@ -201,7 +201,7 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 
 #' Get results folders for an analysis specification
 #' @param analysisSpecification An analysis specification object containing analysis settings and exposure-outcome pairs.
-#'
+#' @param exportFolder The base folder where results are exported. Individual analysis results will be in subfolders named "A_{analysisId}".
 #' @return A character vector of paths to results folders for each analysis setting.
 #' @export
 getResultsFolders <- function(analysisSpecification, exportFolder) {

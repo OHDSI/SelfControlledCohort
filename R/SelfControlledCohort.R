@@ -266,6 +266,7 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' @inheritParams runSelfControlledCohort
 #' @param resultsTable      string - must be a permanent table
 #' @param riskWindowsTable  string - must be a permanent table
+#' @param diagnosticResults  Data frame of diagnostic results as returned by runSccDiagnostics
 exportEstimates <- function(connectionDetails,
                             connection,
                             cdmDatabaseSchema,

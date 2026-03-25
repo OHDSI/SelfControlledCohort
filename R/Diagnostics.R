@@ -58,8 +58,6 @@ getDefaultDiagnosticThresholds <- function() {
 #' @param riskWindowsTable            Name of the risk windows table
 #' @param outcomeTable                Name of outcome table (e.g., "condition_era", "cohort")
 #' @param outcomeDatabaseSchema       Schema containing outcome table
-#' @param exposureTable               Name of exposure table (e.g., "drug_era", "cohort")
-#' @param exposureDatabaseSchema      Schema containing exposure table
 #' @param analysisId                  Analysis identifier
 #' @param databaseId                  Database identifier for results export
 #' @param diagnostics                 Character vector of diagnostics to run. Options:

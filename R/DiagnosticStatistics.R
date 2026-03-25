@@ -97,7 +97,7 @@ computeMdrrForRateRatio <- function(exposedPersonTime,
 
     # Calculate power using normal approximation
     # Power = P(Z > z_alpha - log(RR)/SE)
-    calculatedPower <- pnorm(logRR / seLogRR - zAlpha)
+    calculatedPower <- stats::pnorm(logRR / seLogRR - zAlpha)
 
     if (abs(calculatedPower - power) < tolerance) {
       return(testRR)
@@ -222,7 +222,7 @@ testPreExposureGain <- function(connection,
       return(1.0)
     }
     # Use binomial test
-    binom.test(results$personsWithPreExposureOutcome[i],
+    stats::binom.test(results$personsWithPreExposureOutcome[i],
       results$totalPersons[i],
       p = 0,
       alternative = "greater"
@@ -354,9 +354,9 @@ testTimeTrend <- function(connection,
     # Fit Poisson GLM
     tryCatch(
       {
-        model <- glm(outcomeCount ~ calendarMonthStd + offset(log(pmax(personTime, 1))),
+        model <- stats::glm(outcomeCount ~ calendarMonthStd + offset(log(pmax(personTime, 1))),
           data = pairData,
-          family = poisson(link = "log")
+          family = stats::poisson(link = "log")
         )
 
         # Extract coefficient and p-value for time trend

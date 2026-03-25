@@ -29,9 +29,8 @@ Imports:
     Andromeda,
     readr,
     rlang,
-    CohortGenerator,
     cli,
-    purrr
+    stats
 Suggests:
     withr,
     testthat,

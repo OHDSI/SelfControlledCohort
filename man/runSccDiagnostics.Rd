@@ -40,15 +40,11 @@ runSccDiagnostics(
 
 \item{diagnostics}{Character vector of diagnostics to run. Options:
 "all", "mdrr", "pre_exposure_gain", "event_dependent",
-"time_trend", "sparse_data"}
+"time_trend"}
 
 \item{thresholds}{Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance}
-
-\item{exposureTable}{Name of exposure table (e.g., "drug_era", "cohort")}
-
-\item{exposureDatabaseSchema}{Schema containing exposure table}
 }
 \value{
 Invisible data frame of diagnostic results

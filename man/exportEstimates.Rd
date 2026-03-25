@@ -98,6 +98,8 @@ id for each person.}
 an alternative mechanism for exporting results}
 
 \item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
+
+\item{diagnosticResults}{Data frame of diagnostic results as returned by runSccDiagnostics}
 }
 \description{
 Allow the extraction of result estimates from a precomputed scc_result table.
