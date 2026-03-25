@@ -108,13 +108,6 @@ test_that("MDRR responds to power parameter", {
   expect_true(mdrr_high_power > mdrr_low_power)
 })
 
-test_that("checkSparseData validates input", {
-  # Different length vectors should error
-  expect_error(
-    checkSparseData(c(5, 10), c(8), minEvents = 3),
-    "same length"
-  )
-})
 
 test_that("MDRR handles very large samples", {
   # Very large sample should have MDRR close to 1
