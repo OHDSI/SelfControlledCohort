@@ -26,7 +26,7 @@ This vignette describes each diagnostic, the assumption it checks, and how resul
 
 # Overview
 
-Four diagnostics are executed per target–outcome pair:
+Five diagnostics are available. The first four are computed before estimation; EASE is computed during calibration when negative controls are provided.
 
 | Diagnostic Name | Assumption Tested | Default Threshold |
 |---|---|---|
@@ -34,6 +34,7 @@ Four diagnostics are executed per target–outcome pair:
 | **PRE_EXPOSURE** | Correct temporal ordering | Proportion ≤ 5%, p > 0.05 |
 | **EVENT_DEPENDENT_OBSERVATION** | Non-informative censoring | Proportion ≤ 10% |
 | **TIME_TREND_P_VALUE** | Stable baseline risk | p > 0.05 |
+| **EASE** | Low systematic error | EASE ≤ 0.25 |
 
 Default thresholds are available via `getDefaultDiagnosticThresholds()`:
 
@@ -161,6 +162,40 @@ The diagnostic aggregates outcome counts by calendar month across all persons in
 - **p ≤ 0.05** → Fail. A statistically significant trend in outcome risk was detected. Consider whether seasonal adjustment or restriction to a more stable time period is appropriate.
 
 Note: if fewer than 3 calendar months of data are available, the model cannot be fit and the diagnostic passes by default (NA).
+
+# Expected Absolute Systematic Error (EASE)
+
+## What it checks
+
+EASE quantifies the total expected systematic error in study estimates, combining both bias (deviation of the null distribution mean from zero) and imprecision (spread of the null distribution). It is computed from the null distribution fitted on negative control estimates.
+
+## When it runs
+
+Unlike the other four diagnostics, EASE requires **negative controls** and is computed **during calibration** rather than before estimation. If no `negativeControlPairs` are provided, the EASE diagnostic is simply skipped.
+
+## Method
+
+1. Fit a null distribution to the negative control log rate ratios using `EmpiricalCalibration::fitNull()`.
+2. Compute EASE using `EmpiricalCalibration::computeExpectedAbsoluteSystematicError()`.
+
+The resulting value represents the expected absolute difference between the estimated and true log rate ratio for a random study estimate drawn from this analysis.
+
+## Interpretation
+
+- **EASE ≤ 0.25** → Pass. Systematic error is within acceptable bounds.
+- **EASE > 0.25** → Fail. Substantial systematic error is present; estimates should be interpreted with caution.
+- **EASE = NA** → Not computed (fewer than 2 negative controls available).
+
+## Example
+
+```{r ease_example}
+# Compute EASE from negative control estimates
+negatives <- data.frame(
+  rr = c(1.2, 0.8, 1.0, 1.1, 0.95),
+  seLogRr = c(0.2, 0.1, 0.3, 0.15, 0.25)
+)
+computeEase(negatives)
+```
 
 # Tiered Blinding
 

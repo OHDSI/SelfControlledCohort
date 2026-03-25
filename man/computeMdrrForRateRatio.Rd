@@ -27,7 +27,7 @@ computeMdrrForRateRatio(
 \item{power}{Desired power (default: 0.80)}
 }
 \value{
-Numeric value representing the MDRR. Values > 2.0 typically indicate low power.
+Numeric value representing the MDRR. Values > 10.0 typically indicate low power.
 }
 \description{
 Calculates the minimum detectable relative risk for a two-sample Poisson rate comparison
@@ -37,7 +37,7 @@ adequate statistical power to detect clinically meaningful effects.
 \details{
 The MDRR is calculated using an iterative approach to find the rate ratio that would
 be detectable with the given sample size, alpha, and power. Lower MDRR values indicate
-better power. An MDRR > 2.0 suggests the study may only detect large effects.
+better power. An MDRR > 10.0 suggests the study may only detect very large effects.
 
 The calculation uses the observed baseline rate in the unexposed window and solves
 for the rate ratio that achieves the desired power.

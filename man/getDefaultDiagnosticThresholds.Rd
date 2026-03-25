@@ -16,11 +16,12 @@ Version 2.1.0+ uses revised diagnostics that align with SelfControlledCaseSeries
 \details{
 Thresholds:
 \itemize{
-  \item mdrrMaxAcceptable - Maximum acceptable MDRR (default: 2.0). Higher values indicate low power.
+  \item mdrrMaxAcceptable - Maximum acceptable MDRR (default: 10.0). Higher values indicate low power.
   \item maxPreExposureProportion - Maximum proportion of persons with pre-exposure outcomes (default: 0.05)
   \item preExposurePThreshold - Significance threshold for pre-exposure gain test (default: 0.05)
   \item maxEventDependentCensoring - Maximum proportion censored within 30 days of outcome (default: 0.10)
   \item timeTrendPThreshold - Significance threshold for time trend test (default: 0.05)
   \item minEventsPerWindow - Minimum events required in each window (default: 3)
+  \item easeMaxAcceptable - Maximum acceptable EASE (default: 0.25). Requires negative controls.
 }
 }

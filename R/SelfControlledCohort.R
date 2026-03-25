@@ -71,7 +71,9 @@ batchComputeEstimates <- function(connection,
                                   negativeControlPairs,
                                   controlType,
                                   tempEmulationSchema,
-                                  diagnosticResults = NULL) {
+                                  diagnosticResults = NULL,
+                                  diagnosticThresholds = getDefaultDiagnosticThresholds(),
+                                  databaseId = NULL) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
   andromeda <- Andromeda::andromeda()
@@ -181,6 +183,25 @@ batchComputeEstimates <- function(connection,
             }
 
             if (nrow(negatives) > 0) {
+              # Compute EASE diagnostic from negative controls
+              ease <- computeEase(negatives)
+              if (!is.null(databaseId)) {
+                easePass <- if (is.na(ease)) 0L else as.integer(ease <= diagnosticThresholds$easeMaxAcceptable)
+                easeDiag <- data.frame(
+                  database_id = databaseId,
+                  analysis_id = analysisId,
+                  target_cohort_id = grpCol,
+                  outcome_cohort_id = NA_integer_,
+                  diagnostic_name = "EASE",
+                  diagnostic_value = ease,
+                  pass = easePass
+                )
+                outputFile <- file.path(resultExportManager$exportDir, "scc_diagnostics_summary.csv")
+                append <- file.exists(outputFile)
+                resultExportManager$exportDataFrame(easeDiag, "scc_diagnostics_summary", append = append)
+                ParallelLogger::logInfo(sprintf("EASE diagnostic: %.4f (pass = %d)", ifelse(is.na(ease), NA, ease), easePass))
+              }
+
               calibratedEstimates <- computeCalibratedRows(
                 positives = estimates,
                 negatives = negatives
@@ -288,7 +309,8 @@ exportEstimates <- function(connectionDetails,
                             resultExportPath = "scc_result",
                             resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
                             controlType = "outcomes",
-                            diagnosticResults = NULL) {
+                            diagnosticResults = NULL,
+                            diagnosticThresholds = getDefaultDiagnosticThresholds()) {
   checkmate::assertR6(resultExportManager, "ResultExportManager")
   checkmate::assertList(negativeControlPairs, null.ok = TRUE)
   checkmate::assertChoice(controlType, choices = c("outcome", "exposure"))
@@ -362,7 +384,9 @@ exportEstimates <- function(connectionDetails,
     negativeControlPairs = negativeControlPairs,
     controlType = controlType,
     tempEmulationSchema = tempEmulationSchema,
-    diagnosticResults = diagnosticResults
+    diagnosticResults = diagnosticResults,
+    diagnosticThresholds = diagnosticThresholds,
+    databaseId = databaseId
   )
 
 
@@ -738,7 +762,8 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
       resultsTable = resultsTable,
       resultExportManager = resultExportManager,
       controlType = controlType,
-      diagnosticResults = diagnosticResults
+      diagnosticResults = diagnosticResults,
+      diagnosticThresholds = diagnosticThresholds
     )
   }
   # Drop temp tables:

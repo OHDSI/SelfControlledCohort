@@ -26,7 +26,8 @@ exportEstimates(
   resultExportPath = "scc_result",
   resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
   controlType = "outcomes",
-  diagnosticResults = NULL
+  diagnosticResults = NULL,
+  diagnosticThresholds = getDefaultDiagnosticThresholds()
 )
 }
 \arguments{
@@ -100,6 +101,8 @@ an alternative mechanism for exporting results}
 \item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 
 \item{diagnosticResults}{Data frame of diagnostic results as returned by runSccDiagnostics}
+
+\item{diagnosticThresholds}{Named list of diagnostic thresholds. See getDefaultDiagnosticThresholds()}
 }
 \description{
 Allow the extraction of result estimates from a precomputed scc_result table.

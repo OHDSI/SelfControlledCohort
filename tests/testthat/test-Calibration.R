@@ -51,3 +51,25 @@ test_that("computeCalibratedRows function works as expected", {
                                            "calibratedSeLogRr", "numOutcomesExposed", "numOutcomesUnexposed",
                                            "timeAtRiskExposed", "timeAtRiskUnexposed", "targetCohortId", "outcomeCohortId"))
 })
+
+test_that("computeEase returns numeric value for valid negatives", {
+  ease <- computeEase(sample_negatives)
+  expect_true(is.numeric(ease))
+  expect_true(!is.na(ease))
+  expect_true(ease >= 0)
+})
+
+test_that("computeEase returns NA for insufficient negatives", {
+  # Need at least 2 negative controls
+  single <- data.frame(rr = 1.0, seLogRr = 0.1)
+  expect_true(is.na(computeEase(single)))
+})
+
+test_that("computeEase handles NA values in negatives", {
+  negWithNa <- data.frame(
+    rr = c(1.2, NA, 0.9),
+    seLogRr = c(0.2, 0.1, NA)
+  )
+  # After dropping NAs, only 1 row remains -> NA
+  expect_true(is.na(computeEase(negWithNa)))
+})

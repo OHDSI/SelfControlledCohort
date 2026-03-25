@@ -68,3 +68,53 @@ computeCalibratedRows <- function(positives,
     dplyr::bind_cols(keptColumns)
   return(result)
 }
+
+#' Compute Expected Absolute Systematic Error (EASE)
+#'
+#' @description
+#' Computes the expected absolute systematic error from the null distribution
+#' fitted on negative control estimates. EASE summarizes both bias (mean of null)
+#' and imprecision (spread of null) into a single metric.
+#'
+#' @param negatives  Data frame of negative control results with columns `rr` and `seLogRr`
+#'
+#' @return
+#' Numeric EASE value, or NA if the null distribution could not be fitted.
+#'
+#' @details
+#' EASE is computed by fitting a null distribution to the negative control
+#' log rate ratios using \code{EmpiricalCalibration::fitNull()}, then calling
+#' \code{EmpiricalCalibration::computeExpectedAbsoluteSystematicError()}.
+#'
+#' Lower values indicate less systematic error. A value of 0 means no detectable
+#' bias. The default threshold of 0.25 is aligned with SCCS package conventions.
+#'
+#' @references
+#' Schuemie MJ, Hripcsak G, Ryan PB, Madigan D, Suchard MA. Empirical confidence
+#' interval calibration for population-level effect estimation studies in
+#' observational healthcare data. PNAS. 2018;115(11):2571-2577.
+#'
+#' @export
+computeEase <- function(negatives) {
+  checkmate::assertNames(names(negatives), must.include = c("rr", "seLogRr"))
+  negatives <- tidyr::drop_na(negatives)
+
+  if (nrow(negatives) < 2) {
+    return(NA_real_)
+  }
+
+  tryCatch(
+    {
+      nullDist <- getNullDist(negatives)
+      if (is.na(nullDist["mean"]) || is.na(nullDist["sd"])) {
+        return(NA_real_)
+      }
+      ease <- EmpiricalCalibration::computeExpectedAbsoluteSystematicError(nullDist)
+      return(as.numeric(ease))
+    },
+    error = function(e) {
+      ParallelLogger::logWarn(sprintf("Failed to compute EASE: %s", e$message))
+      return(NA_real_)
+    }
+  )
+}

@@ -74,6 +74,7 @@ test_that("getDefaultDiagnosticThresholds returns correct structure", {
   expect_true("maxEventDependentCensoring" %in% names(thresholds))
   expect_true("timeTrendPThreshold" %in% names(thresholds))
   expect_true("minEventsPerWindow" %in% names(thresholds))
+  expect_true("easeMaxAcceptable" %in% names(thresholds))
 
   # Check values are sensible
   expect_equal(thresholds$mdrrMaxAcceptable, 10.0)
@@ -82,6 +83,7 @@ test_that("getDefaultDiagnosticThresholds returns correct structure", {
   expect_equal(thresholds$maxEventDependentCensoring, 0.10)
   expect_equal(thresholds$timeTrendPThreshold, 0.05)
   expect_equal(thresholds$minEventsPerWindow, 3)
+  expect_equal(thresholds$easeMaxAcceptable, 0.25)
 })
 
 test_that("MDRR calculation is consistent", {

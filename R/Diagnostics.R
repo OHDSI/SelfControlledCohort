@@ -31,6 +31,7 @@
 #'   \item maxEventDependentCensoring - Maximum proportion censored within 30 days of outcome (default: 0.10)
 #'   \item timeTrendPThreshold - Significance threshold for time trend test (default: 0.05)
 #'   \item minEventsPerWindow - Minimum events required in each window (default: 3)
+#'   \item easeMaxAcceptable - Maximum acceptable EASE (default: 0.25). Requires negative controls.
 #' }
 #'
 #' @export
@@ -41,7 +42,8 @@ getDefaultDiagnosticThresholds <- function() {
     preExposurePThreshold = 0.05, # Significance level for pre-exposure test
     maxEventDependentCensoring = 0.10, # Max 10% censored within 30 days of outcome
     timeTrendPThreshold = 0.05, # Significance level for time trend
-    minEventsPerWindow = 3 # Min 3 events in each window
+    minEventsPerWindow = 3, # Min 3 events in each window
+    easeMaxAcceptable = 0.25 # Max EASE for acceptable systematic error
   )
 }
 
