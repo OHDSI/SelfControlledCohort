@@ -25,7 +25,7 @@
 #' @details
 #' Thresholds:
 #' \itemize{
-#'   \item mdrrMaxAcceptable - Maximum acceptable MDRR (default: 2.0). Higher values indicate low power.
+#'   \item mdrrMaxAcceptable - Maximum acceptable MDRR (default: 10.0). Higher values indicate low power.
 #'   \item maxPreExposureProportion - Maximum proportion of persons with pre-exposure outcomes (default: 0.05)
 #'   \item preExposurePThreshold - Significance threshold for pre-exposure gain test (default: 0.05)
 #'   \item maxEventDependentCensoring - Maximum proportion censored within 30 days of outcome (default: 0.10)
@@ -36,7 +36,7 @@
 #' @export
 getDefaultDiagnosticThresholds <- function() {
   list(
-    mdrrMaxAcceptable = 2.0, # Max MDRR for adequate power
+    mdrrMaxAcceptable = 10.0, # Max MDRR for adequate power
     maxPreExposureProportion = 0.05, # Max 5% with pre-exposure outcomes
     preExposurePThreshold = 0.05, # Significance level for pre-exposure test
     maxEventDependentCensoring = 0.10, # Max 10% censored within 30 days of outcome

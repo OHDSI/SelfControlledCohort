@@ -29,12 +29,12 @@
 #' @param power                Desired power (default: 0.80)
 #'
 #' @return
-#' Numeric value representing the MDRR. Values > 2.0 typically indicate low power.
+#' Numeric value representing the MDRR. Values > 10.0 typically indicate low power.
 #'
 #' @details
 #' The MDRR is calculated using an iterative approach to find the rate ratio that would
 #' be detectable with the given sample size, alpha, and power. Lower MDRR values indicate
-#' better power. An MDRR > 2.0 suggests the study may only detect large effects.
+#' better power. An MDRR > 10.0 suggests the study may only detect very large effects.
 #'
 #' The calculation uses the observed baseline rate in the unexposed window and solves
 #' for the rate ratio that achieves the desired power.
@@ -224,7 +224,7 @@ testPreExposureGain <- function(connection,
     # Use binomial test
     stats::binom.test(results$personsWithPreExposureOutcome[i],
       results$totalPersons[i],
-      p = 0,
+      p = 0.01,
       alternative = "greater"
     )$p.value
   }, numeric(1))
@@ -297,7 +297,10 @@ testTimeTrend <- function(connection,
     o.@outcome_id as outcome_cohort_id,
     YEAR(o.@outcome_start_date) * 12 + MONTH(o.@outcome_start_date) as calendar_month,
     COUNT(*) as outcome_count,
-    SUM(DATEDIFF(day, rw.risk_window_start_unexposed, rw.risk_window_end_exposed)) as person_time
+    SUM(
+      DATEDIFF(day, rw.risk_window_start_exposed, rw.risk_window_end_exposed) +
+      DATEDIFF(day, rw.risk_window_start_unexposed, rw.risk_window_end_unexposed)
+    ) as person_time
   FROM @risk_windows_table rw
   INNER JOIN @outcome_database_schema.@outcome_table o
     ON rw.person_id = o.@outcome_person_id
