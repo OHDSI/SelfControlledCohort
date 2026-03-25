@@ -9,7 +9,7 @@ getResultsFolders(analysisSpecification, exportFolder)
 \arguments{
 \item{analysisSpecification}{An analysis specification object containing analysis settings and exposure-outcome pairs.}
 
-\item{exportFolder}{The base folder where results are exported. Individual analysis results will be in subfolders named "A_{analysisId}".}
+\item{exportFolder}{The base folder where results are exported. Individual analysis results will be in subfolders named A_analysisId.}
 }
 \value{
 A character vector of paths to results folders for each analysis setting.
