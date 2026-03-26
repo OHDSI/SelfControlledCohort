@@ -4,7 +4,7 @@ Title: Population-Level Estimation Method that Estimates Incidence Rate Comparis
 Version: 2.0.0
 Date: 2026-02-17
 Authors@R: c(
-    person("Jamie", "Gilbert", email = "jpg@azimov.co.uk", role = c("cre", "aut")),
+    person("Jamie", "Gilbert", email = "gilbert@ohdsi.org", role = c("cre", "aut")),
     person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut")),
     person("Patrick", "Ryan", role = c("aut")),
     person("Observational Health Data Science and Informatics", role = c("cph"))
