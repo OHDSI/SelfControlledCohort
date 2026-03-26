@@ -4,10 +4,10 @@ test_that("multiple analyses", {
   # Analysis.R is checked elsewhere
   exposureOutcome1 <- createExposureOutcome(701322, 28060)
   exposureOutcome2 <- createExposureOutcome(715997, 4294548)
-  exposureOutcome3 <- createExposureOutcome(701322, 4043241)
+  exposureOutcome3 <- createExposureOutcome(701322, 4043241, trueEffectSize = 1)
   exposureOutcomeList <- list(exposureOutcome1, exposureOutcome2, exposureOutcome3)
 
-  runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE, computeTarDistribution = TRUE)
+  runSelfControlledCohortArgs1 <- createRunSelfControlledCohortArgs(firstExposureOnly = FALSE)
   runSelfControlledCohortArgs2 <- createRunSelfControlledCohortArgs(firstExposureOnly = TRUE)
   sccAnalysis1 <- createSccAnalysis(analysisId = 1,
                                     runSelfControlledCohortArgs = runSelfControlledCohortArgs1)
@@ -16,22 +16,17 @@ test_that("multiple analyses", {
   sccAnalysisList <- list(sccAnalysis1, sccAnalysis2)
 
   withr::with_tempfile("outputFolder", {
-    rr <- runSccAnalyses(connectionDetails = connectionDetails,
-                         cdmDatabaseSchema = cdmDatabaseSchema,
-                         sccAnalysisList = sccAnalysisList,
-                         exposureOutcomeList = exposureOutcomeList,
-                         outputFolder = outputFolder,
-                         computeThreads = 1)
+    resultsRef <- runSccAnalyses(connectionDetails = connectionDetails,
+                                 cdmDatabaseSchema = cdmDatabaseSchema,
+                                 sccAnalysisList = sccAnalysisList,
+                                 exposureOutcomeList = exposureOutcomeList,
+                                 resultsFolder = outputFolder,
+                                 databaseId = 1,
+                                 computeThreads = 1)
 
-    expect_s3_class(rr, "data.frame")
-    expect_true(file.exists(file.path(outputFolder, "resultsReference.rds")))
-    apply(rr, 1, function(item) {
-      expect_true(file.exists(file.path(outputFolder, item["sccResultsFile"])))
-    })
-
-    result <- summarizeAnalyses(rr, outputFolder)
-    expect_s3_class(result, "data.frame")
-    expect_equal(ncol(result), 15)
+    checkmate::expect_data_frame(resultsRef)
+    checkManifestFiles(file.path(outputFolder, "A_1"))
+    checkManifestFiles(file.path(outputFolder, "A_2"))
   })
 })
 
@@ -51,7 +46,7 @@ test_that("Fail on analyses clone", {
                                 cdmDatabaseSchema = cdmDatabaseSchema,
                                 sccAnalysisList = sccAnalysisList,
                                 exposureOutcomeList = exposureOutcomeList,
-                                outputFolder = outputFolder,
+                                resultsFolder = outputFolder,
                                 computeThreads = 8))
   })
 })

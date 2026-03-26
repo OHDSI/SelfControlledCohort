@@ -14,3 +14,54 @@ navbar:
     hades:
       text: hadesLogo
       href: https://ohdsi.github.io/Hades
+
+reference:
+  - title: "Package overview"
+    desc: "Overview of the SelfControlledCohort package"
+    contents:
+      - SelfControlledCohort-package
+  - title: "Running a Single Study"
+    desc: "Functions for executing a Self-Controlled Cohort study"
+    contents:
+      - runSelfControlledCohort
+      - createRunSelfControlledCohortArgs
+  - title: "Running Multiple Analyses"
+    desc: "Functions for running multiple analyses across many exposure-outcome pairs"
+    contents:
+      - runSccAnalyses
+      - createSccAnalysis
+      - createExposureOutcome
+      - saveSccAnalysisList
+      - loadSccAnalysisList
+      - saveExposureOutcomeList
+      - loadExposureOutcomeList
+  - title: "Diagnostics"
+    desc: "Functions for evaluating SCC study diagnostics"
+    contents:
+      - runSccDiagnostics
+      - getDefaultDiagnosticThresholds
+      - getDiagnosticsSummary
+      - computeMdrrForRateRatio
+      - computeEase
+  - title: "Risk Windows"
+    desc: "Functions related to computing and evaluating risk windows"
+    contents:
+      - runSccRiskWindows
+      - getSccRiskWindowStats
+  - title: "Results Data Model"
+    desc: "Functions for managing and uploading study results"
+    contents:
+      - createResultsDataModel
+      - uploadResults
+      - getResultsDataModelSpecifications
+      - migrateDataModel
+      - getDataMigrator
+      - getDefaultExportManager
+      - getResultsFolders
+  - title: "Strategus Module"
+    desc: "Functions for integrating with the Strategus execution framework"
+    contents:
+      - createSelfControlledCohortModuleSpecifications
+      - checkModuleVersion
+      - execute
+      - getModuleInfo

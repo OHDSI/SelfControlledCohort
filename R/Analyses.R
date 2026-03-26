@@ -1,6 +1,6 @@
 # @file Analyses.R
 #
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2026 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -32,13 +32,26 @@
 #'                                      in this analysis.
 #' @param runSelfControlledCohortArgs   An object representing the arguments to be used when calling
 #'                                      the \code{\link{runSelfControlledCohort}} function.
+#' @param controlType                   Character string specifying the type of control. Options
+#'                                      are "outcome" or "exposure". Default is "outcome".
+#' @param runDiagnostics                Logical indicating whether to run diagnostic tests on
+#'                                      the results. Default is TRUE.
+#' @param diagnostics                   Character vector specifying which diagnostics to run.
+#'                                      Options: "all", "counts", "event_dependent", "pre_exposure",
+#'                                      "window_balance", "cohort_stability". Default is "all".
+#' @param diagnosticThresholds          Named list of diagnostic thresholds. See
+#'                                      getDefaultDiagnosticThresholds() for defaults.
 #'
 #' @export
 createSccAnalysis <- function(analysisId = 1,
                               description = "",
                               exposureType = NULL,
                               outcomeType = NULL,
-                              runSelfControlledCohortArgs) {
+                              runSelfControlledCohortArgs,
+                              controlType = "outcome",
+                              runDiagnostics = TRUE,
+                              diagnostics = c("all"),
+                              diagnosticThresholds = getDefaultDiagnosticThresholds()) {
   # First: get the default values:
   analysis <- list()
   for (name in names(formals(createSccAnalysis))) {
@@ -95,20 +108,23 @@ loadSccAnalysisList <- function(file) {
 #' @details
 #' Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
 #'
-#' @param exposureId   A concept ID indentifying the drug of interest in the exposure table. If
-#'                     multiple strategies for picking the exposure will be tested in the analysis, a
-#'                     named list of numbers can be provided instead. In the analysis, the name of the
-#'                     number to be used can be specified using the \code{exposureType} parameter in
-#'                     the \code{\link{createSccAnalysis}} function.
-#' @param outcomeId    A concept ID indentifying the outcome of interest in the outcome table. If
-#'                     multiple strategies for picking the outcome will be tested in the analysis, a
-#'                     named list of numbers can be provided instead. In the analysis, the name of the
-#'                     number to be used can be specified using the #' \code{outcomeType} parameter in
-#'                     the \code{\link{createSccAnalysis}} function.
+#' @param exposureId       A concept ID indentifying the drug of interest in the exposure table. If
+#'                         multiple strategies for picking the exposure will be tested in the analysis,
+#'                         a named list of numbers can be provided instead. In the analysis, the name
+#'                         of the number to be used can be specified using the \code{exposureType}
+#'                         parameter in the \code{\link{createSccAnalysis}} function.
+#' @param outcomeId        A concept ID indentifying the outcome of interest in the outcome table. If
+#'                         multiple strategies for picking the outcome will be tested in the analysis,
+#'                         a named list of numbers can be provided instead. In the analysis, the name
+#'                         of the number to be used can be specified using the #' \code{outcomeType}
+#'                         parameter in the \code{\link{createSccAnalysis}} function.
+#' @param trueEffectSize   Should this be set to 1 this will be considererd a negative control
 #'
 #' @export
-createExposureOutcome <- function(exposureId, outcomeId) {
-  exposureOutcome <- list(exposureId = exposureId, outcomeId = outcomeId)
+createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
+  exposureOutcome <- list(exposureId = exposureId,
+                          outcomeId = outcomeId,
+                          trueEffectSize = trueEffectSize)
   class(exposureOutcome) <- "exposureOutcome"
   return(exposureOutcome)
 }

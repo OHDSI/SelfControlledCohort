@@ -14,6 +14,12 @@ Features
 ========
 - Extracts the necessary data from a database in OMOP Common Data Model format.
 - Supports stratification by age, gender, and index year.
+- Comprehensive diagnostics
+  - MDRR (statistical power analysis)
+  - Pre-exposure gain detection
+  - Event-dependent observation checks
+  - Time trend analysis
+  - Sparse data detection
 
 Example
 ========

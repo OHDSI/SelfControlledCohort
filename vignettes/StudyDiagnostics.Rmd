@@ -1,0 +1,231 @@
+---
+title: "Study Diagnostics"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    number_sections: yes
+    toc: yes
+vignette: |
+  %\VignetteIndexEntry{Study Diagnostics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+The **SelfControlledCohort** package includes a suite of diagnostics that evaluate whether the assumptions of the Self-Controlled Cohort (SCC) design hold for a given analysis. These diagnostics run automatically when `runDiagnostics = TRUE` and determine whether study results should be **unblinded** (viewed) or kept blinded until issues are resolved.
+
+This vignette describes each diagnostic, the assumption it checks, and how results are interpreted.
+
+# Overview
+
+Four core diagnostics are available to assess the validity of the SCC analysis.
+
+| Diagnostic Name | Assumption Tested | Default Threshold |
+|---|---|---|
+| **MDRR** | Adequate statistical power | MDRR <= 10.0 |
+| **PRE_EXPOSURE** | Correct temporal ordering | Rate Ratio <= 1.0, p > 0.05 |
+| **EVENT_DEPENDENT_OBSERVATION** | Non-informative censoring | Proportion <= 10% |
+| **EASE** | Low systematic error | EASE <= 0.25 |
+
+Default thresholds are available via `getDefaultDiagnosticThresholds()`:
+
+```{r thresholds}
+library(SelfControlledCohort)
+str(getDefaultDiagnosticThresholds())
+```
+
+# Minimum Detectable Relative Risk (MDRR)
+
+## What it checks
+
+The MDRR quantifies the smallest rate ratio the study has 80% power to detect at alpha = 0.05. A high MDRR indicates that only very large effects would be detected --- the study is underpowered.
+
+## Method
+
+The calculation uses the **Musonda (2006) Signed Root Likelihood (SRL1)** method, which is specifically designed for self-controlled designs. It finds the rate ratio satisfying the target power (80%) given the observed person-time and event counts in exposed and unexposed windows.
+
+
+## Interpretation
+
+- **MDRR <= 10.0** -> Pass. The study has sufficient power to detect clinically relevant effects.
+- **MDRR > 10.0** -> Fail. The study can only detect very large effects, and estimates may be unreliable.
+- **MDRR = NA** -> Fail. Occurs when there are zero events or zero person-time.
+
+## Example
+
+```{r eval=FALSE}
+# Well-powered study
+computeMdrrForRateRatio(
+  exposedPersonTime = 50000,
+  unexposedPersonTime = 150000,
+  exposedEvents = 40,
+  unexposedEvents = 90
+)
+
+# Underpowered study (SRL1 solver returns NA if power cannot be met)
+computeMdrrForRateRatio(
+  exposedPersonTime = 500,
+  unexposedPersonTime = 1500,
+  exposedEvents = 3,
+  unexposedEvents = 7
+)
+```
+
+## Role in blinding
+
+MDRR is the only diagnostic that affects **Tier 2 (UNBLIND)** but not **Tier 1 (UNBLIND_FOR_CALIBRATION)**. This means a low-powered study can still serve as a negative control for empirical calibration, even if its point estimate should not be viewed directly.
+
+# Pre-Exposure Gain
+
+## What it checks
+
+This diagnostic detects whether outcomes occur *before* the exposure start date at a rate higher than expected. In a properly specified SCC analysis, outcomes should not systematically precede exposure.
+
+## Why it matters
+
+Pre-exposure outcomes suggest one or more of:
+
+- **Confounding by indication** --- the outcome (or a related condition) prompted the exposure.
+- **Misspecified cohort definitions** --- the exposure definition accidentally captures outcome events or vice versa.
+- **Data quality issues** --- incorrect temporal ordering in the source data.
+
+## Method
+
+The diagnostic is performed using a high-performance SQL query that aggregates counts directly in the database. For each target-outcome pair:
+
+1. Count the number of outcome events occurring in the window before `exposure_start_date` and the window after.
+2. Calculate the corresponding person-time for both windows across all individuals.
+3. Run a one-sided rate ratio test using `rateratio.test::rateratio.test`.
+
+## Interpretation
+
+The diagnostic emits two rows: `PRE_EXPOSURE_RATE_RATIO` and `PRE_EXPOSURE_P_VALUE`.
+
+- **Pass** if rate ratio <= 1.0 **and** p-value > 0.05.
+- **Fail** otherwise. Investigate whether the exposure and outcome definitions overlap temporally, or whether confounding by indication is present.
+
+# Event-Dependent Observation
+
+## What it checks
+
+This diagnostic identifies whether the observation period ends shortly after an outcome event. If it does, the outcome may be causing censoring (e.g., the outcome leads to death or disenrollment), which biases the rate ratio.
+
+## Why it matters
+
+The SCC design compares rates across exposed and unexposed windows within the same person. If observation tends to end after the outcome, then:
+
+- Outcomes near the end of observation are more likely to be observed than outcomes that would have occurred later.
+- The exposed window (typically after the unexposed window) is disproportionately affected, inflating the rate ratio.
+
+## Method
+
+For each person with an outcome during the risk windows, the diagnostic checks whether their `observation_period_end_date` falls within 30 days after the outcome.
+
+## Interpretation
+
+- **Proportion <= 10%** -> Pass. Censoring after the outcome is uncommon.
+- **Proportion > 10%** -> Fail. A substantial fraction of patients leave observation shortly after the outcome, suggesting event-dependent censoring. Consider whether the outcome includes fatal or near-fatal events.
+
+# Expected Absolute Systematic Error (EASE)
+
+## What it checks
+
+EASE quantifies the total expected systematic error in study estimates, combining both bias (deviation of the null distribution mean from zero) and imprecision (spread of the null distribution). It is computed from the null distribution fitted on negative control estimates.
+
+## When it runs
+
+Unlike the other diagnostics, EASE requires **negative controls** and is computed **after estimation** (during calibration). If no `negativeControlPairs` are provided, the EASE diagnostic is simply skipped.
+
+## Method
+
+1. Fit a null distribution to the negative control log rate ratios using `EmpiricalCalibration::fitNull()`.
+2. Compute EASE using `EmpiricalCalibration::computeExpectedAbsoluteSystematicError()`.
+
+The resulting value represents the expected absolute difference between the estimated and true log rate ratio for a random study estimate drawn from this analysis.
+
+## Interpretation
+
+- **EASE <= 0.25** -> Pass. Systematic error is within acceptable bounds.
+- **EASE > 0.25** -> Fail. Substantial systematic error is present; estimates should be interpreted with caution.
+- **EASE = NA** -> Not computed (fewer than 2 negative controls available).
+
+## Example
+
+```{r eval=FALSE}
+# Compute EASE from negative control estimates
+negatives <- data.frame(
+  rr = c(1.2, 0.8, 1.0, 1.1, 0.95),
+  seLogRr = c(0.2, 0.1, 0.3, 0.15, 0.25)
+)
+computeEase(negatives)
+```
+
+# Tiered Blinding
+
+The individual diagnostics feed into a two-tier blinding system:
+
+- **UNBLIND = 1**: All diagnostics passed. The result is suitable for direct interpretation.
+- **UNBLIND_FOR_CALIBRATION = 1**: All non-power diagnostics passed. The result can be used as a negative control for empirical calibration, even if the MDRR threshold was not met.
+- **Both = 0**: Core diagnostics failed. The result should remain blinded pending investigation.
+
+# Running Diagnostics
+
+Diagnostics are run automatically when `runDiagnostics = TRUE` (the default):
+
+```r eval=FALSE
+runSelfControlledCohort(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = "cdm",
+  exposureIds = c(1118084),
+  outcomeIds = c(313217),
+  databaseId = "my_db",
+  resultExportPath = "results",
+  runDiagnostics = TRUE
+)
+```
+
+Results are saved to `scc_diagnostics_summary.csv` in the export folder.
+
+## Customizing thresholds
+
+```{r eval=FALSE}
+thresholds <- getDefaultDiagnosticThresholds()
+thresholds$mdrrMaxAcceptable <- 15.0       # Allow higher MDRR
+thresholds$maxPreExposureProportion <- 0.10  # Allow up to 10% pre-exposure
+
+runSelfControlledCohort(
+  ...,
+  runDiagnostics = TRUE,
+  diagnosticThresholds = thresholds
+)
+```
+
+## Selecting specific diagnostics
+
+```r eval=FALSE
+runSelfControlledCohort(
+  ...,
+  runDiagnostics = TRUE,
+  diagnostics = c("mdrr", "ease")  # Skip pre-exposure and event-dependent
+)
+```
+
+
+## Inspecting failures
+
+```{r eval=FALSE}
+diagnostics <- read.csv("results/scc_diagnostics_summary.csv")
+
+# Which target-outcome pairs had failures?
+failures <- diagnostics[diagnostics$pass == 0 &
+  !(diagnostics$diagnostic_name %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION")), ]
+print(failures)
+```

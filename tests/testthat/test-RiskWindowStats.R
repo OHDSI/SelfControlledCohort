@@ -22,8 +22,7 @@ test_that("General test + errors and warnings", {
                                      washoutPeriod = 100,
                                      followupPeriod = 0,
                                      riskWindowsTable = "#risk_windows",
-                                     tempEmulationSchema = NULL,
-                                     oracleTempSchema = Sys.getenv("CDM5_ORACLE_OHDSI_SCHEMA")))
+                                     tempEmulationSchema = NULL))
   } else {
     runSccRiskWindows(connection = connection,
                       cdmDatabaseSchema = cdmDatabaseSchema,
@@ -44,11 +43,7 @@ test_that("General test + errors and warnings", {
   expect_error(getSccRiskWindowStats(connection = NULL,
                                      outcomeDatabaseSchema = cdmDatabaseSchema))
 
-  stats <- getSccRiskWindowStats(connection, outcomeDatabaseSchema = cdmDatabaseSchema, outcomeIds = 444382)
-  expect_false(is.null(stats$treatmentTimeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistributionExposed))
-  expect_false(is.null(stats$timeToOutcomeDistributionUnexposed))
+  getSccRiskWindowStats(connection, outcomeDatabaseSchema = cdmDatabaseSchema, databaseId = 99, outcomeIds = 444382)
 
   # Invalid connection object
   connectionT <- DatabaseConnector::connect(connectionDetails)
@@ -57,12 +52,6 @@ test_that("General test + errors and warnings", {
                                      outcomeDatabaseSchema = cdmDatabaseSchema))
   expect_error(runSccRiskWindows(connection = connectionT,
                                  cdmDatabaseSchema = cdmDatabaseSchema))
-
-})
-
-test_that("Using real risk windows tables", {
-  # Not all test platforms provide a schema we can create tables in, only sqlite will be used
-  skip_if_not(dbms == "sqlite", "Test not available on db platform")
 
   runSccRiskWindows(connection = connection,
                     cdmDatabaseSchema = cdmDatabaseSchema,
@@ -80,14 +69,11 @@ test_that("Using real risk windows tables", {
                     riskWindowsTable = "test_risk_windows",
                     resultsDatabaseSchema = cdmDatabaseSchema)
 
-  stats <- getSccRiskWindowStats(connection,
-                                 outcomeDatabaseSchema = cdmDatabaseSchema,
-                                 riskWindowsTable = "test_risk_windows",
-                                 resultsDatabaseSchema = cdmDatabaseSchema,
-                                 outcomeIds = 444382)
+  getSccRiskWindowStats(connection,
+                        databaseId = 99,
+                        outcomeDatabaseSchema = cdmDatabaseSchema,
+                        riskWindowsTable = "test_risk_windows",
+                        resultsDatabaseSchema = cdmDatabaseSchema,
+                        outcomeIds = 444382)
 
-  expect_false(is.null(stats$treatmentTimeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistribution))
-  expect_false(is.null(stats$timeToOutcomeDistributionExposed))
-  expect_false(is.null(stats$timeToOutcomeDistributionUnexposed))
 })

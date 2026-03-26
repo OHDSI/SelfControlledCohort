@@ -8,11 +8,11 @@ runSelfControlledCohort(
   connectionDetails = NULL,
   cdmDatabaseSchema,
   connection = NULL,
-  cdmVersion = 5,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-  oracleTempSchema = NULL,
   exposureIds = NULL,
   outcomeIds = NULL,
+  negativeControlPairs = NULL,
+  controlType = "outcome",
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
@@ -32,14 +32,21 @@ runSelfControlledCohort(
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
   followupPeriod = 0,
-  computeTarDistribution = FALSE,
-  computeThreads = 1,
+  computeThreads = getOption("strategus.SelfControlledCohort.computeThreads", default =
+    parallel::detectCores() - 1),
   riskWindowsTable = "#risk_windows",
   resultsTable = "#results",
+  keepResultsTables = TRUE,
+  extractResults = TRUE,
   resultsDatabaseSchema = NULL,
-  postProcessFunction = NULL,
-  postProcessArgs = list(),
-  returnEstimates = TRUE
+  resultExportPath = "scc_result",
+  databaseId,
+  analysisId = 1,
+  analysisDescription = paste("SCC analysis", analysisId),
+  resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
+  runDiagnostics = TRUE,
+  diagnostics = c("all"),
+  diagnosticThresholds = getDefaultDiagnosticThresholds()
 )
 }
 \arguments{
@@ -52,15 +59,8 @@ vocabulary.}
 
 \item{connection}{DatabaseConnector connection instance}
 
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
-
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
-
-\item{oracleTempSchema}{For Oracle only: the name of the database schema where you
-want all temporary tables to be managed. Requires
-create/insert permissions to this database.}
 
 \item{exposureIds}{A vector containing the drug_concept_ids or
 cohort_definition_ids of the exposures of interest. If empty,
@@ -69,6 +69,10 @@ all exposures in the exposure table will be included.}
 \item{outcomeIds}{The condition_concept_ids or cohort_definition_ids of the
 outcomes of interest. If empty, all the outcomes in the
 outcome table will be included.}
+
+\item{negativeControlPairs}{A list of vectors for pairs of negative control}
+
+\item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 
 \item{exposureDatabaseSchema}{The name of the database schema that is the location where
 the exposure data used to define the exposure cohorts is
@@ -141,11 +145,6 @@ start.}
 \item{followupPeriod}{Integer to define required time observed after exposure
 start.}
 
-\item{computeTarDistribution}{If TRUE, computer the distribution of time-at-risk and
-average absolute time between treatment and outcome. Note,
-may add significant computation time on some database
-engines.}
-
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}
 
@@ -157,16 +156,38 @@ unexposed patients per outcome-exposure pair) in a (non-temporary)
 table. Note that this table does not store the rate ratios, only
 the values required to calculate rate ratios.}
 
+\item{keepResultsTables}{Keep the results tables in place if they exist. This allows the data set
+to be added to with aditional targets and outcomes.
+(ignored if temporary tables are used, default)}
+
+\item{extractResults}{Export results to disk. In the case of very large exposure/outcome set
+pairs it is often more ideal to create a permanent results table with
+the @resultsTable parameter and extract and calibrate small subsets on
+demand. Performing calibration across the full set of outcome/exposure pairs
+can take a significant amount of time.
+If set to false, no relative risk ratios will be produced.}
+
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}
 
-\item{postProcessFunction}{Callback function to handle batches of data. Useful for
-massive result sets that overflow system memory. See example.}
+\item{resultExportPath}{Folder where result files are exported}
 
-\item{postProcessArgs}{Arguments for post processing function callback.}
+\item{databaseId}{Unique identifier for database - required}
 
-\item{returnEstimates}{Boolean opt to not return estimates, only useful in the case
-where postProcessFunction is used}
+\item{analysisId}{An integer unique to this analysis}
+
+\item{analysisDescription}{A string description of the analysis (optional)}
+
+\item{resultExportManager}{ResultModelManager::ResultExportManager instance - customize this to implement
+an alternative mechanism for exporting results}
+
+\item{runDiagnostics}{If TRUE, run diagnostic tests on the results}
+
+\item{diagnostics}{Character vector specifying which diagnostics to run.
+Options: "all", "counts", "event_dependent", "pre_exposure",
+"window_balance", "cohort_stability". Default is "all".}
+
+\item{diagnosticThresholds}{Named list of diagnostic thresholds. See getDefaultDiagnosticThresholds()}
 }
 \value{
 An object of type \code{sccResults} containing the results of the analysis.
@@ -183,28 +204,23 @@ combination of exposure and outcome.
 }
 \examples{
 \dontrun{
-connectionDetails <- createConnectionDetails(dbms = "sql server",
-                                             server = "RNDUSRDHIT07.jnj.com")
+connectionDetails <- createConnectionDetails(
+  dbms = "sql server",
+  server = "RNDUSRDHIT07.jnj.com"
+)
 sccResult <- runSelfControlledCohort(connectionDetails,
-                                     cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-                                     exposureIds = c(767410, 1314924, 907879),
-                                     outcomeIds = 444382,
-                                     outcomeTable = "condition_era")
-
-# Using a callback function that writes data to a csv file and not store in memory
-csvFileName <- "D:/path/to/output.csv"
-writeSccData <- function(data, position, csvFileName) {
-  vroom::vroom_write(data, csvFileName, delim = ",", append = position != 1, na = "")
-}
-
+  cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+  exposureIds = c(767410, 1314924, 907879),
+  outcomeIds = 444382,
+  outcomeTable = "condition_era"
+)
 runSelfControlledCohort(connectionDetails,
-                        cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
-                        exposureIds = c(767410, 1314924, 907879),
-                        outcomeIds = 444382,
-                        outcomeTable = "condition_era",
-                        postProcessFunction = writeSccData,
-                        postProcessArgs = list(csvFileName = csvFileName),
-                        returnEstimates = FALSE)
+  cdmDatabaseSchema = "cdm_truven_mdcr.dbo",
+  exposureIds = c(767410, 1314924, 907879),
+  outcomeIds = 444382,
+  outcomeTable = "condition_era",
+  returnEstimates = FALSE
+)
 }
 }
 \references{
