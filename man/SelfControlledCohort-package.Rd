@@ -17,7 +17,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jamie Gilbert \email{jpg@azimov.co.uk}
+\strong{Maintainer}: Jamie Gilbert \email{gilbert@ohdsi.org}
 
 Authors:
 \itemize{
