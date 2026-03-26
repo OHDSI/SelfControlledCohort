@@ -58,7 +58,6 @@ reference:
       - getDataMigrator
       - getDefaultExportManager
       - getResultsFolders
-      - exportEstimates
   - title: "Strategus Module"
     desc: "Functions for integrating with the Strategus execution framework"
     contents:

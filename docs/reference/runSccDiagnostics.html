@@ -43,7 +43,7 @@ Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries pack
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
@@ -81,6 +81,7 @@ Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries pack
 <span>  outcomeDatabaseSchema <span class="op">=</span> <span class="va">cdmDatabaseSchema</span>,</span>
 <span>  <span class="va">analysisId</span>,</span>
 <span>  <span class="va">databaseId</span>,</span>
+<span>  estimates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  diagnostics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"all"</span><span class="op">)</span>,</span>
 <span>  thresholds <span class="op">=</span> <span class="fu"><a href="getDefaultDiagnosticThresholds.html">getDefaultDiagnosticThresholds</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">resultExportManager</span></span>
@@ -104,7 +105,7 @@ Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries pack
 
 
 <dt id="arg-resultstable">resultsTable<a class="anchor" aria-label="anchor" href="#arg-resultstable"></a></dt>
-<dd><p>Name of the results table (can be temporary or permanent)</p></dd>
+<dd><p>Name of the results table (contains counts)</p></dd>
 
 
 <dt id="arg-riskwindowstable">riskWindowsTable<a class="anchor" aria-label="anchor" href="#arg-riskwindowstable"></a></dt>
@@ -127,10 +128,13 @@ Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries pack
 <dd><p>Database identifier for results export</p></dd>
 
 
+<dt id="arg-estimates">estimates<a class="anchor" aria-label="anchor" href="#arg-estimates"></a></dt>
+<dd><p>Data frame of raw SCC results (including rr and se_log_rr)</p></dd>
+
+
 <dt id="arg-diagnostics">diagnostics<a class="anchor" aria-label="anchor" href="#arg-diagnostics"></a></dt>
 <dd><p>Character vector of diagnostics to run. Options:
-"all", "mdrr", "pre_exposure_gain", "event_dependent",
-"time_trend"</p></dd>
+"all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"</p></dd>
 
 
 <dt id="arg-thresholds">thresholds<a class="anchor" aria-label="anchor" href="#arg-thresholds"></a></dt>
@@ -145,14 +149,6 @@ Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries pack
     <h2>Value</h2>
     <p>Invisible data frame of diagnostic results</p>
     </div>
-    <div id="details">
-    <h2>Details</h2>
-    <p>Available diagnostics:</p><ul><li><p>mdrr - Minimum Detectable Relative Risk (power analysis)</p></li>
-<li><p>pre_exposure_gain - Tests for outcomes before exposure start</p></li>
-<li><p>event_dependent - Tests for outcome-induced censoring</p></li>
-<li><p>time_trend - Tests for temporal trends in outcome risk</p></li>
-<li><p>sparse_data - Checks for sufficient events in both windows</p></li>
-</ul></div>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

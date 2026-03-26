@@ -1,6 +1,6 @@
 # @file PackageMaintenance
 #
-# Copyright 2025 Observational Health Data Sciences and Informatics
+# Copyright 2026 Observational Health Data Sciences and Informatics
 #
 # This file is part of SelfControlledCohort
 #
@@ -46,11 +46,14 @@ sequenceDiagram
 print("Use R studio export view to save diag object to vignettes/ExposureWindowsDiagram.png")
 
 rmarkdown::render("vignettes/UsingSelfControlledCohort.Rmd",
-                  output_file = "inst/doc/UsingSelfControlledCohort.pdf",
+                  output_file = "../inst/doc/UsingSelfControlledCohort.pdf",
                   rmarkdown::pdf_document(latex_engine = "pdflatex",
                                           toc = TRUE,
                                           number_sections = TRUE))
+
+rmarkdown::render("vignettes/StudyDiagnostics.Rmd", output_file = "../inst/doc/StudyDiagnostics.pdf", rmarkdown::pdf_document(latex_engine = "pdflatex", toc = TRUE, number_sections = TRUE))
 unlink("inst/doc/UsingSelfControlledCohort.tex")
+unlink("inst/doc/StudyDiagnostics.tex")
 
 
 pkgdown::build_site()

@@ -130,9 +130,12 @@ computeMdrrForRateRatio <- function(exposedPersonTime,
 #'   \item target_cohort_id - Exposure cohort ID
 #'   \item outcome_cohort_id - Outcome cohort ID
 #'   \item total_persons - Total persons in analysis
-#'   \item persons_with_pre_exposure_outcome - Persons with outcomes before exposure
-#'   \item proportion - Proportion with pre-exposure outcomes
-#'   \item p_value - Binomial test p-value (H0: proportion = 0)
+#'   \item count_before - Number of outcomes before exposure
+#'   \item count_after - Number of outcomes after exposure
+#'   \item total_pt_before - Total person-time before exposure
+#'   \item total_pt_after - Total person-time after exposure
+#'   \item pre_exposure_rate_ratio - Rate ratio (Before vs After)
+#'   \item p_value - Rate ratio test p-value (H0: rateBefore <= rateAfter)
 #' }
 #'
 #' @details

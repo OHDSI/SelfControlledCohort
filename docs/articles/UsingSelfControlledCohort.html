@@ -62,7 +62,7 @@
       </ul>
 <ul class="nav navbar-nav navbar-right">
 <li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
@@ -85,7 +85,7 @@
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Using SelfControlledCohort</h1>
             
-            <h4 data-toc-skip class="date">2026-03-25</h4>
+            <h4 data-toc-skip class="date">2026-03-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/OHDSI/SelfControlledCohort/blob/HEAD/vignettes/UsingSelfControlledCohort.Rmd" class="external-link"><code>vignettes/UsingSelfControlledCohort.Rmd</code></a></small>
       <div class="hidden name"><code>UsingSelfControlledCohort.Rmd</code></div>
@@ -151,27 +151,26 @@ conditions.</p>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  25%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt; Retrieving counts from database</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   8%  |                                                                              |===========                                                           |  15%  |                                                                              |================                                                      |  23%  |                                                                              |======================                                                |  31%  |                                                                              |===========================                                           |  38%  |                                                                              |================================                                      |  46%  |                                                                              |======================================                                |  54%  |                                                                              |===========================================                           |  62%  |                                                                              |================================================                      |  69%  |                                                                              |======================================================                |  77%  |                                                                              |===========================================================           |  85%  |                                                                              |=================================================================     |  92%  |                                                                              |======================================================================| 100%</span></span>
+<span><span class="co">#&gt; Computing raw effect estimates</span></span>
+<span><span class="co">#&gt; Initiating cluster with 7 threads</span></span>
+<span><span class="co">#&gt; Stopping cluster</span></span>
 <span><span class="co">#&gt; Running diagnostics</span></span>
 <span><span class="co">#&gt; Running SCC diagnostics</span></span>
 <span><span class="co">#&gt; - Running MDRR (power) diagnostic</span></span>
 <span><span class="co">#&gt; - Running pre-exposure gain diagnostic</span></span>
 <span><span class="co">#&gt; - Running event-dependent observation diagnostic</span></span>
-<span><span class="co">#&gt; - Running time trend diagnostic</span></span>
-<span><span class="co">#&gt; Completed 20622 diagnostic tests</span></span>
-<span><span class="co">#&gt; 15479 diagnostic test(s) failed:</span></span>
+<span><span class="co">#&gt; - Running EASE (systematic error) diagnostic</span></span>
+<span><span class="co">#&gt; Completed 33248 diagnostic tests</span></span>
+<span><span class="co">#&gt; 6977 diagnostic test(s) failed:</span></span>
 <span><span class="co">#&gt; Computing time at risk distribution statistics</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |====                                                                  |   6%  |                                                                              |========                                                              |  12%  |                                                                              |============                                                          |  18%  |                                                                              |================                                                      |  24%  |                                                                              |=====================                                                 |  29%  |                                                                              |=========================                                             |  35%  |                                                                              |=============================                                         |  41%  |                                                                              |=================================                                     |  47%  |                                                                              |=====================================                                 |  53%  |                                                                              |=========================================                             |  59%  |                                                                              |=============================================                         |  65%  |                                                                              |=================================================                     |  71%  |                                                                              |======================================================                |  76%  |                                                                              |==========================================================            |  82%  |                                                                              |==============================================================        |  88%  |                                                                              |==================================================================    |  94%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Computing incidence rate ratios and exact confidence intervals</span></span>
-<span><span class="co">#&gt; Initiating cluster with 7 threads</span></span>
-<span><span class="co">#&gt; Expected columns not found in exported data frame outcome_cohort_id target_cohort_id</span></span>
-<span><span class="co">#&gt; Stopping cluster</span></span>
 <span><span class="co">#&gt; Cleaning up intermedate tables</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=========                                                             |  12%  |                                                                              |==================                                                    |  25%  |                                                                              |==========================                                            |  38%  |                                                                              |===================================                                   |  50%  |                                                                              |============================================                          |  62%  |                                                                              |====================================================                  |  75%  |                                                                              |=============================================================         |  88%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Performing SCC analysis took 16.7 secs</span></span></code></pre></div>
+<span><span class="co">#&gt; Performing SCC analysis took 19 secs</span></span></code></pre></div>
 <p>Now we can read the results and inspect the estimates.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">outputFolder</span>, <span class="st">"scc_result.csv"</span><span class="op">)</span><span class="op">)</span></span>
@@ -184,14 +183,6 @@ conditions.</p>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">target_cohort_id</span>, <span class="va">outcome_cohort_id</span>, <span class="va">rr</span>, <span class="va">lb_95</span>, <span class="va">ub_95</span>, <span class="va">p_value</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<colgroup>
-<col width="25%">
-<col width="27%">
-<col width="10%">
-<col width="10%">
-<col width="13%">
-<col width="12%">
-</colgroup>
 <thead><tr class="header">
 <th align="right">target_cohort_id</th>
 <th align="right">outcome_cohort_id</th>
@@ -202,44 +193,44 @@ conditions.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="right">1759842</td>
-<td align="right">257012</td>
-<td align="right">68.101</td>
-<td align="right">11.818</td>
-<td align="right">2728.921</td>
-<td align="right">0.002</td>
+<td align="right">701322</td>
+<td align="right">4155034</td>
+<td align="right">Inf</td>
+<td align="right">0.027</td>
+<td align="right">Inf</td>
+<td align="right">NA</td>
 </tr>
 <tr class="even">
-<td align="right">1713332</td>
-<td align="right">257012</td>
-<td align="right">65.019</td>
-<td align="right">11.265</td>
-<td align="right">2607.107</td>
-<td align="right">0.003</td>
+<td align="right">705944</td>
+<td align="right">0</td>
+<td align="right">Inf</td>
+<td align="right">0.024</td>
+<td align="right">Inf</td>
+<td align="right">NA</td>
 </tr>
 <tr class="odd">
-<td align="right">1361711</td>
-<td align="right">0</td>
-<td align="right">43.445</td>
-<td align="right">7.515</td>
-<td align="right">1743.310</td>
-<td align="right">0.007</td>
+<td align="right">705944</td>
+<td align="right">440448</td>
+<td align="right">Inf</td>
+<td align="right">0.024</td>
+<td align="right">Inf</td>
+<td align="right">NA</td>
 </tr>
 <tr class="even">
-<td align="right">1322184</td>
-<td align="right">0</td>
-<td align="right">19.681</td>
-<td align="right">5.095</td>
-<td align="right">168.241</td>
-<td align="right">0.001</td>
+<td align="right">705944</td>
+<td align="right">4001336</td>
+<td align="right">Inf</td>
+<td align="right">0.024</td>
+<td align="right">Inf</td>
+<td align="right">NA</td>
 </tr>
 <tr class="odd">
-<td align="right">1322184</td>
-<td align="right">381316</td>
-<td align="right">15.139</td>
-<td align="right">2.329</td>
-<td align="right">637.313</td>
-<td align="right">0.058</td>
+<td align="right">705944</td>
+<td align="right">4048695</td>
+<td align="right">Inf</td>
+<td align="right">0.024</td>
+<td align="right">Inf</td>
+<td align="right">NA</td>
 </tr>
 </tbody>
 </table>
@@ -317,13 +308,16 @@ Let’s create them.</p>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  25%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt; Retrieving counts from database</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   8%  |                                                                              |===========                                                           |  15%  |                                                                              |================                                                      |  23%  |                                                                              |======================                                                |  31%  |                                                                              |===========================                                           |  38%  |                                                                              |================================                                      |  46%  |                                                                              |======================================                                |  54%  |                                                                              |===========================================                           |  62%  |                                                                              |================================================                      |  69%  |                                                                              |======================================================                |  77%  |                                                                              |===========================================================           |  85%  |                                                                              |=================================================================     |  92%  |                                                                              |======================================================================| 100%</span></span>
+<span><span class="co">#&gt; Computing raw effect estimates</span></span>
+<span><span class="co">#&gt; Initiating cluster with 7 threads</span></span>
+<span><span class="co">#&gt; Stopping cluster</span></span>
 <span><span class="co">#&gt; Running diagnostics</span></span>
 <span><span class="co">#&gt; Running SCC diagnostics</span></span>
 <span><span class="co">#&gt; - Running MDRR (power) diagnostic</span></span>
 <span><span class="co">#&gt; - Running pre-exposure gain diagnostic</span></span>
 <span><span class="co">#&gt; - Running event-dependent observation diagnostic</span></span>
-<span><span class="co">#&gt; - Running time trend diagnostic</span></span>
-<span><span class="co">#&gt; Completed 3 diagnostic tests</span></span>
+<span><span class="co">#&gt; - Running EASE (systematic error) diagnostic</span></span>
+<span><span class="co">#&gt; Completed 9 diagnostic tests</span></span>
 <span><span class="co">#&gt; 3 diagnostic test(s) failed:</span></span>
 <span><span class="co">#&gt; Computing time at risk distribution statistics</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |====                                                                  |   6%  |                                                                              |========                                                              |  12%  |                                                                              |============                                                          |  18%  |                                                                              |================                                                      |  24%  |                                                                              |=====================                                                 |  29%  |                                                                              |=========================                                             |  35%  |                                                                              |=============================                                         |  41%  |                                                                              |=================================                                     |  47%  |                                                                              |=====================================                                 |  53%  |                                                                              |=========================================                             |  59%  |                                                                              |=============================================                         |  65%  |                                                                              |=================================================                     |  71%  |                                                                              |======================================================                |  76%  |                                                                              |==========================================================            |  82%  |                                                                              |==============================================================        |  88%  |                                                                              |==================================================================    |  94%  |                                                                              |======================================================================| 100%</span></span>
@@ -331,13 +325,9 @@ Let’s create them.</p>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Computing incidence rate ratios and exact confidence intervals</span></span>
-<span><span class="co">#&gt; Initiating cluster with 7 threads</span></span>
-<span><span class="co">#&gt; No effect estimates produced</span></span>
-<span><span class="co">#&gt; Stopping cluster</span></span>
 <span><span class="co">#&gt; Cleaning up intermedate tables</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |======                                                                |   8%  |                                                                              |============                                                          |  17%  |                                                                              |==================                                                    |  25%  |                                                                              |=======================                                               |  33%  |                                                                              |=============================                                         |  42%  |                                                                              |===================================                                   |  50%  |                                                                              |=========================================                             |  58%  |                                                                              |===============================================                       |  67%  |                                                                              |====================================================                  |  75%  |                                                                              |==========================================================            |  83%  |                                                                              |================================================================      |  92%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Performing SCC analysis took 1.28 secs</span></span></code></pre></div>
+<span><span class="co">#&gt; Performing SCC analysis took 2.01 secs</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">outputFolder</span>, <span class="st">"scc_result.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -350,35 +340,54 @@ Let’s create them.</p>
 <th align="right">target_cohort_id</th>
 <th align="right">outcome_cohort_id</th>
 <th align="right">rr</th>
-<th align="right">p_value</th>
+<th align="left">p_value</th>
 </tr></thead>
-<tbody></tbody>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">Inf</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="right">Inf</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">4</td>
+<td align="right">3</td>
+<td align="right">Inf</td>
+<td align="left">NA</td>
+</tr>
+</tbody>
 </table>
 </div>
 <div class="section level2">
 <h2 id="diagnostics-and-tiered-blinding">Diagnostics and Tiered Blinding<a class="anchor" aria-label="anchor" href="#diagnostics-and-tiered-blinding"></a>
 </h2>
 <p>Reliable evidence requires that the analysis assumptions are met. The
-package evaluates five diagnostics (aligned with the Self-Controlled
+package evaluates four diagnostics (aligned with the Self-Controlled
 Case Series package) to check for issues like lack of statistical power
-or time-trend confounding. Diagnostics are run by default when
+or confounding. Diagnostics are run by default when
 <code>runDiagnostics = TRUE</code>.</p>
 <p>The default thresholds can be viewed or modified:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">thresholds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getDefaultDiagnosticThresholds.html">getDefaultDiagnosticThresholds</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">thresholds</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 7</span></span>
+<span><span class="co">#&gt; List of 6</span></span>
 <span><span class="co">#&gt;  $ mdrrMaxAcceptable         : num 10</span></span>
 <span><span class="co">#&gt;  $ maxPreExposureProportion  : num 0.05</span></span>
 <span><span class="co">#&gt;  $ preExposurePThreshold     : num 0.05</span></span>
 <span><span class="co">#&gt;  $ maxEventDependentCensoring: num 0.1</span></span>
-<span><span class="co">#&gt;  $ timeTrendPThreshold       : num 0.05</span></span>
 <span><span class="co">#&gt;  $ minEventsPerWindow        : num 3</span></span>
 <span><span class="co">#&gt;  $ easeMaxAcceptable         : num 0.25</span></span></code></pre></div>
 <p>We implement a <strong>Tiered Blinding</strong> system based on these
 diagnostics: 1. <strong>Tier 1 (Unblind for Calibration)</strong>: If
-core diagnostics pass but power (MDRR) is insufficient, the result can
-still be used as a negative control for calibration. 2. <strong>Tier 2
+core diagnostics pass (Pre-Exposure Gain, Event-Dependent Observation,
+and EASE) but power (MDRR) is insufficient, the result can still be used
+as a negative control for calibration. 2. <strong>Tier 2
 (Unblind)</strong>: If <em>all</em> diagnostics (including power) pass,
 the result is considered valid for unblinding.</p>
 <p>Let’s look at the raw diagnostic results:</p>
@@ -393,17 +402,17 @@ the result is considered valid for unblinding.</p>
 <span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="23%">
-<col width="24%">
-<col width="21%">
-<col width="23%">
+<col width="20%">
+<col width="22%">
+<col width="29%">
+<col width="20%">
 <col width="6%">
 </colgroup>
 <thead><tr class="header">
 <th align="right">target_cohort_id</th>
 <th align="right">outcome_cohort_id</th>
 <th align="left">diagnostic_name</th>
-<th align="right">diagnostic_value</th>
+<th align="left">diagnostic_value</th>
 <th align="right">pass</th>
 </tr></thead>
 <tbody>
@@ -411,22 +420,64 @@ the result is considered valid for unblinding.</p>
 <td align="right">1</td>
 <td align="right">3</td>
 <td align="left">MDRR</td>
-<td align="right">NA</td>
+<td align="left">NA</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="right">2</td>
 <td align="right">3</td>
 <td align="left">MDRR</td>
-<td align="right">NA</td>
+<td align="left">NA</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="right">4</td>
 <td align="right">3</td>
 <td align="left">MDRR</td>
-<td align="right">NA</td>
+<td align="left">NA</td>
 <td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="left">UNBLIND</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="left">UNBLIND</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="right">3</td>
+<td align="left">UNBLIND</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="left">UNBLIND_FOR_CALIBRATION</td>
+<td align="left">NA</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="left">UNBLIND_FOR_CALIBRATION</td>
+<td align="left">NA</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="right">4</td>
+<td align="right">3</td>
+<td align="left">UNBLIND_FOR_CALIBRATION</td>
+<td align="left">NA</td>
+<td align="right">1</td>
 </tr>
 </tbody>
 </table>
@@ -444,8 +495,8 @@ applying the tiered blinding logic to the CSV table manually.</em></p>
 </h2>
 <p>Observational studies often suffer from systematic error (bias). We
 can use <strong>Empirical Calibration</strong> to adjust for this bias
-using negative controls—pairs of exposures and outcomes where we believe
-the true effect size is 1 (no effect).</p>
+using negative controls — pairs of exposures and outcomes where we
+believe the true effect size is 1 (no effect).</p>
 <p>In this example, we will treat <strong>Celecoxib (1)</strong> and
 <strong>Diclofenac (2)</strong> combined with <strong>GI Bleed
 (3)</strong> as “negative controls” purely for demonstration
@@ -480,13 +531,16 @@ diagnostic.</em></p>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  25%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt; Retrieving counts from database</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   8%  |                                                                              |===========                                                           |  15%  |                                                                              |================                                                      |  23%  |                                                                              |======================                                                |  31%  |                                                                              |===========================                                           |  38%  |                                                                              |================================                                      |  46%  |                                                                              |======================================                                |  54%  |                                                                              |===========================================                           |  62%  |                                                                              |================================================                      |  69%  |                                                                              |======================================================                |  77%  |                                                                              |===========================================================           |  85%  |                                                                              |=================================================================     |  92%  |                                                                              |======================================================================| 100%</span></span>
+<span><span class="co">#&gt; Computing raw effect estimates</span></span>
+<span><span class="co">#&gt; Initiating cluster with 7 threads</span></span>
+<span><span class="co">#&gt; Stopping cluster</span></span>
 <span><span class="co">#&gt; Running diagnostics</span></span>
 <span><span class="co">#&gt; Running SCC diagnostics</span></span>
 <span><span class="co">#&gt; - Running MDRR (power) diagnostic</span></span>
 <span><span class="co">#&gt; - Running pre-exposure gain diagnostic</span></span>
 <span><span class="co">#&gt; - Running event-dependent observation diagnostic</span></span>
-<span><span class="co">#&gt; - Running time trend diagnostic</span></span>
-<span><span class="co">#&gt; Completed 1 diagnostic tests</span></span>
+<span><span class="co">#&gt; - Running EASE (systematic error) diagnostic</span></span>
+<span><span class="co">#&gt; Completed 3 diagnostic tests</span></span>
 <span><span class="co">#&gt; 1 diagnostic test(s) failed:</span></span>
 <span><span class="co">#&gt; Computing time at risk distribution statistics</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |====                                                                  |   6%  |                                                                              |========                                                              |  12%  |                                                                              |============                                                          |  18%  |                                                                              |================                                                      |  24%  |                                                                              |=====================                                                 |  29%  |                                                                              |=========================                                             |  35%  |                                                                              |=============================                                         |  41%  |                                                                              |=================================                                     |  47%  |                                                                              |=====================================                                 |  53%  |                                                                              |=========================================                             |  59%  |                                                                              |=============================================                         |  65%  |                                                                              |=================================================                     |  71%  |                                                                              |======================================================                |  76%  |                                                                              |==========================================================            |  82%  |                                                                              |==============================================================        |  88%  |                                                                              |==================================================================    |  94%  |                                                                              |======================================================================| 100%</span></span>
@@ -494,13 +548,9 @@ diagnostic.</em></p>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Computing incidence rate ratios and exact confidence intervals</span></span>
-<span><span class="co">#&gt; Initiating cluster with 7 threads</span></span>
-<span><span class="co">#&gt; No effect estimates produced</span></span>
-<span><span class="co">#&gt; Stopping cluster</span></span>
 <span><span class="co">#&gt; Cleaning up intermedate tables</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |======                                                                |   8%  |                                                                              |============                                                          |  17%  |                                                                              |==================                                                    |  25%  |                                                                              |=======================                                               |  33%  |                                                                              |=============================                                         |  42%  |                                                                              |===================================                                   |  50%  |                                                                              |=========================================                             |  58%  |                                                                              |===============================================                       |  67%  |                                                                              |====================================================                  |  75%  |                                                                              |==========================================================            |  83%  |                                                                              |================================================================      |  92%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Performing SCC analysis took 1.23 secs</span></span></code></pre></div>
+<span><span class="co">#&gt; Performing SCC analysis took 2.62 secs</span></span></code></pre></div>
 <p>The results file now contains calibrated estimates
 (<code>calibrated_rr</code>, <code>calibrated_lb_95</code>,
 <code>calibrated_ub_95</code>, <code>calibrated_p_value</code>).</p>
@@ -516,7 +566,7 @@ diagnostic.</em></p>
 <th align="right">target_cohort_id</th>
 <th align="right">rr</th>
 <th align="left">calibrated_rr</th>
-<th align="right">p_value</th>
+<th align="left">p_value</th>
 <th align="left">calibrated_p_value</th>
 </tr></thead>
 <tbody></tbody>
@@ -591,50 +641,48 @@ exposure-outcome pairs simultaneously. You can use the
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  25%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt; Retrieving counts from database</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   8%  |                                                                              |===========                                                           |  15%  |                                                                              |================                                                      |  23%  |                                                                              |======================                                                |  31%  |                                                                              |===========================                                           |  38%  |                                                                              |================================                                      |  46%  |                                                                              |======================================                                |  54%  |                                                                              |===========================================                           |  62%  |                                                                              |================================================                      |  69%  |                                                                              |======================================================                |  77%  |                                                                              |===========================================================           |  85%  |                                                                              |=================================================================     |  92%  |                                                                              |======================================================================| 100%</span></span>
+<span><span class="co">#&gt; Computing raw effect estimates</span></span>
+<span><span class="co">#&gt; Initiating cluster consisting only of main thread</span></span>
 <span><span class="co">#&gt; Running diagnostics</span></span>
 <span><span class="co">#&gt; Running SCC diagnostics</span></span>
 <span><span class="co">#&gt; - Running MDRR (power) diagnostic</span></span>
 <span><span class="co">#&gt; - Running pre-exposure gain diagnostic</span></span>
 <span><span class="co">#&gt; - Running event-dependent observation diagnostic</span></span>
-<span><span class="co">#&gt; - Running time trend diagnostic</span></span>
-<span><span class="co">#&gt; Completed 3 diagnostic tests</span></span>
-<span><span class="co">#&gt; 3 diagnostic test(s) failed:</span></span>
+<span><span class="co">#&gt; - Running EASE (systematic error) diagnostic</span></span>
+<span><span class="co">#&gt; Completed 15 diagnostic tests</span></span>
+<span><span class="co">#&gt; 5 diagnostic test(s) failed:</span></span>
 <span><span class="co">#&gt; Computing time at risk distribution statistics</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |====                                                                  |   6%  |                                                                              |========                                                              |  12%  |                                                                              |============                                                          |  18%  |                                                                              |================                                                      |  24%  |                                                                              |=====================                                                 |  29%  |                                                                              |=========================                                             |  35%  |                                                                              |=============================                                         |  41%  |                                                                              |=================================                                     |  47%  |                                                                              |=====================================                                 |  53%  |                                                                              |=========================================                             |  59%  |                                                                              |=============================================                         |  65%  |                                                                              |=================================================                     |  71%  |                                                                              |======================================================                |  76%  |                                                                              |==========================================================            |  82%  |                                                                              |==============================================================        |  88%  |                                                                              |==================================================================    |  94%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Computing incidence rate ratios and exact confidence intervals</span></span>
-<span><span class="co">#&gt; Initiating cluster consisting only of main thread</span></span>
-<span><span class="co">#&gt; No effect estimates produced</span></span>
 <span><span class="co">#&gt; Cleaning up intermedate tables</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |======                                                                |   8%  |                                                                              |============                                                          |  17%  |                                                                              |==================                                                    |  25%  |                                                                              |=======================                                               |  33%  |                                                                              |=============================                                         |  42%  |                                                                              |===================================                                   |  50%  |                                                                              |=========================================                             |  58%  |                                                                              |===============================================                       |  67%  |                                                                              |====================================================                  |  75%  |                                                                              |==========================================================            |  83%  |                                                                              |================================================================      |  92%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Performing SCC analysis took 0.353 secs</span></span>
+<span><span class="co">#&gt; Performing SCC analysis took 0.681 secs</span></span>
 <span><span class="co">#&gt; Computing time at risk exposed and unexposed windows</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  25%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt; Retrieving counts from database</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   8%  |                                                                              |===========                                                           |  15%  |                                                                              |================                                                      |  23%  |                                                                              |======================                                                |  31%  |                                                                              |===========================                                           |  38%  |                                                                              |================================                                      |  46%  |                                                                              |======================================                                |  54%  |                                                                              |===========================================                           |  62%  |                                                                              |================================================                      |  69%  |                                                                              |======================================================                |  77%  |                                                                              |===========================================================           |  85%  |                                                                              |=================================================================     |  92%  |                                                                              |======================================================================| 100%</span></span>
+<span><span class="co">#&gt; Computing raw effect estimates</span></span>
+<span><span class="co">#&gt; Initiating cluster consisting only of main thread</span></span>
 <span><span class="co">#&gt; Running diagnostics</span></span>
 <span><span class="co">#&gt; Running SCC diagnostics</span></span>
 <span><span class="co">#&gt; - Running MDRR (power) diagnostic</span></span>
 <span><span class="co">#&gt; - Running pre-exposure gain diagnostic</span></span>
 <span><span class="co">#&gt; - Running event-dependent observation diagnostic</span></span>
-<span><span class="co">#&gt; - Running time trend diagnostic</span></span>
-<span><span class="co">#&gt; Completed 3 diagnostic tests</span></span>
-<span><span class="co">#&gt; 3 diagnostic test(s) failed:</span></span>
+<span><span class="co">#&gt; - Running EASE (systematic error) diagnostic</span></span>
+<span><span class="co">#&gt; Completed 15 diagnostic tests</span></span>
+<span><span class="co">#&gt; 5 diagnostic test(s) failed:</span></span>
 <span><span class="co">#&gt; Computing time at risk distribution statistics</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |====                                                                  |   6%  |                                                                              |========                                                              |  12%  |                                                                              |============                                                          |  18%  |                                                                              |================                                                      |  24%  |                                                                              |=====================                                                 |  29%  |                                                                              |=========================                                             |  35%  |                                                                              |=============================                                         |  41%  |                                                                              |=================================                                     |  47%  |                                                                              |=====================================                                 |  53%  |                                                                              |=========================================                             |  59%  |                                                                              |=============================================                         |  65%  |                                                                              |=================================================                     |  71%  |                                                                              |======================================================                |  76%  |                                                                              |==========================================================            |  82%  |                                                                              |==============================================================        |  88%  |                                                                              |==================================================================    |  94%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Computing incidence rate ratios and exact confidence intervals</span></span>
-<span><span class="co">#&gt; Initiating cluster consisting only of main thread</span></span>
-<span><span class="co">#&gt; No effect estimates produced</span></span>
 <span><span class="co">#&gt; Cleaning up intermedate tables</span></span>
 <span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |======                                                                |   8%  |                                                                              |============                                                          |  17%  |                                                                              |==================                                                    |  25%  |                                                                              |=======================                                               |  33%  |                                                                              |=============================                                         |  42%  |                                                                              |===================================                                   |  50%  |                                                                              |=========================================                             |  58%  |                                                                              |===============================================                       |  67%  |                                                                              |====================================================                  |  75%  |                                                                              |==========================================================            |  83%  |                                                                              |================================================================      |  92%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; Performing SCC analysis took 0.373 secs</span></span></code></pre></div>
+<span><span class="co">#&gt; Performing SCC analysis took 0.592 secs</span></span></code></pre></div>
 <p>This generates comprehensive outputs across the entire combinatorics
 of tests.</p>
 </div>

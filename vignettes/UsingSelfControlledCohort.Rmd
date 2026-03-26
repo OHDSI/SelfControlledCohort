@@ -168,7 +168,7 @@ If the `pass` column is 0, the diagnostic failed. *See the **Study Diagnostics**
 
 # Empirical Calibration
 
-Observational studies often suffer from systematic error (bias). We can use **Empirical Calibration** to adjust for this bias using negative controls—pairs of exposures and outcomes where we believe the true effect size is 1 (no effect).
+Observational studies often suffer from systematic error (bias). We can use **Empirical Calibration** to adjust for this bias using negative controls --- pairs of exposures and outcomes where we believe the true effect size is 1 (no effect).
 
 In this example, we will treat **Celecoxib (1)** and **Diclofenac (2)** combined with **GI Bleed (3)** as "negative controls" purely for demonstration purposes.
 

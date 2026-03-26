@@ -42,7 +42,7 @@
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
@@ -65,7 +65,7 @@
 
     <div class="section level2">
 <h2 class="page-header" data-toc-text="2.0.0" id="selfcontrolledcohort-200">SelfControlledCohort 2.0.0<a class="anchor" aria-label="anchor" href="#selfcontrolledcohort-200"></a></h2>
-<p>This is a major release and breaks backwards compatability with version 1.x.x series code.</p>
+<p>This is a major release and breaks backwards compatibility with version 1.x.x series code.</p>
 <p>Changes:</p>
 <ul><li>Introduced a results data model definition csv file in line with other OHDSI HADES analytics packages</li>
 <li>Removal of use of remotes for Eunomia</li>
@@ -88,26 +88,13 @@
 <li>
 <strong>PRE_EXPOSURE_P_VALUE</strong> - Statistical test for pre-exposure gain</li>
 <li>
-<strong>TIME_TREND_P_VALUE</strong> - Tests for temporal trends in outcome risk</li>
+<strong>EASE</strong> expected absolute systematic error, observed residual bias</li>
 <li>
-<strong>SPARSE_EXPOSED</strong> / <strong>SPARSE_UNEXPOSED</strong> - Checks for sufficient events in both windows</li>
-<li>
-<strong>EVENT_DEPENDENT_OBSERVATION</strong> - Retained from previous version</li>
-</ul><p><strong>New Functions:</strong></p>
-<ul><li>
-<code><a href="../reference/computeMdrrForRateRatio.html">computeMdrrForRateRatio()</a></code> - Calculate MDRR for power assessment</li>
-<li>
-<code>testPreExposureGain()</code> - Test for pre-exposure outcomes</li>
-<li>
-<code>testTimeTrend()</code> - Test for time trends using Poisson GLM</li>
-<li>
-<code>checkSparseData()</code> - Check for sparse data issues</li>
-<li>Strategus compatability functions</li>
+<strong>EVENT_DEPENDENT_OBSERVATION</strong> - what percentage of events occur just before the observation period ends?</li>
 </ul><p>Changes:</p>
 <ul><li>Revised diagnostic framework to align with SCCS package</li>
 <li>Added power analysis (MDRR) diagnostic</li>
 <li>Added pre-exposure gain detection</li>
-<li>Added time trend analysis with Poisson GLM</li>
 <li>Removed design-related diagnostics (window balance, cohort stability)</li>
 <li>Updated diagnostic thresholds to match SCCS standards</li>
 <li>Improved diagnostic result formatting with values in failure messages</li>

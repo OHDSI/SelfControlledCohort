@@ -62,7 +62,7 @@
       </ul>
 <ul class="nav navbar-nav navbar-right">
 <li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/SelfControlledCohort/" class="external-link">
@@ -85,7 +85,7 @@
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Study Diagnostics</h1>
             
-            <h4 data-toc-skip class="date">2026-03-25</h4>
+            <h4 data-toc-skip class="date">2026-03-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/OHDSI/SelfControlledCohort/blob/HEAD/vignettes/StudyDiagnostics.Rmd" class="external-link"><code>vignettes/StudyDiagnostics.Rmd</code></a></small>
       <div class="hidden name"><code>StudyDiagnostics.Rmd</code></div>
@@ -105,9 +105,8 @@ and how results are interpreted.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>Five diagnostics are available. The first four are computed before
-estimation; EASE is computed during calibration when negative controls
-are provided.</p>
+<p>Four core diagnostics are available to assess the validity of the SCC
+analysis.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -123,27 +122,22 @@ are provided.</p>
 <tr class="odd">
 <td><strong>MDRR</strong></td>
 <td>Adequate statistical power</td>
-<td>MDRR ≤ 10.0</td>
+<td>MDRR &lt;= 10.0</td>
 </tr>
 <tr class="even">
 <td><strong>PRE_EXPOSURE</strong></td>
 <td>Correct temporal ordering</td>
-<td>Proportion ≤ 5%, p &gt; 0.05</td>
+<td>Rate Ratio &lt;= 1.0, p &gt; 0.05</td>
 </tr>
 <tr class="odd">
 <td><strong>EVENT_DEPENDENT_OBSERVATION</strong></td>
 <td>Non-informative censoring</td>
-<td>Proportion ≤ 10%</td>
+<td>Proportion &lt;= 10%</td>
 </tr>
 <tr class="even">
-<td><strong>TIME_TREND_P_VALUE</strong></td>
-<td>Stable baseline risk</td>
-<td>p &gt; 0.05</td>
-</tr>
-<tr class="odd">
 <td><strong>EASE</strong></td>
 <td>Low systematic error</td>
-<td>EASE ≤ 0.25</td>
+<td>EASE &lt;= 0.25</td>
 </tr>
 </tbody>
 </table>
@@ -152,12 +146,11 @@ are provided.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/OHDSI/SelfControlledCohort" class="external-link">SelfControlledCohort</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/getDefaultDiagnosticThresholds.html">getDefaultDiagnosticThresholds</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 7</span></span>
+<span><span class="co">#&gt; List of 6</span></span>
 <span><span class="co">#&gt;  $ mdrrMaxAcceptable         : num 10</span></span>
 <span><span class="co">#&gt;  $ maxPreExposureProportion  : num 0.05</span></span>
 <span><span class="co">#&gt;  $ preExposurePThreshold     : num 0.05</span></span>
 <span><span class="co">#&gt;  $ maxEventDependentCensoring: num 0.1</span></span>
-<span><span class="co">#&gt;  $ timeTrendPThreshold       : num 0.05</span></span>
 <span><span class="co">#&gt;  $ minEventsPerWindow        : num 3</span></span>
 <span><span class="co">#&gt;  $ easeMaxAcceptable         : num 0.25</span></span></code></pre></div>
 </div>
@@ -168,36 +161,31 @@ are provided.</p>
 <h3 id="what-it-checks">What it checks<a class="anchor" aria-label="anchor" href="#what-it-checks"></a>
 </h3>
 <p>The MDRR quantifies the smallest rate ratio the study has 80% power
-to detect at α = 0.05. A high MDRR indicates that only very large
+to detect at alpha = 0.05. A high MDRR indicates that only very large
 effects would be detected — the study is underpowered.</p>
 </div>
 <div class="section level3">
 <h3 id="method">Method<a class="anchor" aria-label="anchor" href="#method"></a>
 </h3>
-<p>The calculation uses a binary search to find the rate ratio
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mi>R</mi></mrow><annotation encoding="application/x-tex">RR</annotation></semantics></math>
-satisfying:
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">Power</mtext><mo>=</mo><mi mathvariant="normal">Φ</mi><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>R</mi><mi>R</mi><mo stretchy="false" form="postfix">)</mo></mrow><msqrt><mrow><mn>1</mn><mi>/</mi><msub><mi>E</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mi>/</mi><msub><mi>E</mi><mn>0</mn></msub></mrow></msqrt></mfrac><mo>−</mo><msub><mi>z</mi><mrow><mi>α</mi><mi>/</mi><mn>2</mn></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mn>0.80</mn></mrow><annotation encoding="application/x-tex">\text{Power} = \Phi\!\left(\frac{\log(RR)}{\sqrt{1/E_1 + 1/E_0}} - z_{\alpha/2}\right) = 0.80</annotation></semantics></math>
-where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mn>1</mn></msub><annotation encoding="application/x-tex">E_1</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mn>0</mn></msub><annotation encoding="application/x-tex">E_0</annotation></semantics></math>
-are the expected events in exposed and unexposed windows, using the
-observed baseline rate.</p>
+<p>The calculation uses the <strong>Musonda (2006) Signed Root
+Likelihood (SRL1)</strong> method, which is specifically designed for
+self-controlled designs. It finds the rate ratio satisfying the target
+power (80%) given the observed person-time and event counts in exposed
+and unexposed windows.</p>
 </div>
 <div class="section level3">
 <h3 id="interpretation">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation"></a>
 </h3>
 <ul>
 <li>
-<strong>MDRR ≤ 10.0</strong> → Pass. The study has sufficient power
-to detect clinically relevant effects.</li>
+<strong>MDRR &lt;= 10.0</strong> -&gt; Pass. The study has
+sufficient power to detect clinically relevant effects.</li>
 <li>
-<strong>MDRR &gt; 10.0</strong> → Fail. The study can only detect
-very large effects, and estimates may be unreliable.</li>
+<strong>MDRR &gt; 10.0</strong> -&gt; Fail. The study can only
+detect very large effects, and estimates may be unreliable.</li>
 <li>
-<strong>MDRR = NA</strong> → Fail. Occurs when there are zero events
-or zero person-time.</li>
+<strong>MDRR = NA</strong> -&gt; Fail. Occurs when there are zero
+events or zero person-time.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -211,16 +199,14 @@ or zero person-time.</li>
 <span>  exposedEvents <span class="op">=</span> <span class="fl">40</span>,</span>
 <span>  unexposedEvents <span class="op">=</span> <span class="fl">90</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1.638354</span></span>
 <span></span>
-<span><span class="co"># Underpowered study</span></span>
+<span><span class="co"># Underpowered study (SRL1 solver returns NA if power cannot be met)</span></span>
 <span><span class="fu"><a href="../reference/computeMdrrForRateRatio.html">computeMdrrForRateRatio</a></span><span class="op">(</span></span>
 <span>  exposedPersonTime <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>  unexposedPersonTime <span class="op">=</span> <span class="fl">1500</span>,</span>
 <span>  exposedEvents <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  unexposedEvents <span class="op">=</span> <span class="fl">7</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 4.006768</span></span></code></pre></div>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="role-in-blinding">Role in blinding<a class="anchor" aria-label="anchor" href="#role-in-blinding"></a>
@@ -258,34 +244,31 @@ definition accidentally captures outcome events or vice versa.</li>
 <strong>Data quality issues</strong> — incorrect temporal ordering
 in the source data.</li>
 </ul>
-<p>Any of these violates the key SCC assumption that exposed and
-unexposed windows provide unbiased rate estimates.</p>
 </div>
 <div class="section level3">
 <h3 id="method-1">Method<a class="anchor" aria-label="anchor" href="#method-1"></a>
 </h3>
-<p>For each target–outcome pair:</p>
+<p>The diagnostic is performed using a high-performance SQL query that
+aggregates counts directly in the database. For each target-outcome
+pair:</p>
 <ol style="list-style-type: decimal">
-<li>Count the number of persons with at least one outcome occurring
-before <code>exposure_start_date</code>.</li>
-<li>Compute the proportion:
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mfrac><mtext mathvariant="normal">persons with pre-exposure outcome</mtext><mtext mathvariant="normal">total persons</mtext></mfrac></mrow><annotation encoding="application/x-tex">p = \frac{\text{persons with pre-exposure outcome}}{\text{total persons}}</annotation></semantics></math>
-</li>
-<li>Run a one-sided binomial test (H₀:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>0.01</mn></mrow><annotation encoding="application/x-tex">p = 0.01</annotation></semantics></math>,
-H₁:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&gt;</mo><mn>0.01</mn></mrow><annotation encoding="application/x-tex">p &gt; 0.01</annotation></semantics></math>).</li>
+<li>Count the number of outcome events occurring in the window before
+<code>exposure_start_date</code> and the window after.</li>
+<li>Calculate the corresponding person-time for both windows across all
+individuals.</li>
+<li>Run a one-sided rate ratio test using
+<code><a href="https://rdrr.io/pkg/rateratio.test/man/rateratio.html" class="external-link">rateratio.test::rateratio.test</a></code>.</li>
 </ol>
 </div>
 <div class="section level3">
 <h3 id="interpretation-1">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation-1"></a>
 </h3>
-<p>The diagnostic emits two rows: <code>PRE_EXPOSURE_PROPORTION</code>
+<p>The diagnostic emits two rows: <code>PRE_EXPOSURE_RATE_RATIO</code>
 and <code>PRE_EXPOSURE_P_VALUE</code>.</p>
 <ul>
 <li>
-<strong>Pass</strong> if proportion ≤ 5% <strong>and</strong>
-binomial p-value &gt; 0.05.</li>
+<strong>Pass</strong> if rate ratio &lt;= 1.0 <strong>and</strong>
+p-value &gt; 0.05.</li>
 <li>
 <strong>Fail</strong> otherwise. Investigate whether the exposure
 and outcome definitions overlap temporally, or whether confounding by
@@ -322,86 +305,28 @@ disproportionately affected, inflating the rate ratio.</li>
 </h3>
 <p>For each person with an outcome during the risk windows, the
 diagnostic checks whether their <code>observation_period_end_date</code>
-falls within 30 days after the outcome:
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">proportion</mtext><mo>=</mo><mfrac><mtext mathvariant="normal">persons censored within 30 days of outcome</mtext><mtext mathvariant="normal">total persons with outcome</mtext></mfrac></mrow><annotation encoding="application/x-tex">\text{proportion} = \frac{\text{persons censored within 30 days of outcome}}{\text{total persons with outcome}}</annotation></semantics></math></p>
+falls within 30 days after the outcome.</p>
 </div>
 <div class="section level3">
 <h3 id="interpretation-2">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation-2"></a>
 </h3>
 <ul>
 <li>
-<strong>Proportion ≤ 10%</strong> → Pass. Censoring after the
-outcome is uncommon.</li>
+<strong>Proportion &lt;= 10%</strong> -&gt; Pass. Censoring after
+the outcome is uncommon.</li>
 <li>
-<strong>Proportion &gt; 10%</strong> → Fail. A substantial fraction
-of patients leave observation shortly after the outcome, suggesting
-event-dependent censoring. Consider whether the outcome includes fatal
-or near-fatal events.</li>
+<strong>Proportion &gt; 10%</strong> -&gt; Fail. A substantial
+fraction of patients leave observation shortly after the outcome,
+suggesting event-dependent censoring. Consider whether the outcome
+includes fatal or near-fatal events.</li>
 </ul>
-</div>
-</div>
-<div class="section level2">
-<h2 id="time-trend">Time Trend<a class="anchor" aria-label="anchor" href="#time-trend"></a>
-</h2>
-<div class="section level3">
-<h3 id="what-it-checks-3">What it checks<a class="anchor" aria-label="anchor" href="#what-it-checks-3"></a>
-</h3>
-<p>This diagnostic tests whether the baseline outcome rate changes over
-calendar time. The SCC design implicitly assumes a stable background
-rate — if risks are trending upward or downward independent of exposure,
-the rate ratio estimate can be confounded.</p>
-</div>
-<div class="section level3">
-<h3 id="why-it-matters-2">Why it matters<a class="anchor" aria-label="anchor" href="#why-it-matters-2"></a>
-</h3>
-<p>Calendar time trends arise from:</p>
-<ul>
-<li>
-<strong>Seasonal patterns</strong> in disease incidence (e.g.,
-respiratory infections in winter).</li>
-<li>
-<strong>Changes in clinical coding or diagnostic practices</strong>
-over observation years.</li>
-<li>
-<strong>Population composition changes</strong> — the mix of
-patients changes over time.</li>
-</ul>
-<p>If such trends exist, the rate during the unexposed window (often
-before exposure) and the exposed window (after) may differ for reasons
-unrelated to the drug.</p>
-</div>
-<div class="section level3">
-<h3 id="method-3">Method<a class="anchor" aria-label="anchor" href="#method-3"></a>
-</h3>
-<p>The diagnostic aggregates outcome counts by calendar month across all
-persons in the analysis, then fits a Poisson GLM:
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mi>E</mi><mo stretchy="false" form="prefix">[</mo><mtext mathvariant="normal">count</mtext><mo stretchy="false" form="postfix">]</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><mo>⋅</mo><mtext mathvariant="normal">calendar_month</mtext><mo>+</mo><mtext mathvariant="normal">offset</mtext><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="normal">person-time</mtext><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log\!\bigl(E[\text{count}]\bigr) = \beta_0 + \beta_1 \cdot \text{calendar\_month} + \text{offset}\!\bigl(\log(\text{person-time})\bigr)</annotation></semantics></math>
-The person-time offset is computed from the actual risk window durations
-(summing exposed and unexposed window lengths). The p-value for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mn>1</mn></msub><annotation encoding="application/x-tex">\beta_1</annotation></semantics></math>
-is tested against the threshold.</p>
-</div>
-<div class="section level3">
-<h3 id="interpretation-3">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation-3"></a>
-</h3>
-<ul>
-<li>
-<strong>p &gt; 0.05</strong> → Pass. No evidence of a calendar time
-trend.</li>
-<li>
-<strong>p ≤ 0.05</strong> → Fail. A statistically significant trend
-in outcome risk was detected. Consider whether seasonal adjustment or
-restriction to a more stable time period is appropriate.</li>
-</ul>
-<p>Note: if fewer than 3 calendar months of data are available, the
-model cannot be fit and the diagnostic passes by default (NA).</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="expected-absolute-systematic-error-ease">Expected Absolute Systematic Error (EASE)<a class="anchor" aria-label="anchor" href="#expected-absolute-systematic-error-ease"></a>
 </h2>
 <div class="section level3">
-<h3 id="what-it-checks-4">What it checks<a class="anchor" aria-label="anchor" href="#what-it-checks-4"></a>
+<h3 id="what-it-checks-3">What it checks<a class="anchor" aria-label="anchor" href="#what-it-checks-3"></a>
 </h3>
 <p>EASE quantifies the total expected systematic error in study
 estimates, combining both bias (deviation of the null distribution mean
@@ -412,13 +337,13 @@ estimates.</p>
 <div class="section level3">
 <h3 id="when-it-runs">When it runs<a class="anchor" aria-label="anchor" href="#when-it-runs"></a>
 </h3>
-<p>Unlike the other four diagnostics, EASE requires <strong>negative
-controls</strong> and is computed <strong>during calibration</strong>
-rather than before estimation. If no <code>negativeControlPairs</code>
-are provided, the EASE diagnostic is simply skipped.</p>
+<p>Unlike the other diagnostics, EASE requires <strong>negative
+controls</strong> and is computed <strong>after estimation</strong>
+(during calibration). If no <code>negativeControlPairs</code> are
+provided, the EASE diagnostic is simply skipped.</p>
 </div>
 <div class="section level3">
-<h3 id="method-4">Method<a class="anchor" aria-label="anchor" href="#method-4"></a>
+<h3 id="method-3">Method<a class="anchor" aria-label="anchor" href="#method-3"></a>
 </h3>
 <ol style="list-style-type: decimal">
 <li>Fit a null distribution to the negative control log rate ratios
@@ -431,17 +356,17 @@ between the estimated and true log rate ratio for a random study
 estimate drawn from this analysis.</p>
 </div>
 <div class="section level3">
-<h3 id="interpretation-4">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation-4"></a>
+<h3 id="interpretation-3">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation-3"></a>
 </h3>
 <ul>
 <li>
-<strong>EASE ≤ 0.25</strong> → Pass. Systematic error is within
-acceptable bounds.</li>
+<strong>EASE &lt;= 0.25</strong> -&gt; Pass. Systematic error is
+within acceptable bounds.</li>
 <li>
-<strong>EASE &gt; 0.25</strong> → Fail. Substantial systematic error
-is present; estimates should be interpreted with caution.</li>
+<strong>EASE &gt; 0.25</strong> -&gt; Fail. Substantial systematic
+error is present; estimates should be interpreted with caution.</li>
 <li>
-<strong>EASE = NA</strong> → Not computed (fewer than 2 negative
+<strong>EASE = NA</strong> -&gt; Not computed (fewer than 2 negative
 controls available).</li>
 </ul>
 </div>
@@ -454,30 +379,13 @@ controls available).</li>
 <span>  rr <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.2</span>, <span class="fl">0.8</span>, <span class="fl">1.0</span>, <span class="fl">1.1</span>, <span class="fl">0.95</span><span class="op">)</span>,</span>
 <span>  seLogRr <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.3</span>, <span class="fl">0.15</span>, <span class="fl">0.25</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/computeEase.html">computeEase</a></span><span class="op">(</span><span class="va">negatives</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.08430361</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/computeEase.html">computeEase</a></span><span class="op">(</span><span class="va">negatives</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="tiered-blinding">Tiered Blinding<a class="anchor" aria-label="anchor" href="#tiered-blinding"></a>
 </h2>
-<p>The individual diagnostics feed into a two-tier blinding system that
-governs whether results can be viewed:</p>
-<pre><code>                     ┌──────────────────────────────────┐
-                     │   All non-MDRR diagnostics pass? │
-                     └──────────┬───────────────────────┘
-                                │
-                    ┌───── Yes ──┴── No ─────┐
-                    │                        │
-          ┌─────────▼──────────┐    UNBLIND_FOR_CALIBRATION = 0
-          │  MDRR also passes? │          UNBLIND = 0
-          └────────┬───────────┘
-                   │
-         ┌── Yes ──┴── No ──┐
-         │                   │
-    UNBLIND = 1        UNBLIND = 0
-    UNBLIND_FOR_      UNBLIND_FOR_
-    CALIBRATION = 1   CALIBRATION = 1</code></pre>
+<p>The individual diagnostics feed into a two-tier blinding system:</p>
 <ul>
 <li>
 <strong>UNBLIND = 1</strong>: All diagnostics passed. The result is
@@ -496,24 +404,15 @@ should remain blinded pending investigation.</li>
 </h2>
 <p>Diagnostics are run automatically when
 <code>runDiagnostics = TRUE</code> (the default):</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/runSelfControlledCohort.html">runSelfControlledCohort</a></span><span class="op">(</span></span>
-<span>  connectionDetails <span class="op">=</span> <span class="va">connectionDetails</span>,</span>
-<span>  cdmDatabaseSchema <span class="op">=</span> <span class="st">"cdm"</span>,</span>
-<span>  exposureIds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1118084</span><span class="op">)</span>,</span>
-<span>  outcomeIds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">313217</span><span class="op">)</span>,</span>
-<span>  databaseId <span class="op">=</span> <span class="st">"my_db"</span>,</span>
-<span>  resultExportPath <span class="op">=</span> <span class="st">"results"</span>,</span>
-<span>  runDiagnostics <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<p><code>r eval=FALSE runSelfControlledCohort(   connectionDetails = connectionDetails,   cdmDatabaseSchema = "cdm",   exposureIds = c(1118084),   outcomeIds = c(313217),   databaseId = "my_db",   resultExportPath = "results",   runDiagnostics = TRUE )</code></p>
 <p>Results are saved to <code>scc_diagnostics_summary.csv</code> in the
 export folder.</p>
 <div class="section level3">
 <h3 id="customizing-thresholds">Customizing thresholds<a class="anchor" aria-label="anchor" href="#customizing-thresholds"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">thresholds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getDefaultDiagnosticThresholds.html">getDefaultDiagnosticThresholds</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">thresholds</span><span class="op">$</span><span class="va">mdrrMaxAcceptable</span> <span class="op">&lt;-</span> <span class="fl">3.0</span>       <span class="co"># Allow higher MDRR</span></span>
+<span><span class="va">thresholds</span><span class="op">$</span><span class="va">mdrrMaxAcceptable</span> <span class="op">&lt;-</span> <span class="fl">15.0</span>       <span class="co"># Allow higher MDRR</span></span>
 <span><span class="va">thresholds</span><span class="op">$</span><span class="va">maxPreExposureProportion</span> <span class="op">&lt;-</span> <span class="fl">0.10</span>  <span class="co"># Allow up to 10% pre-exposure</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/runSelfControlledCohort.html">runSelfControlledCohort</a></span><span class="op">(</span></span>
@@ -525,17 +424,12 @@ export folder.</p>
 <div class="section level3">
 <h3 id="selecting-specific-diagnostics">Selecting specific diagnostics<a class="anchor" aria-label="anchor" href="#selecting-specific-diagnostics"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/runSelfControlledCohort.html">runSelfControlledCohort</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  runDiagnostics <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  diagnostics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mdrr"</span>, <span class="st">"time_trend"</span><span class="op">)</span>  <span class="co"># Skip pre-exposure and event-dependent</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<p><code>r eval=FALSE runSelfControlledCohort(   ...,   runDiagnostics = TRUE,   diagnostics = c("mdrr", "ease")  # Skip pre-exposure and event-dependent )</code></p>
 </div>
 <div class="section level3">
 <h3 id="inspecting-failures">Inspecting failures<a class="anchor" aria-label="anchor" href="#inspecting-failures"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">diagnostics</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"results/scc_diagnostics_summary.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Which target-outcome pairs had failures?</span></span>
