@@ -85,7 +85,7 @@ jobs:
           path: check/*.tar.gz
 
       - name: Test coverage
-        if: runner.os == 'Linux'
+        if: runner.os == 'Windows'
         run: |
           cov <- covr::package_coverage(
             quiet = FALSE,
@@ -96,7 +96,7 @@ jobs:
         shell: Rscript {0}
 
       - uses: codecov/codecov-action@v4
-        if: runner.os == 'Linux'
+        if: runner.os == 'Windows'
         with:
           file: ./cobertura.xml
           token: ${{ secrets.CODECOV_TOKEN }}
