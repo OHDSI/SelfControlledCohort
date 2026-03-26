@@ -52,7 +52,7 @@ jobs:
       CDM5_SPARK_OHDSI_SCHEMA: ${{ secrets.CDM5_SPARK_OHDSI_SCHEMA }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -62,19 +62,12 @@ jobs:
 
       - uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Install system requirements
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y libssh-dev
-          Rscript -e 'install.packages("remotes")'
-          while read -r cmd
-          do
-            eval sudo $cmd
-          done < <(Rscript -e 'writeLines(remotes::system_requirements("ubuntu", "20.04"))')
-
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            any::covr
+            any::xml2
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
@@ -91,13 +84,6 @@ jobs:
           name: package_tarball
           path: check/*.tar.gz
 
-      - name: Install covr
-        if: runner.os == 'Linux'
-        run: |
-          remotes::install_cran("covr")
-          remotes::install_cran("xml2")
-        shell: Rscript {0}
-
       - name: Test coverage
         if: runner.os == 'Linux'
         run: |
@@ -113,12 +99,10 @@ jobs:
         if: runner.os == 'Linux'
         with:
           file: ./cobertura.xml
-          plugin: noop
-          disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
   Release:
-    needs: R-CMD-Check
+    needs: R-CMD-check
 
     runs-on: macOS-latest
 
@@ -129,7 +113,7 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -144,12 +128,11 @@ jobs:
 
       - name: Create release
         if: ${{ env.new_version != '' }}
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GH_TOKEN }}
           tag_name: ${{ env.new_version }}
-          release_name: Release ${{ env.new_version }}
+          name: Release ${{ env.new_version }}
           body: |
             See NEWS.md for release notes.
           draft: false
