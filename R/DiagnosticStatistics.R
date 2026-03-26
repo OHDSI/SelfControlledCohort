@@ -18,8 +18,9 @@
 #'
 #' @description
 #' Calculates the minimum detectable relative risk for a two-sample Poisson rate comparison
-#' using a power calculation approach. This diagnostic assesses whether the study has
-#' adequate statistical power to detect clinically meaningful effects.
+#' using the Signed Root Likelihood (SRL1) method described by Musonda et al. (2006).
+#' This diagnostic assesses whether the study has adequate statistical power to detect
+#' clinically meaningful effects in a self-controlled design.
 #'
 #' @param exposedPersonTime    Total person-time in exposed window (in days)
 #' @param unexposedPersonTime  Total person-time in unexposed window (in days)
@@ -32,16 +33,14 @@
 #' Numeric value representing the MDRR. Values > 10.0 typically indicate low power.
 #'
 #' @details
-#' The MDRR is calculated using an iterative approach to find the rate ratio that would
-#' be detectable with the given sample size, alpha, and power. Lower MDRR values indicate
-#' better power. An MDRR > 10.0 suggests the study may only detect very large effects.
-#'
-#' The calculation uses the observed baseline rate in the unexposed window and solves
-#' for the rate ratio that achieves the desired power.
+#' The MDRR is the minimum incidence rate ratio that can be detected with the given 
+#' sample size, alpha, and power. This implementation uses the SRL1 method from 
+#' Musonda (2006), which is more accurate for self-controlled studies than 
+#' standard binomial approximations.
 #'
 #' @references
-#' Schuemie MJ, Ryan PB, Hripcsak G, Madigan D, Suchard MA. Improving reproducibility by using
-#' high-throughput observational studies with empirical calibration. Phil Trans R Soc A. 2018.
+#' Musonda P, Farrington CP, Whitaker HJ (2006) Samples sizes for self-controlled 
+#' case series studies, Statistics in Medicine, 15;25(15):2618-31
 #'
 #' @export
 computeMdrrForRateRatio <- function(exposedPersonTime,
@@ -59,66 +58,56 @@ computeMdrrForRateRatio <- function(exposedPersonTime,
     return(NA_real_)
   }
 
-  # Calculate baseline rate (unexposed)
-  baselineRate <- unexposedEvents / unexposedPersonTime
+  n <- exposedEvents + unexposedEvents
 
-  if (baselineRate <= 0) {
+
+  # r = proportion of time exposed
+  r <- exposedPersonTime / (exposedPersonTime + unexposedPersonTime)
+  
+  if (r <= 0 || r >= 1) {
+    return(Inf)
+  }
+
+  zAlpha <- qnorm(1 - alpha / 2)
+  
+  # Power calculation function using SRL1 (Musonda 2006, expression 7)
+  computePowerSrl <- function(b, z, r, n) {
+    if (b <= 0) return(0)
+    eb <- exp(b)
+    # A is twice the expected value of the log-likelihood ratio statistic
+    A <- 2 * ((eb * r / (eb * r + 1 - r)) * b - log(eb * r + 1 - r))
+    # B is the variance-correction term
+    B <- b^2 / A * eb * r * (1 - r) / (eb * r + 1 - r)^2
+    zb <- (sqrt(n * A) - z) / sqrt(B)
+    return(pnorm(zb))
+  }
+
+  # Use uniroot to find the log-RR (b) that achieves the target power
+  # We search for b in [log(1.0001), log(100)]
+  targetFn <- function(b) {
+    return(computePowerSrl(b, zAlpha, r, n) - power)
+  }
+  
+  # Check boundaries
+  if (targetFn(log(100)) < 0) {
+    return(100) # Exceeds search range
+  }
+  
+  if (targetFn(1e-6) > 0) {
+    return(1.0) # Power reached at very small RR
+  }
+
+  root <- tryCatch({
+    stats::uniroot(targetFn, interval = c(1e-6, log(100)), tol = 1e-4)$root
+  }, error = function(e) {
     return(NA_real_)
-  }
+  })
 
-  # Total person-time
-  totalTime <- exposedPersonTime + unexposedPersonTime
-
-  # Use binary search to find MDRR
-  # We're looking for the rate ratio where power = 0.80
-  lower <- 1.01
-  upper <- 100
-  tolerance <- 0.01
-  maxIterations <- 100
-
-  for (i in seq_len(maxIterations)) {
-    testRR <- (lower + upper) / 2
-
-    # Expected events under alternative hypothesis
-    expectedExposed <- baselineRate * testRR * exposedPersonTime
-    expectedUnexposed <- baselineRate * unexposedPersonTime
-    expectedTotal <- expectedExposed + expectedUnexposed
-
-    # Calculate standard error under alternative
-    # SE(log(RR)) = sqrt(1/E1 + 1/E0)
-    seLogRR <- sqrt(1 / expectedExposed + 1 / expectedUnexposed)
-
-    # Calculate critical value (two-sided test)
-    zAlpha <- qnorm(1 - alpha / 2)
-    zPower <- qnorm(power)
-
-    # Effect size needed for detection
-    logRR <- log(testRR)
-
-    # Calculate power using normal approximation
-    # Power = P(Z > z_alpha - log(RR)/SE)
-    calculatedPower <- stats::pnorm(logRR / seLogRR - zAlpha)
-
-    if (abs(calculatedPower - power) < tolerance) {
-      return(testRR)
-    }
-
-    if (calculatedPower < power) {
-      # Need larger RR for this power
-      lower <- testRR
-    } else {
-      # Can detect smaller RR
-      upper <- testRR
-    }
-
-    if (upper - lower < 0.01) {
-      return(testRR)
-    }
-  }
-
-  # If we didn't converge, return the midpoint
-  return((lower + upper) / 2)
+  if (is.na(root)) return(NA_real_)
+  
+  return(exp(root))
 }
+
 
 #' Test for pre-exposure gain
 #'
@@ -163,6 +152,7 @@ testPreExposureGain <- function(connection,
                                 outcomeTable,
                                 outcomeDatabaseSchema,
                                 analysisId,
+                                cdmDatabaseSchema,
                                 tempEmulationSchema) {
   # Determine outcome table columns
   outcomeTable <- tolower(outcomeTable)
@@ -181,221 +171,126 @@ testPreExposureGain <- function(connection,
   }
 
   sql <- "
-  SELECT
-    rw.exposure_id as target_cohort_id,
-    o.@outcome_id as outcome_cohort_id,
-    COUNT(DISTINCT rw.person_id) as total_persons,
-    COUNT(DISTINCT CASE WHEN o.@outcome_start_date < rw.exposure_start_date
-                        THEN rw.person_id ELSE NULL END) as persons_with_pre_exposure_outcome
-  FROM @risk_windows_table rw
-  LEFT JOIN @outcome_database_schema.@outcome_table o
-    ON rw.person_id = o.@outcome_person_id
-  WHERE rw.analysis_id = @analysis_id
-  GROUP BY rw.exposure_id, o.@outcome_id
+  WITH windows AS (
+      SELECT 
+          rw.exposure_id as target_cohort_id,
+          rw.person_id,
+          rw.exposure_start_date,
+          op.observation_period_start_date as obs_start,
+          op.observation_period_end_date as obs_end,
+          DATEADD(day, -30, rw.exposure_start_date) as wb_start,
+          DATEADD(day, -1, rw.exposure_start_date) as wb_end,
+          rw.exposure_start_date as wa_start,
+          DATEADD(day, 30, rw.exposure_start_date) as wa_end
+      FROM @risk_windows_table rw
+      INNER JOIN {@cdm_database_schema != ''} ? {@cdm_database_schema.}observation_period op
+          ON rw.person_id = op.person_id
+      WHERE rw.analysis_id = @analysis_id
+          AND rw.exposure_start_date >= op.observation_period_start_date
+          AND rw.exposure_start_date <= op.observation_period_end_date
+  ),
+  person_pt AS (
+      SELECT 
+          target_cohort_id,
+          person_id,
+          CASE 
+              WHEN obs_start <= wb_end AND obs_end >= wb_start 
+              THEN DATEDIFF(day, CASE WHEN obs_start > wb_start THEN obs_start ELSE wb_start END, CASE WHEN obs_end < wb_end THEN obs_end ELSE wb_end END) + 1
+              ELSE 0 
+          END as pt_before,
+          CASE 
+              WHEN obs_start <= wa_end AND obs_end >= wa_start 
+              THEN DATEDIFF(day, CASE WHEN obs_start > wa_start THEN obs_start ELSE wa_start END, CASE WHEN obs_end < wa_end THEN obs_end ELSE wa_end END) + 1
+              ELSE 0 
+          END as pt_after
+      FROM windows
+  ),
+  target_pt AS (
+      SELECT 
+          target_cohort_id,
+          SUM(CAST(pt_before AS BIGINT)) as total_pt_before,
+          SUM(CAST(pt_after AS BIGINT)) as total_pt_after
+      FROM person_pt
+      GROUP BY target_cohort_id
+  ),
+  pair_counts AS (
+      SELECT 
+          w.target_cohort_id,
+          o.@outcome_id as outcome_cohort_id,
+          SUM(CASE WHEN o.@outcome_start_date >= w.wb_start AND o.@outcome_start_date <= w.wb_end THEN 1 ELSE 0 END) as count_before,
+          SUM(CASE WHEN o.@outcome_start_date >= w.wa_start AND o.@outcome_start_date <= w.wa_end THEN 1 ELSE 0 END) as count_after
+      FROM windows w
+      INNER JOIN {@outcome_database_schema != ''} ? {@outcome_database_schema.}@outcome_table o
+          ON w.person_id = o.@outcome_person_id
+      GROUP BY w.target_cohort_id, o.@outcome_id
+  )
+  SELECT 
+      pc.target_cohort_id,
+      pc.outcome_cohort_id,
+      pc.count_before,
+      pc.count_after,
+      tp.total_pt_before,
+      tp.total_pt_after
+  FROM pair_counts pc
+  INNER JOIN target_pt tp ON pc.target_cohort_id = tp.target_cohort_id;
   "
 
-  results <- DatabaseConnector::renderTranslateQuerySql(
+  aggregatedResults <- DatabaseConnector::renderTranslateQuerySql(
     connection = connection,
     sql = sql,
     risk_windows_table = riskWindowsTable,
+    cdm_database_schema = cdmDatabaseSchema,
     outcome_database_schema = outcomeDatabaseSchema,
     outcome_table = outcomeTable,
-    outcome_start_date = outcomeStartDate,
     outcome_id = outcomeId,
+    outcome_start_date = outcomeStartDate,
     outcome_person_id = outcomePersonId,
     analysis_id = analysisId,
     tempEmulationSchema = tempEmulationSchema,
     snakeCaseToCamelCase = TRUE
   )
 
-  if (nrow(results) == 0) {
+  if (nrow(aggregatedResults) == 0) {
     return(data.frame())
   }
 
-  # Calculate proportion and p-value for each group
-  results$proportion <- results$personsWithPreExposureOutcome / results$totalPersons
+  results <- data.frame()
 
-  # Binomial test: H0 is that proportion = 0 (no pre-exposure outcomes expected)
-  # Use one-sided test since we only care if proportion > 0
-  results$pValue <- vapply(seq_len(nrow(results)), function(i) {
-    if (results$personsWithPreExposureOutcome[i] == 0) {
-      return(1.0)
+  for (i in seq_len(nrow(aggregatedResults))) {
+    row <- aggregatedResults[i, ]
+    
+    totalPtBefore <- row$totalPtBefore
+    totalPtAfter <- row$totalPtAfter
+    countBefore <- row$countBefore
+    countAfter <- row$countAfter
+    
+    # Safe guard
+    if (totalPtBefore <= 0 || totalPtAfter <= 0 || (countBefore == 0 && countAfter == 0)) {
+       results <- rbind(results, data.frame(
+        targetCohortId = row$targetCohortId,
+        outcomeCohortId = row$outcomeCohortId,
+        preExposureRateRatio = NA_real_,
+        pValue = NA_real_
+      ))
+       next
     }
-    # Use binomial test
-    stats::binom.test(results$personsWithPreExposureOutcome[i],
-      results$totalPersons[i],
-      p = 0.01,
+
+    # Perform rateratio test (Before vs After)
+    # H0: rateBefore <= rateAfter; H1: rateBefore > rateAfter
+    testResult <- rateratio.test::rateratio.test(
+      x = c(countBefore, countAfter),
+      n = c(totalPtBefore, totalPtAfter),
       alternative = "greater"
-    )$p.value
-  }, numeric(1))
+    )
+    
+    results <- rbind(results, data.frame(
+      targetCohortId = row$targetCohortId,
+      outcomeCohortId = row$outcomeCohortId,
+      preExposureRateRatio = testResult$estimate[1],
+      pValue = testResult$p.value
+    ))
+  }
 
   return(results)
 }
 
-#' Test for time trend in outcome risk
-#'
-#' @description
-#' Fits a Poisson GLM to test whether outcome risk changes over calendar time.
-#' A significant time trend violates the assumption of stable baseline risk needed
-#' for valid SCC analysis.
-#'
-#' @param connection              DatabaseConnector connection object
-#' @param riskWindowsTable        Name of the risk windows table
-#' @param outcomeTable            Name of outcome table
-#' @param outcomeDatabaseSchema   Schema containing outcome table
-#' @param analysisId              Analysis identifier
-#' @param tempEmulationSchema     Schema for temp table emulation
-#'
-#' @return
-#' Data frame with columns:
-#' \itemize{
-#'   \item target_cohort_id - Exposure cohort ID
-#'   \item outcome_cohort_id - Outcome cohort ID
-#'   \item time_trend_p_value - P-value for calendar time coefficient
-#'   \item time_trend_coefficient - Coefficient estimate for time trend
-#' }
-#'
-#' @details
-#' This diagnostic fits a Poisson regression model:
-#' \deqn{log(E[Y]) = \beta_0 + \beta_1 \times calendar\_time + offset(log(time))}
-#'
-#' A significant time trend (p < 0.05) suggests:
-#' \itemize{
-#'   \item Seasonal patterns in outcome risk
-#'   \item Changes in diagnosis/coding practices
-#'   \item Population changes over time
-#'   \item Confounding by time-varying factors
-#' }
-#'
-#' @noRd
-testTimeTrend <- function(connection,
-                          riskWindowsTable,
-                          outcomeTable,
-                          outcomeDatabaseSchema,
-                          analysisId,
-                          tempEmulationSchema) {
-  # Determine outcome table columns
-  outcomeTable <- tolower(outcomeTable)
-  if (outcomeTable == "condition_era") {
-    outcomeStartDate <- "condition_era_start_date"
-    outcomeId <- "condition_concept_id"
-    outcomePersonId <- "person_id"
-  } else if (outcomeTable == "condition_occurrence") {
-    outcomeStartDate <- "condition_start_date"
-    outcomeId <- "condition_concept_id"
-    outcomePersonId <- "person_id"
-  } else {
-    outcomeStartDate <- "cohort_start_date"
-    outcomeId <- "cohort_definition_id"
-    outcomePersonId <- "subject_id"
-  }
-
-  # Get outcome counts by calendar month
-  sql <- "
-  SELECT
-    rw.exposure_id as target_cohort_id,
-    o.@outcome_id as outcome_cohort_id,
-    YEAR(o.@outcome_start_date) * 12 + MONTH(o.@outcome_start_date) as calendar_month,
-    COUNT(*) as outcome_count,
-    SUM(
-      DATEDIFF(day, rw.risk_window_start_exposed, rw.risk_window_end_exposed) +
-      DATEDIFF(day, rw.risk_window_start_unexposed, rw.risk_window_end_unexposed)
-    ) as person_time
-  FROM @risk_windows_table rw
-  INNER JOIN @outcome_database_schema.@outcome_table o
-    ON rw.person_id = o.@outcome_person_id
-    AND o.@outcome_start_date >= rw.risk_window_start_unexposed
-    AND o.@outcome_start_date <= rw.risk_window_end_exposed
-  WHERE rw.analysis_id = @analysis_id
-  GROUP BY rw.exposure_id, o.@outcome_id,
-           YEAR(o.@outcome_start_date) * 12 + MONTH(o.@outcome_start_date)
-  "
-
-  results <- DatabaseConnector::renderTranslateQuerySql(
-    connection = connection,
-    sql = sql,
-    risk_windows_table = riskWindowsTable,
-    outcome_database_schema = outcomeDatabaseSchema,
-    outcome_table = outcomeTable,
-    outcome_start_date = outcomeStartDate,
-    outcome_id = outcomeId,
-    outcome_person_id = outcomePersonId,
-    analysis_id = analysisId,
-    tempEmulationSchema = tempEmulationSchema,
-    snakeCaseToCamelCase = TRUE
-  )
-
-  if (nrow(results) == 0) {
-    return(data.frame())
-  }
-
-  # Fit Poisson GLM for each exposure-outcome pair
-  uniquePairs <- unique(results[, c("targetCohortId", "outcomeCohortId")])
-
-  output <- data.frame()
-
-  for (i in seq_len(nrow(uniquePairs))) {
-    pair <- uniquePairs[i, ]
-    pairData <- results[results$targetCohortId == pair$targetCohortId &
-      results$outcomeCohortId == pair$outcomeCohortId, ]
-
-    # Need at least 3 time points
-    if (nrow(pairData) < 3) {
-      outputRow <- data.frame(
-        targetCohortId = pair$targetCohortId,
-        outcomeCohortId = pair$outcomeCohortId,
-        timeTrendPValue = NA_real_,
-        timeTrendCoefficient = NA_real_
-      )
-      output <- rbind(output, outputRow)
-      next
-    }
-
-    # Standardize calendar month to start from 0
-    pairData$calendarMonthStd <- pairData$calendarMonth - min(pairData$calendarMonth)
-
-    # Fit Poisson GLM
-    tryCatch(
-      {
-        model <- stats::glm(outcomeCount ~ calendarMonthStd + offset(log(pmax(personTime, 1))),
-          data = pairData,
-          family = stats::poisson(link = "log")
-        )
-
-        # Extract coefficient and p-value for time trend
-        coefSummary <- summary(model)$coefficients
-
-        if ("calendarMonthStd" %in% rownames(coefSummary)) {
-          timeTrendCoef <- coefSummary["calendarMonthStd", "Estimate"]
-          timeTrendP <- coefSummary["calendarMonthStd", "Pr(>|z|)"]
-        } else {
-          timeTrendCoef <- NA_real_
-          timeTrendP <- NA_real_
-        }
-
-        outputRow <- data.frame(
-          targetCohortId = pair$targetCohortId,
-          outcomeCohortId = pair$outcomeCohortId,
-          timeTrendPValue = timeTrendP,
-          timeTrendCoefficient = timeTrendCoef
-        )
-        output <- rbind(output, outputRow)
-      },
-      error = function(e) {
-        ParallelLogger::logWarn(sprintf(
-          "Failed to fit time trend model for exposure %s, outcome %s: %s",
-          pair$targetCohortId, pair$outcomeCohortId, e$message
-        ))
-        outputRow <- data.frame(
-          targetCohortId = pair$targetCohortId,
-          outcomeCohortId = pair$outcomeCohortId,
-          timeTrendPValue = NA_real_,
-          timeTrendCoefficient = NA_real_
-        )
-        output <- rbind(output, outputRow)
-      }
-    )
-  }
-
-  return(output)
-}

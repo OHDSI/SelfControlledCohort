@@ -72,7 +72,6 @@ test_that("getDefaultDiagnosticThresholds returns correct structure", {
   expect_true("maxPreExposureProportion" %in% names(thresholds))
   expect_true("preExposurePThreshold" %in% names(thresholds))
   expect_true("maxEventDependentCensoring" %in% names(thresholds))
-  expect_true("timeTrendPThreshold" %in% names(thresholds))
   expect_true("minEventsPerWindow" %in% names(thresholds))
   expect_true("easeMaxAcceptable" %in% names(thresholds))
 
@@ -81,7 +80,6 @@ test_that("getDefaultDiagnosticThresholds returns correct structure", {
   expect_equal(thresholds$maxPreExposureProportion, 0.05)
   expect_equal(thresholds$preExposurePThreshold, 0.05)
   expect_equal(thresholds$maxEventDependentCensoring, 0.10)
-  expect_equal(thresholds$timeTrendPThreshold, 0.05)
   expect_equal(thresholds$minEventsPerWindow, 3)
   expect_equal(thresholds$easeMaxAcceptable, 0.25)
 })
@@ -138,5 +136,4 @@ test_that("Diagnostic threshold names don't include old names", {
   expect_false("minPersonCount" %in% names(thresholds))
   expect_false("maxWindowImbalanceRatio" %in% names(thresholds))
   expect_false("minObservationProportion" %in% names(thresholds))
-  expect_false("maxTimeTrendPValue" %in% names(thresholds))
 })

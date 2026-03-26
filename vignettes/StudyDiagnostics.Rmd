@@ -26,14 +26,13 @@ This vignette describes each diagnostic, the assumption it checks, and how resul
 
 # Overview
 
-Five diagnostics are available. The first four are computed before estimation; EASE is computed during calibration when negative controls are provided.
+Four core diagnostics are available to assess the validity of the SCC analysis.
 
 | Diagnostic Name | Assumption Tested | Default Threshold |
 |---|---|---|
 | **MDRR** | Adequate statistical power | MDRR ≤ 10.0 |
 | **PRE_EXPOSURE** | Correct temporal ordering | Proportion ≤ 5%, p > 0.05 |
 | **EVENT_DEPENDENT_OBSERVATION** | Non-informative censoring | Proportion ≤ 10% |
-| **TIME_TREND_P_VALUE** | Stable baseline risk | p > 0.05 |
 | **EASE** | Low systematic error | EASE ≤ 0.25 |
 
 Default thresholds are available via `getDefaultDiagnosticThresholds()`:
@@ -51,7 +50,8 @@ The MDRR quantifies the smallest rate ratio the study has 80% power to detect at
 
 ## Method
 
-The calculation uses a binary search to find the rate ratio $RR$ satisfying: $$\text{Power} = \Phi\!\left(\frac{\log(RR)}{\sqrt{1/E_1 + 1/E_0}} - z_{\alpha/2}\right) = 0.80$$ where $E_1$ and $E_0$ are the expected events in exposed and unexposed windows, using the observed baseline rate.
+The calculation uses the **Musonda (2006) Signed Root Likelihood (SRL1)** method, which is specifically designed for self-controlled designs. It finds the rate ratio $RR$ satisfying the target power (80%) given the observed person-time and event counts in exposed and unexposed windows.
+
 
 ## Interpretation
 
@@ -70,7 +70,7 @@ computeMdrrForRateRatio(
   unexposedEvents = 90
 )
 
-# Underpowered study
+# Underpowered study (SRL1 solver returns NA if power cannot be met)
 computeMdrrForRateRatio(
   exposedPersonTime = 500,
   unexposedPersonTime = 1500,
@@ -97,11 +97,9 @@ Pre-exposure outcomes suggest one or more of:
 - **Misspecified cohort definitions** — the exposure definition accidentally captures outcome events or vice versa.
 - **Data quality issues** — incorrect temporal ordering in the source data.
 
-Any of these violates the key SCC assumption that exposed and unexposed windows provide unbiased rate estimates.
-
 ## Method
 
-For each target–outcome pair:
+The diagnostic is performed using a high-performance SQL query that aggregates counts directly in the database. For each target–outcome pair:
 
 1. Count the number of persons with at least one outcome occurring before `exposure_start_date`.
 2. Compute the proportion: $$p = \frac{\text{persons with pre-exposure outcome}}{\text{total persons}}$$
@@ -136,33 +134,6 @@ For each person with an outcome during the risk windows, the diagnostic checks w
 - **Proportion ≤ 10%** → Pass. Censoring after the outcome is uncommon.
 - **Proportion > 10%** → Fail. A substantial fraction of patients leave observation shortly after the outcome, suggesting event-dependent censoring. Consider whether the outcome includes fatal or near-fatal events.
 
-# Time Trend
-
-## What it checks
-
-This diagnostic tests whether the baseline outcome rate changes over calendar time. The SCC design implicitly assumes a stable background rate — if risks are trending upward or downward independent of exposure, the rate ratio estimate can be confounded.
-
-## Why it matters
-
-Calendar time trends arise from:
-
-- **Seasonal patterns** in disease incidence (e.g., respiratory infections in winter).
-- **Changes in clinical coding or diagnostic practices** over observation years.
-- **Population composition changes** — the mix of patients changes over time.
-
-If such trends exist, the rate during the unexposed window (often before exposure) and the exposed window (after) may differ for reasons unrelated to the drug.
-
-## Method
-
-The diagnostic aggregates outcome counts by calendar month across all persons in the analysis, then fits a Poisson GLM: $$\log\!\bigl(E[\text{count}]\bigr) = \beta_0 + \beta_1 \cdot \text{calendar\_month} + \text{offset}\!\bigl(\log(\text{person-time})\bigr)$$ The person-time offset is computed from the actual risk window durations (summing exposed and unexposed window lengths). The p-value for $\beta_1$ is tested against the threshold.
-
-## Interpretation
-
-- **p > 0.05** → Pass. No evidence of a calendar time trend.
-- **p ≤ 0.05** → Fail. A statistically significant trend in outcome risk was detected. Consider whether seasonal adjustment or restriction to a more stable time period is appropriate.
-
-Note: if fewer than 3 calendar months of data are available, the model cannot be fit and the diagnostic passes by default (NA).
-
 # Expected Absolute Systematic Error (EASE)
 
 ## What it checks
@@ -171,7 +142,7 @@ EASE quantifies the total expected systematic error in study estimates, combinin
 
 ## When it runs
 
-Unlike the other four diagnostics, EASE requires **negative controls** and is computed **during calibration** rather than before estimation. If no `negativeControlPairs` are provided, the EASE diagnostic is simply skipped.
+Unlike the other diagnostics, EASE requires **negative controls** and is computed **after estimation** (during calibration). If no `negativeControlPairs` are provided, the EASE diagnostic is simply skipped.
 
 ## Method
 
@@ -245,7 +216,7 @@ Results are saved to `scc_diagnostics_summary.csv` in the export folder.
 
 ```r
 thresholds <- getDefaultDiagnosticThresholds()
-thresholds$mdrrMaxAcceptable <- 3.0       # Allow higher MDRR
+thresholds$mdrrMaxAcceptable <- 15.0       # Allow higher MDRR
 thresholds$maxPreExposureProportion <- 0.10  # Allow up to 10% pre-exposure
 
 runSelfControlledCohort(
@@ -261,9 +232,10 @@ runSelfControlledCohort(
 runSelfControlledCohort(
   ...,
   runDiagnostics = TRUE,
-  diagnostics = c("mdrr", "time_trend")  # Skip pre-exposure and event-dependent
+  diagnostics = c("mdrr", "ease")  # Skip pre-exposure and event-dependent
 )
 ```
+
 
 ## Inspecting failures
 

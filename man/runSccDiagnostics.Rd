@@ -14,6 +14,7 @@ runSccDiagnostics(
   outcomeDatabaseSchema = cdmDatabaseSchema,
   analysisId,
   databaseId,
+  estimates = NULL,
   diagnostics = c("all"),
   thresholds = getDefaultDiagnosticThresholds(),
   resultExportManager
@@ -26,7 +27,7 @@ runSccDiagnostics(
 
 \item{tempEmulationSchema}{Schema for temp table emulation (Oracle, Impala)}
 
-\item{resultsTable}{Name of the results table (can be temporary or permanent)}
+\item{resultsTable}{Name of the results table (contains counts)}
 
 \item{riskWindowsTable}{Name of the risk windows table}
 
@@ -38,9 +39,10 @@ runSccDiagnostics(
 
 \item{databaseId}{Database identifier for results export}
 
+\item{estimates}{Data frame of raw SCC results (including rr and se_log_rr)}
+
 \item{diagnostics}{Character vector of diagnostics to run. Options:
-"all", "mdrr", "pre_exposure_gain", "event_dependent",
-"time_trend"}
+"all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"}
 
 \item{thresholds}{Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)}
 
@@ -52,14 +54,4 @@ Invisible data frame of diagnostic results
 \description{
 Runs a suite of diagnostic tests to assess the validity of SCC analysis assumptions.
 Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries package standards.
-}
-\details{
-Available diagnostics:
-\itemize{
-  \item mdrr - Minimum Detectable Relative Risk (power analysis)
-  \item pre_exposure_gain - Tests for outcomes before exposure start
-  \item event_dependent - Tests for outcome-induced censoring
-  \item time_trend - Tests for temporal trends in outcome risk
-  \item sparse_data - Checks for sufficient events in both windows
-}
 }

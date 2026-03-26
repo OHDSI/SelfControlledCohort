@@ -135,7 +135,7 @@ results %>%
 
 # Diagnostics and Tiered Blinding
 
-Reliable evidence requires that the analysis assumptions are met. The package evaluates five diagnostics (aligned with the Self-Controlled Case Series package) to check for issues like lack of statistical power or time-trend confounding. Diagnostics are run by default when `runDiagnostics = TRUE`.
+Reliable evidence requires that the analysis assumptions are met. The package evaluates four diagnostics (aligned with the Self-Controlled Case Series package) to check for issues like lack of statistical power or confounding. Diagnostics are run by default when `runDiagnostics = TRUE`.
 
 The default thresholds can be viewed or modified:
 
@@ -145,8 +145,9 @@ str(thresholds)
 ```
 
 We implement a **Tiered Blinding** system based on these diagnostics:
-1.  **Tier 1 (Unblind for Calibration)**: If core diagnostics pass but power (MDRR) is insufficient, the result can still be used as a negative control for calibration.
+1.  **Tier 1 (Unblind for Calibration)**: If core diagnostics pass (Pre-Exposure Gain, Event-Dependent Observation, and EASE) but power (MDRR) is insufficient, the result can still be used as a negative control for calibration.
 2.  **Tier 2 (Unblind)**: If *all* diagnostics (including power) pass, the result is considered valid for unblinding.
+
 
 Let's look at the raw diagnostic results:
 

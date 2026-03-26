@@ -71,8 +71,6 @@ batchComputeEstimates <- function(connection,
                                   negativeControlPairs,
                                   controlType,
                                   tempEmulationSchema,
-                                  diagnosticResults = NULL,
-                                  diagnosticThresholds = getDefaultDiagnosticThresholds(),
                                   databaseId = NULL) {
   cluster <- ParallelLogger::makeCluster(computeThreads)
   ParallelLogger::clusterRequire(cluster, "rateratio.test")
@@ -81,12 +79,11 @@ batchComputeEstimates <- function(connection,
   on.exit(
     {
       ParallelLogger::stopCluster(cluster)
-      Andromeda::close(andromeda)
     },
     add = TRUE
   )
 
-  # Writes both to CSV and andromeda object for later calibrated results
+  # Writes to andromeda object for later calibrated results and diagnostics
   batchComputeCallBack <- function(rows, position, cluster, andromeda) {
     if (nrow(rows) > 0) {
       batches <- ceiling(nrow(rows) / 10000)
@@ -94,6 +91,10 @@ batchComputeEstimates <- function(connection,
       rows <- ParallelLogger::clusterApply(cluster, rows, computeIrrs, progressBar = FALSE)
       rows <- do.call(rbind, rows)
       rows$analysis_id <- analysisId
+      
+      # Mark negative controls if possible
+      # We'll do this later on the whole object for simplicity or here
+      
       if (position == 1) {
         andromeda$estimates <- rows
       } else {
@@ -120,149 +121,33 @@ batchComputeEstimates <- function(connection,
     dplyr::count() |>
     dplyr::pull() == 0) {
     ParallelLogger::logInfo("No effect estimates produced")
+    Andromeda::close(andromeda)
     return(NULL)
   }
 
-  first <- TRUE
-
+  # Add true_effect_size to estimates for EASE/calibration
   if (length(negativeControlPairs) > 0) {
     ncPairsDf <- do.call(rbind, lapply(negativeControlPairs, function(eo) {
-      data.frame(target_cohort_id = eo[[1]], outcome_cohort_id = eo[[2]], true_effect_size = 1)
+      data.frame(target_cohort_id = as.numeric(eo[[1]]), outcome_cohort_id = as.numeric(eo[[2]]), true_effect_size = 1)
     })) |>
       dplyr::distinct()
-    resultExportManager$exportDataFrame(ncPairsDf, "scc_outcome_exposure", append = FALSE)
-
-    processControlType <- function(groupByCol, filterCol, dataCol) {
-      filterCol <- SqlRender::camelCaseToSnakeCase(filterCol)
-      dataCol <- SqlRender::camelCaseToSnakeCase(dataCol)
-      groupByCol <- SqlRender::camelCaseToSnakeCase(groupByCol)
-
-      ncPairsDf |>
-        dplyr::select(-"true_effect_size") |>
-        dplyr::group_by(.data[[groupByCol]]) |>
-        dplyr::group_map(function(data, grp) {
-          grpCol <- grp[[groupByCol]]
-
-          estimates <- andromeda$estimates |>
-            dplyr::filter(.data[[filterCol]] == grpCol) |>
-            dplyr::collect()
-
-          if (nrow(estimates)) {
-            negatives <- estimates |>
-              dplyr::filter(.data[[dataCol]] %in% data[[dataCol]])
-
-            outcomeExposurePairs <- estimates |>
-              dplyr::filter(!.data[[dataCol]] %in% data[[dataCol]]) |>
-              dplyr::select(dplyr::all_of(c(dataCol, filterCol))) |>
-              dplyr::mutate(true_effect_size = NA) |>
-              dplyr::distinct()
-
-            resultExportManager$exportDataFrame(outcomeExposurePairs,
-              "scc_outcome_exposure",
-              append = TRUE
-            )
-
-            colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
-            colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
-
-            # Filter negatives based on diagnostics if available
-            if (!is.null(diagnosticResults)) {
-              blindingSummary <- getDiagnosticsSummary(diagnosticResults)
-              if (nrow(blindingSummary) > 0) {
-                # Keep only negatives that are unblind_for_calibration
-                negatives <- negatives |>
-                  dplyr::inner_join(
-                    blindingSummary |>
-                      dplyr::filter(.data$UNBLIND_FOR_CALIBRATION == 1) |>
-                      dplyr::select("target_cohort_id", "outcome_cohort_id"),
-                    by = c("targetCohortId" = "target_cohort_id", "outcomeCohortId" = "outcome_cohort_id")
-                  )
-              }
-            }
-
-            # Compute EASE diagnostic from negative controls
-            ease <- if (nrow(negatives) > 1) computeEase(negatives) else NA_real_
-            if (!is.null(databaseId)) {
-              easePass <- if (is.na(ease)) 0L else as.integer(ease <= diagnosticThresholds$easeMaxAcceptable)
-              easeDiag <- data.frame(
-                database_id = databaseId,
-                analysis_id = analysisId,
-                target_cohort_id = grpCol,
-                outcome_cohort_id = 0,
-                diagnostic_name = "EASE",
-                diagnostic_value = ease,
-                pass = easePass
-              )
-              outputFile <- file.path(resultExportManager$exportDir, "scc_diagnostics_summary.csv")
-              append <- file.exists(outputFile)
-              resultExportManager$exportDataFrame(easeDiag, "scc_diagnostics_summary", append = append)
-              ParallelLogger::logInfo(sprintf("EASE diagnostic: %s (pass = %d)", ifelse(is.na(ease), "NA", sprintf("%.4f", ease)), easePass))
-            }
-
-            if (nrow(negatives) > 0) {
-              calibratedEstimates <- computeCalibratedRows(
-                positives = estimates,
-                negatives = negatives
-              )
-            } else {
-              # No valid negative controls for calibration, return estimates with NA calibration
-              calibratedEstimates <- estimates
-              cols <- c("calibratedRr", "calibratedSeLogRr", "calibratedLb95", "calibratedUb95", "calibratedPValue")
-              for (name in cols) {
-                calibratedEstimates[[name]] <- NA_real_
-              }
-            }
-
-            colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
-            calibratedEstimates$i2 <- NA
-            calibratedEstimates$analysis_id <- analysisId
-            resultExportManager$exportDataFrame(calibratedEstimates,
-              "scc_result",
-              append = !first
-            )
-            first <<- FALSE
-          }
-        })
-    }
-
-    # Call the function based on controlType
-    if (controlType == "outcome") {
-      processControlType(groupByCol = "targetCohortId", filterCol = "targetCohortId", dataCol = "outcomeCohortId")
-    }
-
-    if (controlType == "exposure") {
-      processControlType(groupByCol = "outcomeCohortId", filterCol = "outcomeCohortId", dataCol = "targetCohortId")
-    }
-  } else {
-    # Just extract results table from andromeda
-    writeBatch <- function(batch) {
-      # Add empty columns to  silence RMM warning
-      cols <- c("calibrated_rr", "calibrated_se_log_rr", "calibrated_lb_95", "calibrated_ub_95", "calibrated_p_value")
-      for (name in cols) {
-        batch[[name]] <- NA
-      }
-
-      outcomeExposurePairs <- batch |>
-        dplyr::select(
-          "target_cohort_id",
-          "outcome_cohort_id"
-        ) |>
-        dplyr::mutate(true_effect_size = NA) |>
-        dplyr::distinct()
-
-      batch$i2 <- NA
-      resultExportManager$exportDataFrame(batch, "scc_result", append = !first)
-      resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure", append = !first)
-      first <<- FALSE
-      # we don't want to return anything, just write the result to disk
-      return(invisible(NULL))
-    }
-
-    Andromeda::batchApply(andromeda$estimates, writeBatch)
+    
+    # Merge true_effect_size into andromeda table
+    andromeda$nc_pairs <- ncPairsDf
+    
+    andromeda$estimates <- andromeda$estimates |>
+      dplyr::mutate(target_cohort_id = as.numeric(.data$target_cohort_id),
+                    outcome_cohort_id = as.numeric(.data$outcome_cohort_id)) |>
+      dplyr::left_join(andromeda$nc_pairs |> 
+                         dplyr::mutate(target_cohort_id = as.numeric(.data$target_cohort_id),
+                                       outcome_cohort_id = as.numeric(.data$outcome_cohort_id)), 
+                       by = c("target_cohort_id", "outcome_cohort_id"))
   }
 
-  return(NULL)
+  return(andromeda)
 }
+
+
 
 #' Get Default export manager
 #' @description
@@ -278,121 +163,122 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 }
 
 
-#' Export Estimates
-#' @description
-#' Allow the extraction of result estimates from a precomputed scc_result table.
-#'
-#' @inheritParams runSelfControlledCohort
-#' @param resultsTable      string - must be a permanent table
-#' @param riskWindowsTable  string - must be a permanent table
-#' @param diagnosticResults  Data frame of diagnostic results as returned by runSccDiagnostics
-exportEstimates <- function(connectionDetails,
-                            connection,
-                            cdmDatabaseSchema,
-                            resultsTable,
-                            riskWindowsTable,
-                            negativeControlPairs = NULL,
-                            exposureIds = NULL,
-                            outcomeIds = NULL,
-                            exposureDatabaseSchema = cdmDatabaseSchema,
-                            exposureTable = "drug_era",
-                            outcomeDatabaseSchema = cdmDatabaseSchema,
-                            outcomeTable = "condition_era",
-                            databaseId,
-                            computeThreads = 1,
-                            analysisId = 1,
-                            tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-                            resultsDatabaseSchema = NULL,
-                            firstOutcomeOnly = TRUE,
-                            resultExportPath = "scc_result",
-                            resultExportManager = getDefaultExportManager(resultExportPath, databaseId),
-                            controlType = "outcomes",
-                            diagnosticResults = NULL,
-                            diagnosticThresholds = getDefaultDiagnosticThresholds()) {
-  checkmate::assertR6(resultExportManager, "ResultExportManager")
-  checkmate::assertList(negativeControlPairs, null.ok = TRUE)
-  checkmate::assertChoice(controlType, choices = c("outcome", "exposure"))
-  # Check if connection already open:
-  if (is.null(connection)) {
-    if (is.null(connectionDetails)) {
-      stop("Connection details not set")
+#' Export Final Results
+#' @noRd
+.exportFinalResults <- function(andromeda,
+                               resultExportManager,
+                               negativeControlPairs,
+                               controlType,
+                               diagnosticResults,
+                               diagnosticThresholds,
+                               analysisId) {
+  first <- TRUE
+  
+  if (length(negativeControlPairs) > 0) {
+    # Ensure scc_outcome_exposure is exported
+    ncPairsDf <- andromeda$nc_pairs |> dplyr::collect()
+    resultExportManager$exportDataFrame(ncPairsDf, "scc_outcome_exposure")
+
+    processControlType <- function(groupByCol, filterCol, dataCol) {
+      filterColSnake <- SqlRender::camelCaseToSnakeCase(filterCol)
+      dataColSnake <- SqlRender::camelCaseToSnakeCase(dataCol)
+      groupByColSnake <- SqlRender::camelCaseToSnakeCase(groupByCol)
+
+      ncPairsDf |>
+        dplyr::select(-"true_effect_size") |>
+        dplyr::group_by(.data[[groupByColSnake]]) |>
+        dplyr::group_map(function(nc_data, grp) {
+          grpCol <- grp[[groupByColSnake]]
+
+          estimates <- andromeda$estimates |>
+            dplyr::filter(.data[[filterColSnake]] == grpCol) |>
+            dplyr::collect()
+
+          if (nrow(estimates) > 0) {
+            # Identify negatives
+            negatives <- estimates |>
+              dplyr::filter(!is.na(.data$true_effect_size))
+
+            # Identify outcome-exposure pairs for metadata
+            outcomeExposurePairs <- estimates |>
+              dplyr::select("target_cohort_id", "outcome_cohort_id") |>
+              dplyr::mutate(true_effect_size = NA) |>
+              dplyr::distinct()
+
+            resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure")
+
+            # Filter negatives based on diagnostics if available
+            if (!is.null(diagnosticResults)) {
+              blindingSummary <- getDiagnosticsSummary(diagnosticResults)
+              if (nrow(blindingSummary) > 0) {
+                # Keep only negatives that are unblind_for_calibration
+                negatives <- negatives |>
+                  dplyr::inner_join(
+                    blindingSummary |>
+                      dplyr::filter(.data$UNBLIND_FOR_CALIBRATION == 1) |>
+                      dplyr::select("target_cohort_id", "outcome_cohort_id"),
+                    by = c("target_cohort_id", "outcome_cohort_id")
+                  )
+              }
+            }
+
+            # Prepare for calibration
+            colnames(estimates) <- SqlRender::snakeCaseToCamelCase(colnames(estimates))
+            colnames(negatives) <- SqlRender::snakeCaseToCamelCase(colnames(negatives))
+
+            if (nrow(negatives) > 0) {
+              calibratedEstimates <- computeCalibratedRows(
+                positives = estimates,
+                negatives = negatives
+              )
+            } else {
+              calibratedEstimates <- estimates
+              cols <- c("calibratedRr", "calibratedSeLogRr", "calibratedLb95", "calibratedUb95", "calibratedPValue")
+              for (name in cols) {
+                calibratedEstimates[[name]] <- NA_real_
+              }
+            }
+
+            colnames(calibratedEstimates) <- SqlRender::camelCaseToSnakeCase(colnames(calibratedEstimates))
+            calibratedEstimates$i2 <- NA
+            calibratedEstimates$analysis_id <- analysisId
+            
+            resultExportManager$exportDataFrame(calibratedEstimates, "scc_result")
+          }
+        })
     }
-    connection <- DatabaseConnector::connect(connectionDetails)
-    on.exit(DatabaseConnector::disconnect(connection))
-  } else if (!DatabaseConnector::dbIsValid(connection)) {
-    stop("Invalid connection object")
-  }
-
-  if (!is.null(exposureIds)) {
-    DatabaseConnector::insertTable(
-      connection = connection,
-      tableName = "#scc_exposure_ids",
-      data = data.frame(exposure_id = exposureIds),
-      tempTable = TRUE
-    )
-  }
 
 
-  if (!is.null(outcomeIds)) {
-    DatabaseConnector::insertTable(
-      connection = connection,
-      tableName = "#scc_outcome_ids",
-      data = data.frame(outcome_id = outcomeIds),
-      tempTable = TRUE
-    )
-  }
-
-  outcomeTable <- tolower(outcomeTable)
-  if (outcomeTable == "condition_era") {
-    outcomeStartDate <- "condition_era_start_date"
-    outcomeId <- "condition_concept_id"
-    outcomePersonId <- "person_id"
-  } else if (outcomeTable == "condition_occurrence") {
-    outcomeStartDate <- "condition_start_date"
-    outcomeId <- "condition_concept_id"
-    outcomePersonId <- "person_id"
+    if (controlType == "outcome") {
+      processControlType(groupByCol = "targetCohortId", filterCol = "targetCohortId", dataCol = "outcomeCohortId")
+    } else {
+      processControlType(groupByCol = "outcomeCohortId", filterCol = "outcomeCohortId", dataCol = "targetCohortId")
+    }
   } else {
-    outcomeStartDate <- "cohort_start_date"
-    outcomeId <- "cohort_definition_id"
-    outcomePersonId <- "subject_id"
+    # No controls, just export raw results
+    if ("estimates" %in% names(andromeda)) {
+      writeBatch <- function(batch) {
+        cols <- c("calibrated_rr", "calibrated_se_log_rr", "calibrated_lb_95", "calibrated_ub_95", "calibrated_p_value")
+        for (name in cols) {
+          batch[[name]] <- NA_real_
+        }
+        batch$i2 <- NA_real_
+        
+        outcomeExposurePairs <- batch |>
+          dplyr::select("target_cohort_id", "outcome_cohort_id") |>
+          dplyr::mutate(true_effect_size = NA) |>
+          dplyr::distinct()
+
+        resultExportManager$exportDataFrame(batch, "scc_result")
+        resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure")
+        return(invisible(NULL))
+      }
+      Andromeda::batchApply(andromeda$estimates, writeBatch)
+    }
   }
-
-  .getSccRiskWindowStats(
-    connection,
-    tempEmulationSchema,
-    outcomeIds,
-    outcomeDatabaseSchema,
-    outcomeTable,
-    outcomeStartDate,
-    outcomeId,
-    outcomePersonId,
-    analysisId,
-    firstOutcomeOnly,
-    riskWindowsTable,
-    resultExportManager
-  )
-
-  ParallelLogger::logInfo("Computing incidence rate ratios and exact confidence intervals")
-  batchComputeEstimates(
-    connection = connection,
-    analysisId = analysisId,
-    computeThreads = computeThreads,
-    resultsTable = resultsTable,
-    resultExportManager = resultExportManager,
-    negativeControlPairs = negativeControlPairs,
-    controlType = controlType,
-    tempEmulationSchema = tempEmulationSchema,
-    diagnosticResults = diagnosticResults,
-    diagnosticThresholds = diagnosticThresholds,
-    databaseId = databaseId
-  )
-
-
-  resultExportManager$writeManifest(
-    packageName = utils::packageName(),
-    packageVersion = utils::packageVersion(utils::packageName())
-  )
 }
+
+
 
 #' @title
 #' Run self-controlled cohort
@@ -732,50 +618,84 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   DatabaseConnector::executeSql(connection, renderedSql)
 
   if (extractResults) {
-    # Run diagnostics if requested before estimation so we can gate calibration
-    diagnosticResults <- NULL
-    if (runDiagnostics) {
-      ParallelLogger::logInfo("Running diagnostics")
-      diagnosticResults <- runSccDiagnostics(
-        connection = connection,
-        cdmDatabaseSchema = cdmDatabaseSchema,
-        tempEmulationSchema = tempEmulationSchema,
-        resultsTable = resultsTable,
-        riskWindowsTable = riskWindowsTable,
-        outcomeTable = outcomeTable,
-        outcomeDatabaseSchema = outcomeDatabaseSchema,
-        analysisId = analysisId,
-        databaseId = databaseId,
-        diagnostics = diagnostics,
-        thresholds = diagnosticThresholds,
-        resultExportManager = resultExportManager
+    # 1. Compute raw effect estimates (IRR/SE)
+    ParallelLogger::logInfo("Computing raw effect estimates")
+    andromeda <- batchComputeEstimates(
+      connection = connection,
+      analysisId = analysisId,
+      computeThreads = computeThreads,
+      resultsTable = resultsTable,
+      resultExportManager = resultExportManager,
+      negativeControlPairs = negativeControlPairs,
+      controlType = controlType,
+      tempEmulationSchema = tempEmulationSchema,
+      databaseId = databaseId
+    )
+
+    if (!is.null(andromeda)) {
+      on.exit(Andromeda::close(andromeda), add = TRUE)
+
+      # 2. Run diagnostics (including EASE now that we have estimates)
+      diagnosticResults <- NULL
+      if (runDiagnostics) {
+        ParallelLogger::logInfo("Running diagnostics")
+        # Extract estimates from andromeda for diagnostics (usually small enough for memory)
+        estimatesDf <- andromeda$estimates |> dplyr::collect()
+        
+        diagnosticResults <- runSccDiagnostics(
+          connection = connection,
+          cdmDatabaseSchema = cdmDatabaseSchema,
+          tempEmulationSchema = tempEmulationSchema,
+          resultsTable = resultsTable,
+          riskWindowsTable = riskWindowsTable,
+          outcomeTable = outcomeTable,
+          outcomeDatabaseSchema = outcomeDatabaseSchema,
+          analysisId = analysisId,
+          databaseId = databaseId,
+          estimates = estimatesDf,
+          diagnostics = diagnostics,
+          thresholds = diagnosticThresholds,
+          resultExportManager = resultExportManager
+        )
+      }
+
+      # 3. Export metadata and final results
+      .getSccRiskWindowStats(
+        connection,
+        tempEmulationSchema,
+        outcomeIds,
+        outcomeDatabaseSchema,
+        outcomeTable,
+        outcomeStartDate,
+        outcomeId,
+        outcomePersonId,
+        analysisId,
+        firstOutcomeOnly,
+        riskWindowsTable,
+        resultExportManager
+      )
+
+      .exportFinalResults(
+        andromeda = andromeda,
+        resultExportManager = resultExportManager,
+        negativeControlPairs = negativeControlPairs,
+        controlType = controlType,
+        diagnosticResults = diagnosticResults,
+        diagnosticThresholds = diagnosticThresholds,
+        analysisId = analysisId
       )
     }
 
-    exportEstimates(
-      connection = connection,
-      exposureIds = exposureIds,
-      outcomeIds = outcomeIds,
-      exposureDatabaseSchema = exposureDatabaseSchema,
-      exposureTable = exposureTable,
-      negativeControlPairs = negativeControlPairs,
-      outcomeDatabaseSchema = outcomeDatabaseSchema,
-      outcomeTable = outcomeTable,
-      databaseId = databaseId,
-      analysisId = analysisId,
-      computeThreads = computeThreads,
-      firstOutcomeOnly = firstOutcomeOnly,
-      riskWindowsTable = riskWindowsTable,
-      tempEmulationSchema = tempEmulationSchema,
-      resultsDatabaseSchema = resultsDatabaseSchema,
-      resultExportPath = resultExportPath,
-      resultsTable = resultsTable,
-      resultExportManager = resultExportManager,
-      controlType = controlType,
-      diagnosticResults = diagnosticResults,
-      diagnosticThresholds = diagnosticThresholds
+    resultExportManager$writeManifest(
+      packageName = utils::packageName(),
+      packageVersion = utils::packageVersion(utils::packageName())
     )
   }
+
+
+
+
+
   # Drop temp tables:
   ParallelLogger::logInfo("Cleaning up intermedate tables")
   sql <- SqlRender::loadRenderTranslateSql(

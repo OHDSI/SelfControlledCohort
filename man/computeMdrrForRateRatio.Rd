@@ -31,18 +31,17 @@ Numeric value representing the MDRR. Values > 10.0 typically indicate low power.
 }
 \description{
 Calculates the minimum detectable relative risk for a two-sample Poisson rate comparison
-using a power calculation approach. This diagnostic assesses whether the study has
-adequate statistical power to detect clinically meaningful effects.
+using the Signed Root Likelihood (SRL1) method described by Musonda et al. (2006).
+This diagnostic assesses whether the study has adequate statistical power to detect
+clinically meaningful effects in a self-controlled design.
 }
 \details{
-The MDRR is calculated using an iterative approach to find the rate ratio that would
-be detectable with the given sample size, alpha, and power. Lower MDRR values indicate
-better power. An MDRR > 10.0 suggests the study may only detect very large effects.
-
-The calculation uses the observed baseline rate in the unexposed window and solves
-for the rate ratio that achieves the desired power.
+The MDRR is the minimum incidence rate ratio that can be detected with the given 
+sample size, alpha, and power. This implementation uses the SRL1 method from 
+Musonda (2006), which is more accurate for self-controlled studies than 
+standard binomial approximations.
 }
 \references{
-Schuemie MJ, Ryan PB, Hripcsak G, Madigan D, Suchard MA. Improving reproducibility by using
-high-throughput observational studies with empirical calibration. Phil Trans R Soc A. 2018.
+Musonda P, Farrington CP, Whitaker HJ (2006) Samples sizes for self-controlled 
+case series studies, Statistics in Medicine, 15;25(15):2618-31
 }
