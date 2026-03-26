@@ -66,7 +66,7 @@ test_that("Default parameters produce valid results", {
 
     # Rate ratios should be positive
     validRr <- result$rr[!is.na(result$rr)]
-    expect_true(all(validRr > 0), info = "All rate ratios should be positive")
+    expect_true(all(validRr >= 0), info = "All rate ratios should be non-negative")
 })
 
 
@@ -434,6 +434,7 @@ test_that("Negative controls and calibration run correctly", {
 
     # The result should have the target (1) and outcome (192671)
     targetRow <- result[result$target_cohort_id == 1 & result$outcome_cohort_id == 192671, ]
+
     expect_true(nrow(targetRow) == 1)
 
     # Check diagnostics file for EASE
@@ -444,5 +445,5 @@ test_that("Negative controls and calibration run correctly", {
     # EASE diagnostic should be computed for the target cohort
     easeDiag <- diagnostics[diagnostics$diagnostic_name == "EASE" & diagnostics$target_cohort_id == 1, ]
     expect_true(nrow(easeDiag) == 1)
-    expect_true(is.na(easeDiag$outcome_cohort_id))
+    expect_equal(easeDiag$outcome_cohort_id, 0)
 })

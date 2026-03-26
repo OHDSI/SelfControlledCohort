@@ -106,9 +106,7 @@ batchComputeEstimates <- function(connection,
   # Fetch results from server:
   args <- list(cluster = cluster, andromeda = andromeda)
   rsql <- " SELECT * FROM @results_table
-            WHERE num_outcomes_exposed > 0
-            AND num_outcomes_unexposed > 0
-            AND time_at_risk_exposed > 0
+            WHERE time_at_risk_exposed > 0
             AND time_at_risk_unexposed > 0"
   DatabaseConnector::renderTranslateQueryApplyBatched(connection,
     rsql,
@@ -182,26 +180,26 @@ batchComputeEstimates <- function(connection,
               }
             }
 
-            if (nrow(negatives) > 0) {
-              # Compute EASE diagnostic from negative controls
-              ease <- computeEase(negatives)
-              if (!is.null(databaseId)) {
-                easePass <- if (is.na(ease)) 0L else as.integer(ease <= diagnosticThresholds$easeMaxAcceptable)
-                easeDiag <- data.frame(
-                  database_id = databaseId,
-                  analysis_id = analysisId,
-                  target_cohort_id = grpCol,
-                  outcome_cohort_id = NA_integer_,
-                  diagnostic_name = "EASE",
-                  diagnostic_value = ease,
-                  pass = easePass
-                )
-                outputFile <- file.path(resultExportManager$exportDir, "scc_diagnostics_summary.csv")
-                append <- file.exists(outputFile)
-                resultExportManager$exportDataFrame(easeDiag, "scc_diagnostics_summary", append = append)
-                ParallelLogger::logInfo(sprintf("EASE diagnostic: %.4f (pass = %d)", ifelse(is.na(ease), NA, ease), easePass))
-              }
+            # Compute EASE diagnostic from negative controls
+            ease <- if (nrow(negatives) > 1) computeEase(negatives) else NA_real_
+            if (!is.null(databaseId)) {
+              easePass <- if (is.na(ease)) 0L else as.integer(ease <= diagnosticThresholds$easeMaxAcceptable)
+              easeDiag <- data.frame(
+                database_id = databaseId,
+                analysis_id = analysisId,
+                target_cohort_id = grpCol,
+                outcome_cohort_id = 0,
+                diagnostic_name = "EASE",
+                diagnostic_value = ease,
+                pass = easePass
+              )
+              outputFile <- file.path(resultExportManager$exportDir, "scc_diagnostics_summary.csv")
+              append <- file.exists(outputFile)
+              resultExportManager$exportDataFrame(easeDiag, "scc_diagnostics_summary", append = append)
+              ParallelLogger::logInfo(sprintf("EASE diagnostic: %s (pass = %d)", ifelse(is.na(ease), "NA", sprintf("%.4f", ease)), easePass))
+            }
 
+            if (nrow(negatives) > 0) {
               calibratedEstimates <- computeCalibratedRows(
                 positives = estimates,
                 negatives = negatives
@@ -246,8 +244,8 @@ batchComputeEstimates <- function(connection,
 
       outcomeExposurePairs <- batch |>
         dplyr::select(
-          "targetCohortId" = "target_cohort_id",
-          "outcomeCohortId" = "outcome_cohort_id"
+          "target_cohort_id",
+          "outcome_cohort_id"
         ) |>
         dplyr::mutate(true_effect_size = NA) |>
         dplyr::distinct()
@@ -630,18 +628,30 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
     stop("Invalid connection object")
   }
 
-  if (!is.null(outcomeIds)) {
+  # Merge negative control outcome IDs into the outcome filter so their
+  # estimates are included in the results table (needed for calibration).
+  allOutcomeIds <- outcomeIds
+  if (!is.null(negativeControlPairs) && length(negativeControlPairs) > 0 && !is.null(outcomeIds)) {
+    ncOutcomeIds <- if (controlType == "outcome") {
+      unique(vapply(negativeControlPairs, function(p) p[[2]], numeric(1)))
+    } else {
+      unique(vapply(negativeControlPairs, function(p) p[[1]], numeric(1)))
+    }
+    allOutcomeIds <- unique(c(outcomeIds, ncOutcomeIds))
+  }
+
+  if (!is.null(allOutcomeIds)) {
     DatabaseConnector::insertTable(
       connection = connection,
       tableName = "#scc_outcome_ids",
-      data = data.frame(outcome_id = outcomeIds),
+      data = data.frame(outcome_id = allOutcomeIds),
       tempTable = TRUE
     )
   }
 
   settingsString <- list(
     firstExposureOnly = firstExposureOnly,
-    firstOutcomeOnly = firstExposureOnly,
+    firstOutcomeOnly = firstOutcomeOnly,
     minAge = minAge,
     maxAge = maxAge,
     studyStartDate = studyStartDate,
@@ -707,7 +717,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
     packageName = "SelfControlledCohort",
     dbms = DatabaseConnector::dbms(connection),
     tempEmulationSchema = tempEmulationSchema,
-    outcome_ids = outcomeIds,
+    outcome_ids = if (is.null(allOutcomeIds)) "" else allOutcomeIds,
     outcome_database_schema = outcomeDatabaseSchema,
     outcome_table = outcomeTable,
     outcome_start_date = outcomeStartDate,

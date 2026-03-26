@@ -78,6 +78,11 @@ FROM #scc_exposure_summary,
 (
     SELECT DISTINCT outcome_id
     FROM #scc_outcome_summary
+    {@outcome_ids != ''} ? {
+    UNION
+    SELECT outcome_id
+    FROM #scc_outcome_ids
+    }
 ) o1;
 
 CREATE TABLE IF NOT EXISTS @results_table (
