@@ -79,7 +79,7 @@ computeMdrrForRateRatio <- function(exposedPersonTime,
     # B is the variance-correction term
     B <- b^2 / A * eb * r * (1 - r) / (eb * r + 1 - r)^2
     zb <- (sqrt(n * A) - z) / sqrt(B)
-    return(pnorm(zb))
+    return(stats::pnorm(zb))
   }
 
   # Use uniroot to find the log-RR (b) that achieves the target power
