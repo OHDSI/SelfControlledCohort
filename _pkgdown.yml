@@ -16,6 +16,10 @@ navbar:
       href: https://ohdsi.github.io/Hades
 
 reference:
+  - title: "Package overview"
+    desc: "Overview of the SelfControlledCohort package"
+    contents:
+      - SelfControlledCohort-package
   - title: "Running a Single Study"
     desc: "Functions for executing a Self-Controlled Cohort study"
     contents:
@@ -54,9 +58,11 @@ reference:
       - getDataMigrator
       - getDefaultExportManager
       - getResultsFolders
+      - exportEstimates
   - title: "Strategus Module"
     desc: "Functions for integrating with the Strategus execution framework"
     contents:
       - createSelfControlledCohortModuleSpecifications
+      - checkModuleVersion
       - execute
       - getModuleInfo
