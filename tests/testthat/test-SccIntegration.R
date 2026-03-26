@@ -388,3 +388,61 @@ test_that("Risk window validation errors are raised", {
         "Connection details not set"
     )
 })
+
+
+test_that("Negative controls and calibration run correctly", {
+    resultPath <- tempfile("scc_calib_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # Using condition_occurrence instead of cohorts to ensure we have data
+    # 192671: Gastrointestinal hemorrhage
+    # 40481087: Viral sinusitis (negative control)
+    # 4112343: Acute cystitis (negative control)
+    negativeControls <- list(c(1, 40481087), c(1, 4112343))
+
+    diagThresholds <- getDefaultDiagnosticThresholds()
+    diagThresholds$minEventsPerWindow <- 0
+    diagThresholds$mdrrMaxAcceptable <- Inf
+    diagThresholds$maxPreExposureProportion <- 1.0
+    diagThresholds$preExposurePThreshold <- 0.0
+    diagThresholds$maxEventDependentCensoring <- 1.0
+    diagThresholds$timeTrendPThreshold <- 0.0
+
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "condition_occurrence",
+        exposureIds = 1,   # Celecoxib
+        outcomeIds = 192671,    # GI hemorrhage 
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        negativeControlPairs = negativeControls,
+        runDiagnostics = TRUE,
+        diagnosticThresholds = diagThresholds
+    )
+
+    checkManifestFiles(resultPath)
+
+    # Check results file for calibrated columns
+    result <- readSccResult(resultPath)
+    expect_true(!is.null(result), info = "scc_result.csv should be written")
+    expect_true("calibrated_rr" %in% names(result), info = "Calibrated RR column missing")
+    expect_true("calibrated_p_value" %in% names(result), info = "Calibrated p-value missing")
+
+    # The result should have the target (1) and outcome (192671)
+    targetRow <- result[result$target_cohort_id == 1 & result$outcome_cohort_id == 192671, ]
+    expect_true(nrow(targetRow) == 1)
+
+    # Check diagnostics file for EASE
+    diagFile <- file.path(resultPath, "scc_diagnostics_summary.csv")
+    expect_true(file.exists(diagFile))
+    diagnostics <- read.csv(diagFile)
+    
+    # EASE diagnostic should be computed for the target cohort
+    easeDiag <- diagnostics[diagnostics$diagnostic_name == "EASE" & diagnostics$target_cohort_id == 1, ]
+    expect_true(nrow(easeDiag) == 1)
+    expect_true(is.na(easeDiag$outcome_cohort_id))
+})
