@@ -186,7 +186,7 @@ testPreExposureGain <- function(connection,
           rw.exposure_start_date as wa_start,
           DATEADD(day, 30, rw.exposure_start_date) as wa_end
       FROM @risk_windows_table rw
-      INNER JOIN {@cdm_database_schema != ''} ? {@cdm_database_schema.}observation_period op
+      INNER JOIN @cdm_database_schema.observation_period op
           ON rw.person_id = op.person_id
       WHERE rw.analysis_id = @analysis_id
           AND rw.exposure_start_date >= op.observation_period_start_date
@@ -223,7 +223,7 @@ testPreExposureGain <- function(connection,
           SUM(CASE WHEN o.@outcome_start_date >= w.wb_start AND o.@outcome_start_date <= w.wb_end THEN 1 ELSE 0 END) as count_before,
           SUM(CASE WHEN o.@outcome_start_date >= w.wa_start AND o.@outcome_start_date <= w.wa_end THEN 1 ELSE 0 END) as count_after
       FROM windows w
-      INNER JOIN {@outcome_database_schema != ''} ? {@outcome_database_schema.}@outcome_table o
+      INNER JOIN @outcome_database_schema.@outcome_table o
           ON w.person_id = o.@outcome_person_id
       GROUP BY w.target_cohort_id, o.@outcome_id
   )

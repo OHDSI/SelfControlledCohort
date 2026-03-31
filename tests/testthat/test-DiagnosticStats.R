@@ -47,8 +47,8 @@ test_that("testPreExposureGain identifies biased data", {
     connection = connection,
     riskWindowsTable = "test_risk_windows",
     outcomeTable = "test_outcomes",
-    outcomeDatabaseSchema = "",
-    cdmDatabaseSchema = "",
+    outcomeDatabaseSchema = "main",
+    cdmDatabaseSchema = "main",
     analysisId = 1,
     tempEmulationSchema = NULL
   )
