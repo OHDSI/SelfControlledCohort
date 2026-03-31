@@ -89,6 +89,14 @@ runSccDiagnostics <- function(connection,
 
   checkmate::assertR6(resultExportManager, "ResultExportManager")
 
+  # Ensure all thresholds are present by merging with defaults
+  defaultThresholds <- getDefaultDiagnosticThresholds()
+  for (name in names(defaultThresholds)) {
+    if (is.null(thresholds[[name]])) {
+      thresholds[[name]] <- defaultThresholds[[name]]
+    }
+  }
+
   # Expand "all" to specific diagnostics
   allDiagnostics <- c(
     "mdrr", "pre_exposure_gain", "event_dependent",
