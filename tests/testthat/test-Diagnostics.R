@@ -79,7 +79,7 @@ test_that("getDefaultDiagnosticThresholds returns correct structure", {
   expect_equal(thresholds$mdrrMaxAcceptable, 10.0)
   expect_equal(thresholds$maxPreExposureProportion, 0.05)
   expect_equal(thresholds$preExposurePThreshold, 0.05)
-  expect_equal(thresholds$maxEventDependentCensoring, 0.10)
+  expect_equal(thresholds$maxEventDependentCensoring, 0.25)
   expect_equal(thresholds$minEventsPerWindow, 3)
   expect_equal(thresholds$easeMaxAcceptable, 0.25)
 })

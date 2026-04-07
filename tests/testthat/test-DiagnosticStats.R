@@ -30,17 +30,18 @@ test_that("testPreExposureGain identifies biased data", {
 
     DROP TABLE IF EXISTS test_outcomes;
     CREATE TABLE test_outcomes (subject_id INT, cohort_definition_id INT, cohort_start_date DATE);
-    -- High risk before: 10 outcomes before, 0 after
-    INSERT INTO test_outcomes VALUES (2, 10, CAST('20191215' AS DATE)), 
-                                     (2, 10, CAST('20191216' AS DATE)),
-                                     (2, 10, CAST('20191217' AS DATE)),
-                                     (2, 10, CAST('20191218' AS DATE)),
-                                     (2, 10, CAST('20191219' AS DATE)),
-                                     (2, 10, CAST('20191220' AS DATE)),
-                                     (2, 10, CAST('20191221' AS DATE)),
-                                     (2, 10, CAST('20191222' AS DATE)),
-                                     (2, 10, CAST('20191223' AS DATE)),
-                                     (2, 10, CAST('20191224' AS DATE));
+    -- High risk in the earlier pre-exposure window (wb: -60 to -31 days)
+    -- For exposure on 2020-01-01 this corresponds to mid-November 2019
+    INSERT INTO test_outcomes VALUES (2, 10, CAST('20191115' AS DATE)),
+                                     (2, 10, CAST('20191116' AS DATE)),
+                                     (2, 10, CAST('20191117' AS DATE)),
+                                     (2, 10, CAST('20191118' AS DATE)),
+                                     (2, 10, CAST('20191119' AS DATE)),
+                                     (2, 10, CAST('20191120' AS DATE)),
+                                     (2, 10, CAST('20191121' AS DATE)),
+                                     (2, 10, CAST('20191122' AS DATE)),
+                                     (2, 10, CAST('20191123' AS DATE)),
+                                     (2, 10, CAST('20191124' AS DATE));
   ")
 
   results <- SelfControlledCohort:::testPreExposureGain(
