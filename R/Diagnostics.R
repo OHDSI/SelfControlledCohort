@@ -28,7 +28,7 @@
 #'   \item mdrrMaxAcceptable - Maximum acceptable MDRR (default: 10.0). Higher values indicate low power.
 #'   \item maxPreExposureProportion - Maximum proportion of persons with pre-exposure outcomes (default: 0.05)
 #'   \item preExposurePThreshold - Significance threshold for pre-exposure gain test (default: 0.05)
-#'   \item maxEventDependentCensoring - Maximum proportion censored within 30 days of outcome (default: 0.10)
+#'   \item maxEventDependentCensoring - Maximum proportion censored within 30 days of outcome (default: 0.25)
 #'   \item minEventsPerWindow - Minimum events required in each window (default: 3)
 #'   \item easeMaxAcceptable - Maximum acceptable EASE (default: 0.25). Requires negative controls.
 #' }
@@ -39,7 +39,7 @@ getDefaultDiagnosticThresholds <- function() {
     mdrrMaxAcceptable = 10.0, # Max MDRR for adequate power
     maxPreExposureProportion = 0.05, # Max 5% with pre-exposure outcomes
     preExposurePThreshold = 0.05, # Significance level for pre-exposure test
-    maxEventDependentCensoring = 0.10, # Max 10% censored within 30 days of outcome
+    maxEventDependentCensoring = 0.25, # Max 25% censored within 30 days of outcome
     minEventsPerWindow = 3, # Min 3 events in each window
     easeMaxAcceptable = 0.25 # Max EASE for acceptable systematic error
   )

@@ -181,10 +181,10 @@ testPreExposureGain <- function(connection,
           rw.exposure_start_date,
           op.observation_period_start_date as obs_start,
           op.observation_period_end_date as obs_end,
-          DATEADD(day, -30, rw.exposure_start_date) as wb_start,
-          DATEADD(day, -1, rw.exposure_start_date) as wb_end,
-          rw.exposure_start_date as wa_start,
-          DATEADD(day, 30, rw.exposure_start_date) as wa_end
+          DATEADD(day, -60, rw.exposure_start_date) as wb_start,
+          DATEADD(day, -31, rw.exposure_start_date) as wb_end,
+          DATEADD(day, -30, rw.exposure_start_date) as wa_start,
+          DATEADD(day, 0, rw.exposure_start_date) as wa_end
       FROM @risk_windows_table rw
       INNER JOIN @cdm_database_schema.observation_period op
           ON rw.person_id = op.person_id
