@@ -2,7 +2,7 @@ SelfControlledCohort
 ====================
 
 [![Build Status](https://github.com/OHDSI/SelfControlledCohort/workflows/R-CMD-check/badge.svg)](https://github.com/OHDSI/SelfControlledCohort/actions?query=workflow%3AR-CMD-check)
-[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=master)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=master)
+[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=main)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=main)
 
 SelfControlledCohort is part of [HADES](https://ohdsi.github.io/Hades).
 
