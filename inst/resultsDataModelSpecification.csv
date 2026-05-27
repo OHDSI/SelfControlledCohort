@@ -31,11 +31,11 @@ scc_stat,stat_type,varchar,No,No,No,Type of statistical measure
 scc_stat,mean,float,No,No,No,Mean value of the statistic
 scc_stat,sd,float,No,No,No,Standard deviation of the statistic
 scc_stat,minimum,float,No,No,No,Minimum value in the dataset
-scc_stat,p10,float,No,No,No,YesNoth percentile value
+scc_stat,p10,float,No,No,No,10th percentile value
 scc_stat,p25,float,No,No,No,25th percentile value
 scc_stat,median,float,No,No,No,Median value
 scc_stat,p75,float,No,No,No,75th percentile value
-scc_stat,p90,float,No,No,No,9Noth percentile value
+scc_stat,p90,float,No,No,No,90th percentile value
 scc_stat,maximum,float,No,No,No,Maximum value in the dataset
 scc_stat,total,float,No,No,No,Total count or total value of the statistic
 scc_diagnostics_summary,database_id,varchar,Yes,Yes,No,Unique identifier for the database
