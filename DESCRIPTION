@@ -9,7 +9,7 @@ Authors@R: c(
     person("Patrick", "Ryan", role = c("aut")),
     person("Observational Health Data Science and Informatics", role = c("cph"))
     )
-Maintainer: Jamie Gilbert <jpg@azimov.co.uk>
+Maintainer: Jamie Gilbert <gilbert@ohdsi.org>
 Description: Estimates risk by comparing time exposed with time unexposed among
     an exposed cohort using self-controlled cohort methodology. Provides
     comprehensive diagnostics including power analysis (MDRR), pre-exposure gain
