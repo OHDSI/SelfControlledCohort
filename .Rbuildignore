@@ -16,4 +16,6 @@ docs/*
 ^Meta$
 ^.idea/*
 errorReportSql.txt
-examples/*^cran-comments\.md$
+examples/*
+^cran-comments\.md$
+^sql$

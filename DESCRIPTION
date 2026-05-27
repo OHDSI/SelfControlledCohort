@@ -1,6 +1,6 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-Level Estimation Method That Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort
+Title: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort
 Version: 2.0.0
 Date: 2026-05-27
 Authors@R: c(
@@ -12,8 +12,8 @@ Authors@R: c(
 Maintainer: Jamie Gilbert <gilbert@ohdsi.org>
 Description: Estimates risk by comparing time exposed with time unexposed among
     an exposed cohort using self-controlled cohort methodology. Provides
-    comprehensive diagnostics including power analysis (MDRR), pre-exposure gain
-    detection, and event-dependent observation checks.
+    comprehensive diagnostics including power analysis ('MDRR'), 'pre-exposure'
+    gain detection, and event-dependent observation checks.
 URL: https://github.com/OHDSI/SelfControlledCohort
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Language: en-US

@@ -2,9 +2,9 @@ SelfControlledCohort
 ====================
 
 [![Build Status](https://github.com/OHDSI/SelfControlledCohort/workflows/R-CMD-check/badge.svg)](https://github.com/OHDSI/SelfControlledCohort/actions?query=workflow%3AR-CMD-check)
-[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=main)](https://codecov.io/github/OHDSI/SelfControlledCohort?branch=main)
+[![codecov.io](https://codecov.io/github/OHDSI/SelfControlledCohort/coverage.svg?branch=main)](https://app.codecov.io/github/OHDSI/SelfControlledCohort?branch=main)
 
-SelfControlledCohort is part of [HADES](https://ohdsi.github.io/Hades).
+SelfControlledCohort is part of [HADES](https://ohdsi.github.io/Hades/).
 
 Introduction
 ============
@@ -62,7 +62,7 @@ Getting Started
 
 User Documentation
 ==================
-Documentation can be found on the [package website](https://ohdsi.github.io/SelfControlledCohort).
+Documentation can be found on the [package website](https://ohdsi.github.io/SelfControlledCohort/).
 
 PDF versions of the documentation are also available:
 * Package manual: [SelfControlledCohort.pdf](https://raw.githubusercontent.com/OHDSI/SelfControlledCohort/master/extras/SelfControlledCohort.pdf)
