@@ -32,6 +32,28 @@
 #' @param analysisThreads          The number of parallel threads to use to execute the analyses.
 #' @param controlType              Calibrate effect estimates with outcome (default) or exposure controls
 #'
+#' @return
+#' Invisibly returns a data frame containing a reference table for all
+#' exposure-outcome-analysis combinations executed.
+#'
+#' @examples
+#' \dontrun{
+#' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+#'
+#' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+#' analysis1 <- createSccAnalysis(analysisId = 1,
+#'                               description = "Main analysis",
+#'                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+#'
+#' results <- runSccAnalyses(
+#'   connectionDetails = connectionDetails,
+#'   cdmDatabaseSchema = "main",
+#'   exposureOutcomeList = list(eo1),
+#'   sccAnalysisList = list(analysis1),
+#'   databaseId = "Eunomia",
+#'   resultsFolder = "./results"
+#' )
+#' }
 #' @export
 runSccAnalyses <- function(connectionDetails,
                            cdmDatabaseSchema,

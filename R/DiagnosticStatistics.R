@@ -39,9 +39,17 @@
 #' standard binomial approximations.
 #'
 #' @references
-#' Musonda P, Farrington CP, Whitaker HJ (2006) Samples sizes for self-controlled 
+#' Musonda P, Farrington CP, Whitaker HJ (2006) Samples sizes for self-controlled
 #' case series studies, Statistics in Medicine, 15;25(15):2618-31
 #'
+#' @examples
+#' # Calculate MDRR for a study with 100 exposed person-years and 200 unexposed person-years
+#' mdrr <- computeMdrrForRateRatio(
+#'   exposedPersonTime = 36500,    # 100 person-years in days
+#'   unexposedPersonTime = 73000,  # 200 person-years in days
+#'   exposedEvents = 10,
+#'   unexposedEvents = 15
+#' )
 #' @export
 computeMdrrForRateRatio <- function(exposedPersonTime,
                                     unexposedPersonTime,

@@ -46,9 +46,21 @@ Options: "all", "counts", "event_dependent", "pre_exposure",
 \item{diagnosticThresholds}{Named list of diagnostic thresholds. See
 getDefaultDiagnosticThresholds() for defaults.}
 }
+\value{
+An object of class \code{sccAnalysis} containing the analysis specifications.
+}
 \description{
 Create a SelfControlledCohort analysis specification
 }
 \details{
 Create a set of analysis choices, to be used with the \code{\link{runSccAnalyses}} function.
+}
+\examples{
+# Create SCC analysis with default risk window settings
+sccArgs <- createRunSelfControlledCohortArgs(riskWindowStartExposed = 1,
+                                              riskWindowEndExposed = 30)
+
+analysis1 <- createSccAnalysis(analysisId = 1,
+                              description = "30-day exposed risk window",
+                              runSelfControlledCohortArgs = sccArgs)
 }

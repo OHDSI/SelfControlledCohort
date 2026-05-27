@@ -21,9 +21,22 @@ parameter in the \code{\link{createSccAnalysis}} function.}
 
 \item{trueEffectSize}{Should this be set to 1 this will be considererd a negative control}
 }
+\value{
+An object of class \code{exposureOutcome} specifying an exposure-outcome pair for analysis.
+}
 \description{
 Create exposure-outcome combinations.
 }
 \details{
 Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
+}
+\examples{
+# Create a simple exposure-outcome pair
+eo1 <- createExposureOutcome(exposureId = 1124300,
+                             outcomeId = 444382)
+
+# Create a negative control (true effect size = 1)
+eo2 <- createExposureOutcome(exposureId = 1124300,
+                             outcomeId = 444382,
+                             trueEffectSize = 1)
 }

@@ -20,6 +20,9 @@
 #' Get module information
 #'
 #' @return A list with module metadata
+#'
+#' @examples
+#' moduleInfo <- getModuleInfo()
 #' @export
 getModuleInfo <- function() {
   desc <- utils::packageDescription("SelfControlledCohort")
@@ -52,6 +55,18 @@ getModuleInfo <- function() {
 #'   `ModuleSpecifications` containing the module name, version, repository
 #'   information, and analysis settings.
 #'
+#' @examples
+#' \dontrun{
+#' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+#' analysis1 <- createSccAnalysis(analysisId = 1,
+#'                               description = "Main",
+#'                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+#'
+#' moduleSpec <- createSelfControlledCohortModuleSpecifications(
+#'   analysisSettings = list(analysis1),
+#'   exposureOutcomeList = list(eo1)
+#' )
+#' }
 #' @export
 createSelfControlledCohortModuleSpecifications <- function(
   analysisSettings,
@@ -99,6 +114,20 @@ createSelfControlledCohortModuleSpecifications <- function(
 #' @return
 #' No return value. Results are written to the specified export folder as a side effect.
 #'
+#' @examples
+#' \dontrun{
+#' execute(
+#'   connectionDetails = connectionDetails,
+#'   executionSettings = list(
+#'     databaseSchema = "main",
+#'     cohortTable = "cohort",
+#'     cdmDatabaseSchema = "main"
+#'   ),
+#'   analysisSpecifications = moduleSpec,
+#'   databaseId = "MyDatabase",
+#'   exportFolder = "./strategus_results"
+#' )
+#' }
 #' @export
 execute <- function(connectionDetails, executionSettings, analysisSpecifications, databaseId, exportFolder) {
   # Version check
@@ -203,6 +232,11 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 #' @param analysisSpecification An analysis specification object containing analysis settings and exposure-outcome pairs.
 #' @param exportFolder The base folder where results are exported. Individual analysis results will be in subfolders named A_analysisId.
 #' @return A character vector of paths to results folders for each analysis setting.
+#'
+#' @examples
+#' \dontrun{
+#' resultsFolders <- getResultsFolders(analysisSpec, "./results")
+#' }
 #' @export
 getResultsFolders <- function(analysisSpecification, exportFolder) {
   exportPaths <- lapply(analysisSpecification, function(refRow) {
@@ -217,6 +251,7 @@ getResultsFolders <- function(analysisSpecification, exportFolder) {
 #' @param moduleVersion Character string of the module version from specifications.
 #'
 #' @return NULL (invisibly). Stops execution if incompatible, warns if older version.
+#' @keywords internal
 checkModuleVersion <- function(moduleVersion) {
   currentVersion <- getModuleInfo()$version
 

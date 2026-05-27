@@ -32,3 +32,18 @@ Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework us
 \details{
 This function validates the input specifications, extracts unique exposure and outcome cohort IDs, identifies negative control pairs, and iterates over each analysis setting to run the Self-Controlled Cohort analysis. Results are exported to the specified folder. Diagnostic settings are handled per-analysis, and warnings are issued if no negative controls are found.
 }
+\examples{
+\dontrun{
+execute(
+  connectionDetails = connectionDetails,
+  executionSettings = list(
+    databaseSchema = "main",
+    cohortTable = "cohort",
+    cdmDatabaseSchema = "main"
+  ),
+  analysisSpecifications = moduleSpec,
+  databaseId = "MyDatabase",
+  exportFolder = "./strategus_results"
+)
+}
+}

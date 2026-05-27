@@ -42,6 +42,17 @@
 #' @param diagnosticThresholds          Named list of diagnostic thresholds. See
 #'                                      getDefaultDiagnosticThresholds() for defaults.
 #'
+#' @return
+#' An object of class \code{sccAnalysis} containing the analysis specifications.
+#'
+#' @examples
+#' # Create SCC analysis with default risk window settings
+#' sccArgs <- createRunSelfControlledCohortArgs(riskWindowStartExposed = 1,
+#'                                               riskWindowEndExposed = 30)
+#'
+#' analysis1 <- createSccAnalysis(analysisId = 1,
+#'                               description = "30-day exposed risk window",
+#'                               runSelfControlledCohortArgs = sccArgs)
 #' @export
 createSccAnalysis <- function(analysisId = 1,
                               description = "",
@@ -78,6 +89,16 @@ createSccAnalysis <- function(analysisId = 1,
 #' @param sccAnalysisList   The sccAnalysis list to be written to file
 #' @param file              The name of the file where the results will be written
 #'
+#' @return
+#' Invisibly returns NULL. Saves the analysis list to file as a side effect.
+#'
+#' @examples
+#' \dontrun{
+#' analysis1 <- createSccAnalysis(analysisId = 1,
+#'                               description = "30-day risk window",
+#'                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+#' saveSccAnalysisList(list(analysis1), "analyses.json")
+#' }
 #' @export
 saveSccAnalysisList <- function(sccAnalysisList, file) {
   stopifnot(is.list(sccAnalysisList))
@@ -98,6 +119,10 @@ saveSccAnalysisList <- function(sccAnalysisList, file) {
 #' @return
 #' A list of objects of type \code{sccAnalysis}.
 #'
+#' @examples
+#' \dontrun{
+#' analysisList <- loadSccAnalysisList("analyses.json")
+#' }
 #' @export
 loadSccAnalysisList <- function(file) {
   return(ParallelLogger::loadSettingsFromJson(file))
@@ -120,6 +145,18 @@ loadSccAnalysisList <- function(file) {
 #'                         parameter in the \code{\link{createSccAnalysis}} function.
 #' @param trueEffectSize   Should this be set to 1 this will be considererd a negative control
 #'
+#' @return
+#' An object of class \code{exposureOutcome} specifying an exposure-outcome pair for analysis.
+#'
+#' @examples
+#' # Create a simple exposure-outcome pair
+#' eo1 <- createExposureOutcome(exposureId = 1124300,
+#'                              outcomeId = 444382)
+#'
+#' # Create a negative control (true effect size = 1)
+#' eo2 <- createExposureOutcome(exposureId = 1124300,
+#'                              outcomeId = 444382,
+#'                              trueEffectSize = 1)
 #' @export
 createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
   exposureOutcome <- list(exposureId = exposureId,
@@ -137,6 +174,14 @@ createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
 #' @param exposureOutcomeList   The exposureOutcome list to be written to file
 #' @param file                  The name of the file where the results will be written
 #'
+#' @return
+#' Invisibly returns NULL. Saves the exposure-outcome list to file as a side effect.
+#'
+#' @examples
+#' \dontrun{
+#' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+#' saveExposureOutcomeList(list(eo1), "exposureOutcomes.json")
+#' }
 #' @export
 saveExposureOutcomeList <- function(exposureOutcomeList, file) {
   stopifnot(is.list(exposureOutcomeList))
@@ -157,6 +202,10 @@ saveExposureOutcomeList <- function(exposureOutcomeList, file) {
 #' @return
 #' A list of objects of type \code{exposureOutcome}.
 #'
+#' @examples
+#' \dontrun{
+#' eoList <- loadExposureOutcomeList("exposureOutcomes.json")
+#' }
 #' @export
 loadExposureOutcomeList <- function(file) {
   return(ParallelLogger::loadSettingsFromJson(file))

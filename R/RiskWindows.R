@@ -13,6 +13,25 @@ convertToDateFormat <- function(dateStr) {
 #' See `getSccRiskWindowStats` for example usage.
 #'
 #' @inheritParams runSelfControlledCohort
+#'
+#' @return
+#' Invisibly returns NULL. Creates the risk windows table in the database as a side effect.
+#'
+#' @examples
+#' \dontrun{
+#' connection <- DatabaseConnector::connect(connectionDetails)
+#'
+#' runSccRiskWindows(
+#'   connection = connection,
+#'   cdmDatabaseSchema = "main",
+#'   exposureIds = c(1124300),
+#'   riskWindowStartExposed = 1,
+#'   riskWindowEndExposed = 30,
+#'   riskWindowsTable = "#risk_windows"
+#' )
+#'
+#' DatabaseConnector::disconnect(connection)
+#' }
 #' @export
 runSccRiskWindows <- function(connection,
                               cdmDatabaseSchema,

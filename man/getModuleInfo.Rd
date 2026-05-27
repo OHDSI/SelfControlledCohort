@@ -12,3 +12,6 @@ A list with module metadata
 \description{
 Get module information
 }
+\examples{
+moduleInfo <- getModuleInfo()
+}

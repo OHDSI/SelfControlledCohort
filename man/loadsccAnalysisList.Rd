@@ -15,3 +15,8 @@ A list of objects of type \code{sccAnalysis}.
 \description{
 Load a list of objects of type \code{sccAnalysis} from file. The file is in JSON format.
 }
+\examples{
+\dontrun{
+analysisList <- loadSccAnalysisList("analyses.json")
+}
+}

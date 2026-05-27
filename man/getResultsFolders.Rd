@@ -17,3 +17,8 @@ A character vector of paths to results folders for each analysis setting.
 \description{
 Get results folders for an analysis specification
 }
+\examples{
+\dontrun{
+resultsFolders <- getResultsFolders(analysisSpec, "./results")
+}
+}

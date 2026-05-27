@@ -17,9 +17,27 @@ createResultsDataModel(
 
 \item{tablePrefix}{(Optional)  string to insert before table names for database table names}
 }
+\value{
+Invisibly returns NULL. Creates database tables for results storage as a side effect.
+}
 \description{
 Create the results data model tables on a database server.
 }
 \details{
 Only PostgreSQL and SQLite servers are supported.
+}
+\examples{
+\dontrun{
+connectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = "postgresql",
+  server = "localhost/ohdsi",
+  user = "joe",
+  password = "secret"
+)
+
+createResultsDataModel(
+  connectionDetails = connectionDetails,
+  databaseSchema = "results"
+)
+}
 }

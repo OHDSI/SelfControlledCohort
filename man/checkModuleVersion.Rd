@@ -15,3 +15,4 @@ NULL (invisibly). Stops execution if incompatible, warns if older version.
 \description{
 Check module version compatibility
 }
+\keyword{internal}

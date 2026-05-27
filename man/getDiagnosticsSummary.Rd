@@ -16,3 +16,9 @@ A data frame with blinding status per target-outcome pair
 Returns a summary of diagnostic results for each target-outcome pair, including
 blinding status.
 }
+\examples{
+\dontrun{
+diagnosticResults <- runSccDiagnostics(...)
+summary <- getDiagnosticsSummary(diagnosticResults)
+}
+}

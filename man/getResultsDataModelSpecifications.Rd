@@ -12,3 +12,6 @@ A data frame object with specifications
 \description{
 Get specifications for CohortMethod results data model
 }
+\examples{
+specs <- getResultsDataModelSpecifications()
+}

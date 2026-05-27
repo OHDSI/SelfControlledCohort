@@ -41,7 +41,16 @@ sample size, alpha, and power. This implementation uses the SRL1 method from
 Musonda (2006), which is more accurate for self-controlled studies than 
 standard binomial approximations.
 }
+\examples{
+# Calculate MDRR for a study with 100 exposed person-years and 200 unexposed person-years
+mdrr <- computeMdrrForRateRatio(
+  exposedPersonTime = 36500,    # 100 person-years in days
+  unexposedPersonTime = 73000,  # 200 person-years in days
+  exposedEvents = 10,
+  unexposedEvents = 15
+)
+}
 \references{
-Musonda P, Farrington CP, Whitaker HJ (2006) Samples sizes for self-controlled 
+Musonda P, Farrington CP, Whitaker HJ (2006) Samples sizes for self-controlled
 case series studies, Statistics in Medicine, 15;25(15):2618-31
 }

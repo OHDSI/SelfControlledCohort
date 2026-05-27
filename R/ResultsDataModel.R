@@ -20,6 +20,8 @@
 #' @return
 #' A data frame object with specifications
 #'
+#' @examples
+#' specs <- getResultsDataModelSpecifications()
 #' @export
 getResultsDataModelSpecifications <- function() {
   pathToCsv <- system.file("resultsDataModelSpecification.csv", package = utils::packageName())
@@ -38,6 +40,24 @@ getResultsDataModelSpecifications <- function() {
 #' @param connectionDetails      DatabaseConnector connectionDetails instance @seealso[DatabaseConnector::createConnectionDetails]
 #' @param databaseSchema         The schema on the server where the tables will be created.
 #' @param tablePrefix            (Optional)  string to insert before table names for database table names
+#'
+#' @return
+#' Invisibly returns NULL. Creates database tables for results storage as a side effect.
+#'
+#' @examples
+#' \dontrun{
+#' connectionDetails <- DatabaseConnector::createConnectionDetails(
+#'   dbms = "postgresql",
+#'   server = "localhost/ohdsi",
+#'   user = "joe",
+#'   password = "secret"
+#' )
+#'
+#' createResultsDataModel(
+#'   connectionDetails = connectionDetails,
+#'   databaseSchema = "results"
+#' )
+#' }
 #' @export
 createResultsDataModel <- function(connectionDetails = NULL,
                                    databaseSchema,
@@ -72,6 +92,18 @@ createResultsDataModel <- function(connectionDetails = NULL,
 #'                       data site.
 #' @param tablePrefix    (Optional)  string to insert before table names for database table names
 #' @param ...            See ResultModelManager::uploadResults
+#'
+#' @return
+#' Invisibly returns NULL. Uploads results to the database as a side effect.
+#'
+#' @examples
+#' \dontrun{
+#' uploadResults(
+#'   connectionDetails = connectionDetails,
+#'   schema = "results",
+#'   resultsFolder = "./output"
+#' )
+#' }
 #' @export
 uploadResults <- function(connectionDetails,
                           schema,
@@ -103,6 +135,17 @@ uploadResults <- function(connectionDetails,
 #' are using a postgres backend) or have kept the csv/zip files from your data generation.
 #'
 #' @inheritParams getDataMigrator
+#'
+#' @return
+#' Invisibly returns NULL. Migrates the database schema as a side effect.
+#'
+#' @examples
+#' \dontrun{
+#' migrateDataModel(
+#'   connectionDetails = connectionDetails,
+#'   databaseSchema = "results"
+#' )
+#' }
 #' @export
 migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = "") {
   ParallelLogger::logInfo("Migrating data set")
@@ -123,6 +166,14 @@ migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = ""
 #' @param databaseSchema                String schema where database schema lives
 #' @param  tablePrefix                  (Optional) Use if a table prefix is used before table names (e.g. "cd_")
 #' @returns Instance of ResultModelManager::DataMigrationManager that has interface for converting existing data models
+#'
+#' @examples
+#' \dontrun{
+#' migrator <- getDataMigrator(
+#'   connectionDetails = connectionDetails,
+#'   databaseSchema = "results"
+#' )
+#' }
 #' @export
 getDataMigrator <- function(connectionDetails, databaseSchema, tablePrefix = "") {
   ResultModelManager::DataMigrationManager$new(

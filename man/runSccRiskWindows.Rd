@@ -112,7 +112,26 @@ to be added to with aditional targets and outcomes.
 \item{resultsDatabaseSchema}{Schema to oputput results to. Ignored if resultsTable and
 riskWindowsTable are temporary.}
 }
+\value{
+Invisibly returns NULL. Creates the risk windows table in the database as a side effect.
+}
 \description{
 Compute time at risk exposed and time at risk unexposed for risk window parameters.
 See `getSccRiskWindowStats` for example usage.
+}
+\examples{
+\dontrun{
+connection <- DatabaseConnector::connect(connectionDetails)
+
+runSccRiskWindows(
+  connection = connection,
+  cdmDatabaseSchema = "main",
+  exposureIds = c(1124300),
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 30,
+  riskWindowsTable = "#risk_windows"
+)
+
+DatabaseConnector::disconnect(connection)
+}
 }

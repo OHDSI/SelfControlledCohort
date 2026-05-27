@@ -33,6 +33,13 @@
 #'   \item easeMaxAcceptable - Maximum acceptable EASE (default: 0.25). Requires negative controls.
 #' }
 #'
+#' @examples
+#' # Get default thresholds
+#' thresholds <- getDefaultDiagnosticThresholds()
+#'
+#' # Modify specific thresholds
+#' customThresholds <- getDefaultDiagnosticThresholds()
+#' customThresholds$mdrrMaxAcceptable <- 5.0
 #' @export
 getDefaultDiagnosticThresholds <- function() {
   list(
@@ -69,6 +76,24 @@ getDefaultDiagnosticThresholds <- function() {
 #' @return
 #' Invisible data frame of diagnostic results
 #'
+#' @examples
+#' \dontrun{
+#' connection <- DatabaseConnector::connect(connectionDetails)
+#'
+#' diagnostics <- runSccDiagnostics(
+#'   connection = connection,
+#'   cdmDatabaseSchema = "main",
+#'   resultsTable = "#scc_results",
+#'   riskWindowsTable = "#risk_windows",
+#'   analysisId = 1,
+#'   databaseId = "Eunomia",
+#'   estimates = resultsData,
+#'   diagnostics = "all",
+#'   thresholds = getDefaultDiagnosticThresholds()
+#' )
+#'
+#' DatabaseConnector::disconnect(connection)
+#' }
 #' @export
 runSccDiagnostics <- function(connection,
                               cdmDatabaseSchema,
@@ -227,6 +252,11 @@ runSccDiagnostics <- function(connection,
 #' @return
 #' A data frame with blinding status per target-outcome pair
 #'
+#' @examples
+#' \dontrun{
+#' diagnosticResults <- runSccDiagnostics(...)
+#' summary <- getDiagnosticsSummary(diagnosticResults)
+#' }
 #' @export
 getDiagnosticsSummary <- function(diagnosticResults) {
   if (is.null(diagnosticResults) || nrow(diagnosticResults) == 0) {

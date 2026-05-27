@@ -13,9 +13,20 @@ migrateDataModel(connectionDetails, databaseSchema, tablePrefix = "")
 
 \item{tablePrefix}{(Optional) Use if a table prefix is used before table names (e.g. "cd_")}
 }
+\value{
+Invisibly returns NULL. Migrates the database schema as a side effect.
+}
 \description{
 Migrate data from current state to next state
 
 It is strongly advised that you have a backup of all data (either sqlite files, a backup database (in the case you
 are using a postgres backend) or have kept the csv/zip files from your data generation.
+}
+\examples{
+\dontrun{
+migrateDataModel(
+  connectionDetails = connectionDetails,
+  databaseSchema = "results"
+)
+}
 }

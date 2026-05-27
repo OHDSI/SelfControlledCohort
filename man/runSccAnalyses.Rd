@@ -72,6 +72,10 @@ the \code{\link{createExposureOutcome}} function.}
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}
 }
+\value{
+Invisibly returns a data frame containing a reference table for all
+exposure-outcome-analysis combinations executed.
+}
 \description{
 Run a list of analyses
 }
@@ -79,4 +83,23 @@ Run a list of analyses
 Run a list of analyses for the drug-comparator-outcomes of interest. This function will run all
 specified analyses against all hypotheses of interest, meaning that the total number of outcome
 models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
+}
+\examples{
+\dontrun{
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+
+eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+analysis1 <- createSccAnalysis(analysisId = 1,
+                              description = "Main analysis",
+                              runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+
+results <- runSccAnalyses(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = "main",
+  exposureOutcomeList = list(eo1),
+  sccAnalysisList = list(analysis1),
+  databaseId = "Eunomia",
+  resultsFolder = "./results"
+)
+}
 }

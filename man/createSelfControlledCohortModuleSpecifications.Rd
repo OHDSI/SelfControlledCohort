@@ -30,3 +30,16 @@ A list object of class `SelfControlledCohortModuleSpecifications` and
 Creates a specifications object for the Self-Controlled Cohort module
 to be used within the OHDSI Strategus framework.
 }
+\examples{
+\dontrun{
+eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+analysis1 <- createSccAnalysis(analysisId = 1,
+                              description = "Main",
+                              runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+
+moduleSpec <- createSelfControlledCohortModuleSpecifications(
+  analysisSettings = list(analysis1),
+  exposureOutcomeList = list(eo1)
+)
+}
+}

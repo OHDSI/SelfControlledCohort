@@ -69,9 +69,23 @@ absolute time between treatment and outcome. Note, may add
 significant computation time on some database engines. If set
 true in one analysis will default to true for all others.}
 }
+\value{
+A parameter object of class \code{args} for use with \code{\link{runSelfControlledCohort}}.
+}
 \description{
 Create a parameter object for the function runSelfControlledCohort
 }
 \details{
 Create an object defining the parameter values.
+}
+\examples{
+# Create default parameters
+args1 <- createRunSelfControlledCohortArgs()
+
+# Custom risk window settings
+args2 <- createRunSelfControlledCohortArgs(
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 60,
+  hasFullTimeAtRisk = TRUE
+)
 }

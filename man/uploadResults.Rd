@@ -35,6 +35,18 @@ data site.}
 
 \item{...}{See ResultModelManager::uploadResults}
 }
+\value{
+Invisibly returns NULL. Uploads results to the database as a side effect.
+}
 \description{
 Requires the results data model tables have been created using the \code{\link{createResultsDataModel}} function.
+}
+\examples{
+\dontrun{
+uploadResults(
+  connectionDetails = connectionDetails,
+  schema = "results",
+  resultsFolder = "./output"
+)
+}
 }

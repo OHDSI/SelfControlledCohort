@@ -37,6 +37,19 @@
 #'                                       significant computation time on some database engines. If set
 #'                                       true in one analysis will default to true for all others.
 #'
+#' @return
+#' A parameter object of class \code{args} for use with \code{\link{runSelfControlledCohort}}.
+#'
+#' @examples
+#' # Create default parameters
+#' args1 <- createRunSelfControlledCohortArgs()
+#'
+#' # Custom risk window settings
+#' args2 <- createRunSelfControlledCohortArgs(
+#'   riskWindowStartExposed = 1,
+#'   riskWindowEndExposed = 60,
+#'   hasFullTimeAtRisk = TRUE
+#' )
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
                                               firstOutcomeOnly = TRUE,

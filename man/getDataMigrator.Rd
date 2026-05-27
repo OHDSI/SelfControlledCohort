@@ -19,6 +19,14 @@ Instance of ResultModelManager::DataMigrationManager that has interface for conv
 \description{
 Returns ResultModelManager DataMigrationsManager instance.
 }
+\examples{
+\dontrun{
+migrator <- getDataMigrator(
+  connectionDetails = connectionDetails,
+  databaseSchema = "results"
+)
+}
+}
 \seealso{
 [ResultModelManager::DataMigrationManager] which this function is a utility for.
 }

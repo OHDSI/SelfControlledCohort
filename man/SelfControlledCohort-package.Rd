@@ -4,9 +4,9 @@
 \name{SelfControlledCohort-package}
 \alias{SelfControlledCohort}
 \alias{SelfControlledCohort-package}
-\title{SelfControlledCohort: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort}
+\title{SelfControlledCohort: Population-Level Estimation Method That Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort}
 \description{
-A method to estimate risk by comparing time exposed with time unexposed among the exposed cohort.
+Estimates risk by comparing time exposed with time unexposed among an exposed cohort using self-controlled cohort methodology. Provides comprehensive diagnostics including power analysis (MDRR), pre-exposure gain detection, and event-dependent observation checks.
 }
 \seealso{
 Useful links:

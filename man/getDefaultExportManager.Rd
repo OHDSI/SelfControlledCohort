@@ -11,6 +11,17 @@ getDefaultExportManager(resultExportPath, databaseId)
 
 \item{databaseId}{Unique identifier for database - required}
 }
+\value{
+An instance of \code{ResultModelManager::ResultExportManager} configured for SelfControlledCohort results.
+}
 \description{
 Returns the default export manager class for writing csv file results
+}
+\examples{
+\dontrun{
+exportManager <- getDefaultExportManager(
+  resultExportPath = "./results",
+  databaseId = "CCAE"
+)
+}
 }
