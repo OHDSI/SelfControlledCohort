@@ -158,9 +158,9 @@ batchComputeEstimates <- function(connection,
 #' An instance of \code{ResultModelManager::ResultExportManager} configured for SelfControlledCohort results.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' exportManager <- getDefaultExportManager(
-#'   resultExportPath = "./results",
+#'   resultExportPath = tempdir(),
 #'   databaseId = "CCAE"
 #' )
 #' }
@@ -412,7 +412,7 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Use Eunomia synthetic database for demonstration
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #'

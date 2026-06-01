@@ -46,7 +46,7 @@ Requires the results data model tables have been created using the \code{\link{c
 uploadResults(
   connectionDetails = connectionDetails,
   schema = "results",
-  resultsFolder = "./output"
+  resultsFolder = tempdir()
 )
 }
 }

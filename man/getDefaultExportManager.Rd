@@ -18,9 +18,9 @@ An instance of \code{ResultModelManager::ResultExportManager} configured for Sel
 Returns the default export manager class for writing csv file results
 }
 \examples{
-\dontrun{
+\donttest{
 exportManager <- getDefaultExportManager(
-  resultExportPath = "./results",
+  resultExportPath = tempdir(),
   databaseId = "CCAE"
 )
 }

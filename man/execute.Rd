@@ -43,7 +43,7 @@ execute(
   ),
   analysisSpecifications = moduleSpec,
   databaseId = "MyDatabase",
-  exportFolder = "./strategus_results"
+  exportFolder = tempdir()
 )
 }
 }

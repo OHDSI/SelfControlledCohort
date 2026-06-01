@@ -18,8 +18,8 @@ Invisibly returns NULL. Saves the exposure-outcome list to file as a side effect
 Write a list of objects of type \code{exposureOutcome} to file. The file is in JSON format.
 }
 \examples{
-\dontrun{
+\donttest{
 eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
-saveExposureOutcomeList(list(eo1), "exposureOutcomes.json")
+saveExposureOutcomeList(list(eo1), file.path(tempdir(), "exposureOutcomes.json"))
 }
 }

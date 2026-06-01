@@ -19,6 +19,6 @@ Get results folders for an analysis specification
 }
 \examples{
 \dontrun{
-resultsFolders <- getResultsFolders(analysisSpec, "./results")
+resultsFolders <- getResultsFolders(analysisSpec, tempdir())
 }
 }

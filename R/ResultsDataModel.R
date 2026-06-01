@@ -101,7 +101,7 @@ createResultsDataModel <- function(connectionDetails = NULL,
 #' uploadResults(
 #'   connectionDetails = connectionDetails,
 #'   schema = "results",
-#'   resultsFolder = "./output"
+#'   resultsFolder = tempdir()
 #' )
 #' }
 #' @export

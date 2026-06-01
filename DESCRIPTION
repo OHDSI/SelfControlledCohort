@@ -1,20 +1,19 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort
+Title: Self-Controlled Cohort Population-Level Estimation
 Version: 2.0.0
 Date: 2026-05-27
 Authors@R: c(
-    person("Jamie", "Gilbert", email = "gilbert@ohdsi.org", role = c("cre", "aut")),
+    person("Jamie", "Gilbert", email = "gilbert@ohdsi.org", role = c("cre", "aut"), comment = c(ORCID = "0000-0003-2294-3459")),
     person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut")),
     person("Patrick", "Ryan", role = c("aut")),
     person("Observational Health Data Science and Informatics", role = c("cph"))
     )
 Maintainer: Jamie Gilbert <gilbert@ohdsi.org>
-Description: Estimates risk by comparing time exposed with time unexposed among
-    an exposed cohort using self-controlled cohort methodology. Provides
-    comprehensive diagnostics including power analysis ('MDRR'), 'pre-exposure'
-    gain detection, and event-dependent observation checks.
-URL: https://github.com/OHDSI/SelfControlledCohort
+Description: Estimates incidence rate ratios by comparing time exposed with time unexposed among an exposed cohort using self-controlled cohort methodology as described in Ryan et al. (2013) <doi:10.1002/pds.3457>.
+    Functions used for empirical calibration of effect estimates, confidence intervals, and p-values are included to control
+    for residual bias.
+URL: https://github.com/OHDSI/SelfControlledCohort, https://ohdsi.github.io/SelfControlledCohort/
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
 Language: en-US
 Depends:

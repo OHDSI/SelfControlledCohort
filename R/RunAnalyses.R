@@ -37,7 +37,7 @@
 #' exposure-outcome-analysis combinations executed.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #'
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
@@ -51,7 +51,7 @@
 #'   exposureOutcomeList = list(eo1),
 #'   sccAnalysisList = list(analysis1),
 #'   databaseId = "Eunomia",
-#'   resultsFolder = "./results"
+#'   resultsFolder = tempdir()
 #' )
 #' }
 #' @export

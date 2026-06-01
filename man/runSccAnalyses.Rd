@@ -85,7 +85,7 @@ specified analyses against all hypotheses of interest, meaning that the total nu
 models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
 }
 \examples{
-\dontrun{
+\donttest{
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 
 eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
@@ -99,7 +99,7 @@ results <- runSccAnalyses(
   exposureOutcomeList = list(eo1),
   sccAnalysisList = list(analysis1),
   databaseId = "Eunomia",
-  resultsFolder = "./results"
+  resultsFolder = tempdir()
 )
 }
 }

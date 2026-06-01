@@ -19,3 +19,4 @@ errorReportSql.txt
 examples/*
 ^cran-comments\.md$
 ^sql$
+LICENSE

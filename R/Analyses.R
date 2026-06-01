@@ -93,11 +93,11 @@ createSccAnalysis <- function(analysisId = 1,
 #' Invisibly returns NULL. Saves the analysis list to file as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "30-day risk window",
 #'                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
-#' saveSccAnalysisList(list(analysis1), "analyses.json")
+#' saveSccAnalysisList(list(analysis1), file.path(tempdir(), "analyses.json"))
 #' }
 #' @export
 saveSccAnalysisList <- function(sccAnalysisList, file) {
@@ -120,8 +120,11 @@ saveSccAnalysisList <- function(sccAnalysisList, file) {
 #' A list of objects of type \code{sccAnalysis}.
 #'
 #' @examples
-#' \dontrun{
-#' analysisList <- loadSccAnalysisList("analyses.json")
+#' \donttest{
+#' tempFile <- file.path(tempdir(), "analyses.json")
+#' saveSccAnalysisList(list(createSccAnalysis(analysisId = 1,
+#'   runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())), tempFile)
+#' analysisList <- loadSccAnalysisList(tempFile)
 #' }
 #' @export
 loadSccAnalysisList <- function(file) {
@@ -178,9 +181,9 @@ createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
 #' Invisibly returns NULL. Saves the exposure-outcome list to file as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
-#' saveExposureOutcomeList(list(eo1), "exposureOutcomes.json")
+#' saveExposureOutcomeList(list(eo1), file.path(tempdir(), "exposureOutcomes.json"))
 #' }
 #' @export
 saveExposureOutcomeList <- function(exposureOutcomeList, file) {
@@ -203,8 +206,10 @@ saveExposureOutcomeList <- function(exposureOutcomeList, file) {
 #' A list of objects of type \code{exposureOutcome}.
 #'
 #' @examples
-#' \dontrun{
-#' eoList <- loadExposureOutcomeList("exposureOutcomes.json")
+#' \donttest{
+#' tempFile <- file.path(tempdir(), "exposureOutcomes.json")
+#' saveExposureOutcomeList(list(createExposureOutcome(1124300, 444382)), tempFile)
+#' eoList <- loadExposureOutcomeList(tempFile)
 #' }
 #' @export
 loadExposureOutcomeList <- function(file) {

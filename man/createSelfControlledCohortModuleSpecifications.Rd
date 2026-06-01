@@ -31,7 +31,7 @@ Creates a specifications object for the Self-Controlled Cohort module
 to be used within the OHDSI Strategus framework.
 }
 \examples{
-\dontrun{
+\donttest{
 eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 analysis1 <- createSccAnalysis(analysisId = 1,
                               description = "Main",

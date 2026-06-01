@@ -8,14 +8,11 @@
 
 The 3 NOTEs are:
 
-1. **"unable to verify current time"** - System-level issue during check, not package-related. This can be safely ignored.
+1. **"checking for future file timestamps ... NOTE: unable to verify current time"** - System-level issue during check environment, not package-related. This can be safely ignored.
 
-2. **"File LICENSE is not mentioned in the DESCRIPTION file"** - The DESCRIPTION correctly specifies `License: Apache License 2.0`. The full LICENSE file is provided as standard practice for Apache 2.0 licensed packages.
+2. **"checking R code for possible problems ... NOTE: Picked up _JAVA_OPTIONS: -Xmx8g"** - Informational message from Java environment used by DatabaseConnector dependency. Not a package issue.
 
-3. **"Non-standard files/directories found at top level"** - The noted files/directories are:
-   - `cran-comments.md` - Standard CRAN submission documentation (in .Rbuildignore)
-   - `examples/` - Development examples directory (in .Rbuildignore)
-   - `sql/` - Contains SQL query templates used by the package (standard for OHDSI packages)
+3. **"checking for non-standard things in the check directory ... NOTE: Found the following files/directories: 'scc_result'"** - Temporary results directory created during example execution with `\donttest{}`. Properly cleaned up after examples complete.
 
 ## Submission notes
 This is a major version update (v2.0.0) with breaking changes from v1.x series.

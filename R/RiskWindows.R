@@ -206,7 +206,7 @@ runSccRiskWindows <- function(connection,
 #'          timeToOutcomeDistributionUnexposed
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # First, create the risk windows table
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #' connection <- DatabaseConnector::connect(connectionDetails)
@@ -220,6 +220,7 @@ runSccRiskWindows <- function(connection,
 #' # Get stats based on outcomes of interest
 #' tarStats <- getSccRiskWindowStats(connection,
 #'                                   outcomeDatabaseSchema = "main",
+#'                                   databaseId = "Eunomia",
 #'                                   resultsDatabaseSchema = "main",
 #'                                   riskWindowsTable = riskWindowsTable,
 #'                                   outcomeTable = "condition_era",

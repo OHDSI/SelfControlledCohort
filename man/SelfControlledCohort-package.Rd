@@ -4,9 +4,9 @@
 \name{SelfControlledCohort-package}
 \alias{SelfControlledCohort}
 \alias{SelfControlledCohort-package}
-\title{SelfControlledCohort: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort}
+\title{SelfControlledCohort: Self-Controlled Cohort Population-Level Estimation}
 \description{
-Estimates risk by comparing time exposed with time unexposed among an exposed cohort using self-controlled cohort methodology. Provides comprehensive diagnostics including power analysis ('MDRR'), 'pre-exposure' gain detection, and event-dependent observation checks.
+Estimates incidence rate ratios by comparing time exposed with time unexposed among an exposed cohort using self-controlled cohort methodology. Provides comprehensive diagnostics including power analysis (MDRR), pre-exposure gain detection, and event-dependent observation checks. Ryan et al. (2013) \doi{10.1002/pds.3457}.
 }
 \seealso{
 Useful links:
@@ -21,6 +21,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Jamie Gilbert \email{gilbert@ohdsi.org}
   \item Martijn Schuemie \email{schuemie@ohdsi.org}
   \item Patrick Ryan
 }

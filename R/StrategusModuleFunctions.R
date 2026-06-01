@@ -56,7 +56,7 @@ getModuleInfo <- function() {
 #'   information, and analysis settings.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "Main",
@@ -125,7 +125,7 @@ createSelfControlledCohortModuleSpecifications <- function(
 #'   ),
 #'   analysisSpecifications = moduleSpec,
 #'   databaseId = "MyDatabase",
-#'   exportFolder = "./strategus_results"
+#'   exportFolder = tempdir()
 #' )
 #' }
 #' @export
@@ -235,7 +235,7 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 #'
 #' @examples
 #' \dontrun{
-#' resultsFolders <- getResultsFolders(analysisSpec, "./results")
+#' resultsFolders <- getResultsFolders(analysisSpec, tempdir())
 #' }
 #' @export
 getResultsFolders <- function(analysisSpecification, exportFolder) {
