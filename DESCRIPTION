@@ -10,7 +10,8 @@ Authors@R: c(
     person("Observational Health Data Science and Informatics", role = c("cph"))
     )
 Maintainer: Jamie Gilbert <gilbert@ohdsi.org>
-Description: Estimates incidence rate ratios by comparing time exposed with time unexposed among an exposed cohort using self-controlled cohort methodology as described in Ryan et al. (2013) <doi:10.1002/pds.3457>.
+Description: Estimates incidence rate ratios by comparing time exposed with time unexposed among an exposed cohort using
+    self-controlled cohort methodology as described in Ryan et al. (2013) <doi:10.1002/pds.3457>.
     Functions used for empirical calibration of effect estimates, confidence intervals, and p-values are included to control
     for residual bias.
 URL: https://github.com/OHDSI/SelfControlledCohort, https://ohdsi.github.io/SelfControlledCohort/

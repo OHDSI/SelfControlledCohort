@@ -15,7 +15,7 @@ The 3 NOTEs are:
 3. **"checking for non-standard things in the check directory ... NOTE: Found the following files/directories: 'scc_result'"** - Temporary results directory created during example execution with `\donttest{}`. Properly cleaned up after examples complete.
 
 ## Submission notes
-This is a major version update (v2.0.0) with breaking changes from v1.x series.
+This is a major version update (v2.0.0) with breaking changes from v1.x series (previously only available via github).
 
 ### Major changes in v2.0.0:
 * Introduced results data model aligned with OHDSI HADES standards
