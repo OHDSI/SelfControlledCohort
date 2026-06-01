@@ -51,6 +51,6 @@ Suggests:
     reactable,
     shinyWidgets
 License: Apache License 2.0
-RoxygenNote: 7.3.3
+RoxygenNote: 8.0.0
 VignetteBuilder: knitr
 Encoding: UTF-8
