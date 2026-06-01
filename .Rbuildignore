@@ -20,3 +20,4 @@ examples/*
 ^cran-comments\.md$
 ^sql$
 LICENSE
+^CRAN-SUBMISSION$
