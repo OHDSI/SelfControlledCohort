@@ -117,7 +117,7 @@ createSelfControlledCohortModuleSpecifications <- function(
 #' No return value. Results are written to the specified export folder as a side effect.
 #'
 #' @examples
-#' \donttest{
+#' if (interactive()) {
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "Main",

@@ -25,12 +25,12 @@ Thresholds:
 }
 }
 \examples{
-\donttest{
+if (interactive()) {
 # Get default thresholds
-thresholds <- getDefaultDiagnosticThresholds()
+   thresholds <- getDefaultDiagnosticThresholds()
 
-# Modify specific thresholds
-customThresholds <- getDefaultDiagnosticThresholds()
-customThresholds$mdrrMaxAcceptable <- 5.0
+   # Modify specific thresholds
+   customThresholds <- getDefaultDiagnosticThresholds()
+   customThresholds$mdrrMaxAcceptable <- 5.0
 }
 }

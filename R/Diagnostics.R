@@ -34,13 +34,13 @@
 #' }
 #'
 #' @examples
-#' \donttest{
+#' if (interactive()) {
 #' # Get default thresholds
-#' thresholds <- getDefaultDiagnosticThresholds()
+#'    thresholds <- getDefaultDiagnosticThresholds()
 #'
-#' # Modify specific thresholds
-#' customThresholds <- getDefaultDiagnosticThresholds()
-#' customThresholds$mdrrMaxAcceptable <- 5.0
+#'    # Modify specific thresholds
+#'    customThresholds <- getDefaultDiagnosticThresholds()
+#'    customThresholds$mdrrMaxAcceptable <- 5.0
 #' }
 #' @export
 getDefaultDiagnosticThresholds <- function() {
@@ -79,23 +79,24 @@ getDefaultDiagnosticThresholds <- function() {
 #' Invisible data frame of diagnostic results
 #'
 #' @examples
-#' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
-#' connection <- DatabaseConnector::connect(connectionDetails)
+#' if (interactive()) {
+#'   connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+#'   connection <- DatabaseConnector::connect(connectionDetails)
 #'
-#' diagnostics <- runSccDiagnostics(
-#'   connection = connection,
-#'   cdmDatabaseSchema = "main",
-#'   resultsTable = "#scc_results",
-#'   riskWindowsTable = "#risk_windows",
-#'   analysisId = 1,
-#'   databaseId = "Eunomia",
-#'   estimates = resultsData,
-#'   diagnostics = "all",
-#'   thresholds = getDefaultDiagnosticThresholds()
-#' )
+#'   diagnostics <- runSccDiagnostics(
+#'     connection = connection,
+#'     cdmDatabaseSchema = "main",
+#'     resultsTable = "#scc_results",
+#'     riskWindowsTable = "#risk_windows",
+#'     analysisId = 1,
+#'     databaseId = "Eunomia",
+#'     estimates = resultsData,
+#'     diagnostics = "all",
+#'     thresholds = getDefaultDiagnosticThresholds()
+#'   )
 #'
-#' DatabaseConnector::disconnect(connection)
-#'
+#'   DatabaseConnector::disconnect(connection)
+#' }
 #' @export
 runSccDiagnostics <- function(connection,
                               cdmDatabaseSchema,

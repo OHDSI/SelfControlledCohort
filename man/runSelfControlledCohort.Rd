@@ -203,7 +203,7 @@ If multiple exposureIds and outcomeIds are provided, estimates will be generated
 combination of exposure and outcome.
 }
 \examples{
-\donttest{
+if (interactive()) {
 # Use Eunomia synthetic database for demonstration
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 

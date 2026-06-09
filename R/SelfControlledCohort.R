@@ -412,7 +412,7 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
-#' \donttest{
+#' if (interactive()) {
 #' # Use Eunomia synthetic database for demonstration
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #'

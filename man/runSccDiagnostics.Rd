@@ -56,21 +56,22 @@ Runs a suite of diagnostic tests to assess the validity of SCC analysis assumpti
 Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries package standards.
 }
 \examples{
-connectionDetails <- Eunomia::getEunomiaConnectionDetails()
-connection <- DatabaseConnector::connect(connectionDetails)
+if (interactive()) {
+  connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+  connection <- DatabaseConnector::connect(connectionDetails)
 
-diagnostics <- runSccDiagnostics(
-  connection = connection,
-  cdmDatabaseSchema = "main",
-  resultsTable = "#scc_results",
-  riskWindowsTable = "#risk_windows",
-  analysisId = 1,
-  databaseId = "Eunomia",
-  estimates = resultsData,
-  diagnostics = "all",
-  thresholds = getDefaultDiagnosticThresholds()
-)
+  diagnostics <- runSccDiagnostics(
+    connection = connection,
+    cdmDatabaseSchema = "main",
+    resultsTable = "#scc_results",
+    riskWindowsTable = "#risk_windows",
+    analysisId = 1,
+    databaseId = "Eunomia",
+    estimates = resultsData,
+    diagnostics = "all",
+    thresholds = getDefaultDiagnosticThresholds()
+  )
 
-DatabaseConnector::disconnect(connection)
-
+  DatabaseConnector::disconnect(connection)
+}
 }
