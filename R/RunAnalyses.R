@@ -37,7 +37,6 @@
 #' exposure-outcome-analysis combinations executed.
 #'
 #' @examples
-#' \donttest{
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #'
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
@@ -53,7 +52,6 @@
 #'   databaseId = "Eunomia",
 #'   resultsFolder = tempdir()
 #' )
-#' }
 #' @export
 runSccAnalyses <- function(connectionDetails,
                            cdmDatabaseSchema,
