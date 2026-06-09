@@ -32,6 +32,7 @@ to be used within the OHDSI Strategus framework.
 }
 \examples{
 \donttest{
+if (interactive()) {
 eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 analysis1 <- createSccAnalysis(analysisId = 1,
                               description = "Main",
@@ -41,5 +42,6 @@ moduleSpec <- createSelfControlledCohortModuleSpecifications(
   analysisSettings = list(analysis1),
   exposureOutcomeList = list(eo1)
 )
+}
 }
 }

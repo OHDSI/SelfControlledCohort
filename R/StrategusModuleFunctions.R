@@ -23,6 +23,7 @@
 #'
 #' @examples
 #' \donttest{
+#' if (interactive())
 #' moduleInfo <- getModuleInfo()
 #' }
 #' @export
@@ -59,6 +60,7 @@ getModuleInfo <- function() {
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "Main",
@@ -68,6 +70,7 @@ getModuleInfo <- function() {
 #'   analysisSettings = list(analysis1),
 #'   exposureOutcomeList = list(eo1)
 #' )
+#' }
 #' }
 #' @export
 createSelfControlledCohortModuleSpecifications <- function(
@@ -117,6 +120,7 @@ createSelfControlledCohortModuleSpecifications <- function(
 #' No return value. Results are written to the specified export folder as a side effect.
 #'
 #' @examples
+#' \donttest{
 #' if (interactive()) {
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 #' analysis1 <- createSccAnalysis(analysisId = 1,
@@ -138,6 +142,7 @@ createSelfControlledCohortModuleSpecifications <- function(
 #'   databaseId = "MyDatabase",
 #'   exportFolder = tempdir()
 #' )
+#' }
 #' }
 #' @export
 execute <- function(connectionDetails, executionSettings, analysisSpecifications, databaseId, exportFolder) {
@@ -246,6 +251,7 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 #'
 #' @examples
 #' \donttest{
+#' if (interactive())
 #' resultsFolders <- getResultsFolders(analysisSpec, tempdir())
 #' }
 #' @export

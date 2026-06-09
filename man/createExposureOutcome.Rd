@@ -32,6 +32,7 @@ Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}
 }
 \examples{
 \donttest{
+if (interactive()) {
 # Create a simple exposure-outcome pair
 eo1 <- createExposureOutcome(exposureId = 1124300,
                              outcomeId = 444382)
@@ -40,5 +41,6 @@ eo1 <- createExposureOutcome(exposureId = 1124300,
 eo2 <- createExposureOutcome(exposureId = 1124300,
                              outcomeId = 444382,
                              trueEffectSize = 1)
+}
 }
 }

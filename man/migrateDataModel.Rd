@@ -24,9 +24,11 @@ are using a postgres backend) or have kept the csv/zip files from your data gene
 }
 \examples{
 \donttest{
+if (interactive()) {
 migrateDataModel(
   connectionDetails = connectionDetails,
   databaseSchema = "results"
 )
+}
 }
 }

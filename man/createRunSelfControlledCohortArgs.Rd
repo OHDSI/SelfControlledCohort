@@ -80,6 +80,7 @@ Create an object defining the parameter values.
 }
 \examples{
 \donttest{
+if (interactive()) {
 # Create default parameters
 args1 <- createRunSelfControlledCohortArgs()
 
@@ -89,5 +90,6 @@ args2 <- createRunSelfControlledCohortArgs(
   riskWindowEndExposed = 60,
   hasFullTimeAtRisk = TRUE
 )
+}
 }
 }

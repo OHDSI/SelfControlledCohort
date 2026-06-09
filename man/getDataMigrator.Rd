@@ -21,10 +21,12 @@ Returns ResultModelManager DataMigrationsManager instance.
 }
 \examples{
 \donttest{
+if (interactive()) {
 migrator <- getDataMigrator(
   connectionDetails = connectionDetails,
   databaseSchema = "results"
 )
+}
 }
 }
 \seealso{

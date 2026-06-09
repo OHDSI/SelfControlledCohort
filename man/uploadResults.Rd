@@ -43,6 +43,7 @@ Requires the results data model tables have been created using the \code{\link{c
 }
 \examples{
 \donttest{
+if (interactive()) {
 connectionDetails <- DatabaseConnector::createDonnectionDetails(
   dbms = "sqlite",
   server = "myResults.db"
@@ -52,5 +53,6 @@ uploadResults(
   schema = "main",
   resultsFolder = tempdir()
 )
+}
 }
 }

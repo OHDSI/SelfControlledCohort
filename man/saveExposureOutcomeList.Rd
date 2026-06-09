@@ -19,7 +19,9 @@ Write a list of objects of type \code{exposureOutcome} to file. The file is in J
 }
 \examples{
 \donttest{
+if (interactive()) {
 eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 saveExposureOutcomeList(list(eo1), file.path(tempdir(), "exposureOutcomes.json"))
+}
 }
 }

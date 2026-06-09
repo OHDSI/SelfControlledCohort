@@ -18,6 +18,7 @@ blinding status.
 }
 \examples{
 \donttest{
+if (interactive()) {
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 connection <- DatabaseConnector::connect(connectionDetails)
 
@@ -35,5 +36,6 @@ diagnostics <- runSccDiagnostics(
 
 DatabaseConnector::disconnect(connection)
 summary <- getDiagnosticsSummary(diagnostics)
+}
 }
 }

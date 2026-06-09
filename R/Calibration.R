@@ -96,12 +96,14 @@ computeCalibratedRows <- function(positives,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' # Compute EASE from negative control results
 #' negativeControls <- data.frame(
 #'   rr = c(0.95, 1.02, 0.98, 1.05),
 #'   seLogRr = c(0.2, 0.18, 0.22, 0.19)
 #' )
 #' ease <- computeEase(negativeControls)
+#' }
 #' }
 #' @export
 computeEase <- function(negatives) {

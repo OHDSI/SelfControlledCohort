@@ -19,9 +19,11 @@ Write a list of objects of type \code{sccAnalysis} to file. The file is in JSON 
 }
 \examples{
 \donttest{
+if (interactive()) {
 analysis1 <- createSccAnalysis(analysisId = 1,
                               description = "30-day risk window",
                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
 saveSccAnalysisList(list(analysis1), file.path(tempdir(), "analyses.json"))
+}
 }
 }

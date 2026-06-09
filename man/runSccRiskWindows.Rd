@@ -121,6 +121,7 @@ See `getSccRiskWindowStats` for example usage.
 }
 \examples{
 \donttest{
+if (interactive()) {
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 connection <- DatabaseConnector::connect(connectionDetails)
 
@@ -135,5 +136,5 @@ runSccRiskWindows(
 
 DatabaseConnector::disconnect(connection)
 }
-
+}
 }

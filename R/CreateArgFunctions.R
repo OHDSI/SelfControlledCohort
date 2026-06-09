@@ -42,6 +42,7 @@
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' # Create default parameters
 #' args1 <- createRunSelfControlledCohortArgs()
 #'
@@ -51,6 +52,7 @@
 #'   riskWindowEndExposed = 60,
 #'   hasFullTimeAtRisk = TRUE
 #' )
+#' }
 #' }
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,

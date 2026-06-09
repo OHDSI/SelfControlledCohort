@@ -14,6 +14,7 @@ Get module information
 }
 \examples{
 \donttest{
+if (interactive())
 moduleInfo <- getModuleInfo()
 }
 }

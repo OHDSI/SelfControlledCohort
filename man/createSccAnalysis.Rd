@@ -57,6 +57,7 @@ Create a set of analysis choices, to be used with the \code{\link{runSccAnalyses
 }
 \examples{
 \donttest{
+if (interactive()) {
 # Create SCC analysis with default risk window settings
 sccArgs <- createRunSelfControlledCohortArgs(riskWindowStartExposed = 1,
                                               riskWindowEndExposed = 30)
@@ -64,5 +65,6 @@ sccArgs <- createRunSelfControlledCohortArgs(riskWindowStartExposed = 1,
 analysis1 <- createSccAnalysis(analysisId = 1,
                               description = "30-day exposed risk window",
                               runSelfControlledCohortArgs = sccArgs)
+}
 }
 }

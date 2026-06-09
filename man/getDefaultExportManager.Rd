@@ -19,9 +19,11 @@ Returns the default export manager class for writing csv file results
 }
 \examples{
 \donttest{
+if (interactive()) {
 exportManager <- getDefaultExportManager(
   resultExportPath = tempdir(),
   databaseId = "CCAE"
 )
+}
 }
 }

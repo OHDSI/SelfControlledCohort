@@ -22,7 +22,9 @@
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' specs <- getResultsDataModelSpecifications()
+#' }
 #' }
 #' @export
 getResultsDataModelSpecifications <- function() {
@@ -48,6 +50,7 @@ getResultsDataModelSpecifications <- function() {
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' connectionDetails <- DatabaseConnector::createConnectionDetails(
 #'   dbms = "sqlite",
 #'   server = "myResults.db"
@@ -57,6 +60,7 @@ getResultsDataModelSpecifications <- function() {
 #'   connectionDetails = connectionDetails,
 #'   databaseSchema = "main"
 #' )
+#' }
 #' }
 #' @export
 createResultsDataModel <- function(connectionDetails = NULL,
@@ -98,6 +102,7 @@ createResultsDataModel <- function(connectionDetails = NULL,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' connectionDetails <- DatabaseConnector::createDonnectionDetails(
 #'   dbms = "sqlite",
 #'   server = "myResults.db"
@@ -107,6 +112,7 @@ createResultsDataModel <- function(connectionDetails = NULL,
 #'   schema = "main",
 #'   resultsFolder = tempdir()
 #' )
+#' }
 #' }
 #' @export
 uploadResults <- function(connectionDetails,
@@ -145,10 +151,12 @@ uploadResults <- function(connectionDetails,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' migrateDataModel(
 #'   connectionDetails = connectionDetails,
 #'   databaseSchema = "results"
 #' )
+#' }
 #' }
 #' @export
 migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = "") {
@@ -173,10 +181,12 @@ migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = ""
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' migrator <- getDataMigrator(
 #'   connectionDetails = connectionDetails,
 #'   databaseSchema = "results"
 #' )
+#' }
 #' }
 #' @export
 getDataMigrator <- function(connectionDetails, databaseSchema, tablePrefix = "") {

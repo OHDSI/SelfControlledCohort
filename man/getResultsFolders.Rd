@@ -19,6 +19,7 @@ Get results folders for an analysis specification
 }
 \examples{
 \donttest{
+if (interactive())
 resultsFolders <- getResultsFolders(analysisSpec, tempdir())
 }
 }

@@ -33,6 +33,7 @@ Executes Self-Controlled Cohort analyses within the OHDSI Strategus framework us
 This function validates the input specifications, extracts unique exposure and outcome cohort IDs, identifies negative control pairs, and iterates over each analysis setting to run the Self-Controlled Cohort analysis. Results are exported to the specified folder. Diagnostic settings are handled per-analysis, and warnings are issued if no negative controls are found.
 }
 \examples{
+\donttest{
 if (interactive()) {
 eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 analysis1 <- createSccAnalysis(analysisId = 1,
@@ -54,5 +55,6 @@ execute(
   databaseId = "MyDatabase",
   exportFolder = tempdir()
 )
+}
 }
 }

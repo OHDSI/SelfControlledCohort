@@ -47,6 +47,7 @@
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' # Create SCC analysis with default risk window settings
 #' sccArgs <- createRunSelfControlledCohortArgs(riskWindowStartExposed = 1,
 #'                                               riskWindowEndExposed = 30)
@@ -54,6 +55,7 @@
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "30-day exposed risk window",
 #'                               runSelfControlledCohortArgs = sccArgs)
+#' }
 #' }
 #' @export
 createSccAnalysis <- function(analysisId = 1,
@@ -96,10 +98,12 @@ createSccAnalysis <- function(analysisId = 1,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "30-day risk window",
 #'                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
 #' saveSccAnalysisList(list(analysis1), file.path(tempdir(), "analyses.json"))
+#' }
 #' }
 #' @export
 saveSccAnalysisList <- function(sccAnalysisList, file) {
@@ -123,11 +127,13 @@ saveSccAnalysisList <- function(sccAnalysisList, file) {
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' tempFile <- file.path(tempdir(), "analyses.json")
 #' saveSccAnalysisList(list(createSccAnalysis(analysisId = 1,
 #'   runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())), tempFile)
 #' analysisList <- loadSccAnalysisList(tempFile)
 #' }
+#'}
 #' @export
 loadSccAnalysisList <- function(file) {
   return(ParallelLogger::loadSettingsFromJson(file))
@@ -155,6 +161,7 @@ loadSccAnalysisList <- function(file) {
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' # Create a simple exposure-outcome pair
 #' eo1 <- createExposureOutcome(exposureId = 1124300,
 #'                              outcomeId = 444382)
@@ -163,6 +170,7 @@ loadSccAnalysisList <- function(file) {
 #' eo2 <- createExposureOutcome(exposureId = 1124300,
 #'                              outcomeId = 444382,
 #'                              trueEffectSize = 1)
+#' }
 #' }
 #' @export
 createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
@@ -186,8 +194,10 @@ createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
 #' saveExposureOutcomeList(list(eo1), file.path(tempdir(), "exposureOutcomes.json"))
+#' }
 #' }
 #' @export
 saveExposureOutcomeList <- function(exposureOutcomeList, file) {

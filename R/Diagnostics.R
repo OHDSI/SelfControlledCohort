@@ -34,6 +34,7 @@
 #' }
 #'
 #' @examples
+#' \donttest{
 #' if (interactive()) {
 #' # Get default thresholds
 #'    thresholds <- getDefaultDiagnosticThresholds()
@@ -41,6 +42,7 @@
 #'    # Modify specific thresholds
 #'    customThresholds <- getDefaultDiagnosticThresholds()
 #'    customThresholds$mdrrMaxAcceptable <- 5.0
+#' }
 #' }
 #' @export
 getDefaultDiagnosticThresholds <- function() {
@@ -79,6 +81,7 @@ getDefaultDiagnosticThresholds <- function() {
 #' Invisible data frame of diagnostic results
 #'
 #' @examples
+#' \donttest{
 #' if (interactive()) {
 #'   connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #'   connection <- DatabaseConnector::connect(connectionDetails)
@@ -96,6 +99,7 @@ getDefaultDiagnosticThresholds <- function() {
 #'   )
 #'
 #'   DatabaseConnector::disconnect(connection)
+#' }
 #' }
 #' @export
 runSccDiagnostics <- function(connection,
@@ -257,6 +261,7 @@ runSccDiagnostics <- function(connection,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #' connection <- DatabaseConnector::connect(connectionDetails)
 #'
@@ -274,6 +279,7 @@ runSccDiagnostics <- function(connection,
 #'
 #' DatabaseConnector::disconnect(connection)
 #' summary <- getDiagnosticsSummary(diagnostics)
+#' }
 #' }
 #' @export
 getDiagnosticsSummary <- function(diagnosticResults) {

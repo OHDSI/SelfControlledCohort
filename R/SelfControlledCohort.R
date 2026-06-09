@@ -159,10 +159,12 @@ batchComputeEstimates <- function(connection,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' exportManager <- getDefaultExportManager(
 #'   resultExportPath = tempdir(),
 #'   databaseId = "CCAE"
 #' )
+#' }
 #' }
 #' @export
 getDefaultExportManager <- function(resultExportPath, databaseId) {
@@ -412,6 +414,7 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' @return
 #' An object of type \code{sccResults} containing the results of the analysis.
 #' @examples
+#' \donttest{
 #' if (interactive()) {
 #' # Use Eunomia synthetic database for demonstration
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
@@ -425,6 +428,7 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #'   databaseId = "Eunomia"
 #' )
 #' }
+#'}
 #' @export
 runSelfControlledCohort <- function(connectionDetails = NULL,
                                     cdmDatabaseSchema,

@@ -19,6 +19,7 @@ convertToDateFormat <- function(dateStr) {
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #' connection <- DatabaseConnector::connect(connectionDetails)
 #'
@@ -33,7 +34,7 @@ convertToDateFormat <- function(dateStr) {
 #'
 #' DatabaseConnector::disconnect(connection)
 #' }
-#'
+#' }
 #' @export
 runSccRiskWindows <- function(connection,
                               cdmDatabaseSchema,
@@ -209,6 +210,7 @@ runSccRiskWindows <- function(connection,
 #'
 #' @examples
 #' \donttest{
+#' if (interactive()) {
 #' # First, create the risk windows table
 #' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #' connection <- DatabaseConnector::connect(connectionDetails)
@@ -227,6 +229,8 @@ runSccRiskWindows <- function(connection,
 #'                                   riskWindowsTable = riskWindowsTable,
 #'                                   outcomeTable = "condition_era",
 #'                                   outcomeIds = 192671)
+#' DatabaseConnector::disconnect(connection)
+#'}
 #'}
 #' @export
 getSccRiskWindowStats <- function(connection,

@@ -14,6 +14,8 @@ Get specifications for CohortMethod results data model
 }
 \examples{
 \donttest{
+if (interactive()) {
 specs <- getResultsDataModelSpecifications()
+}
 }
 }

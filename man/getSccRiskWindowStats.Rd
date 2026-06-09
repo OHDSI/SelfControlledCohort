@@ -76,6 +76,7 @@ Requires a risk window table to be created first with `runSccRiskWindows`
 }
 \examples{
 \donttest{
+if (interactive()) {
 # First, create the risk windows table
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 connection <- DatabaseConnector::connect(connectionDetails)
@@ -94,5 +95,7 @@ tarStats <- getSccRiskWindowStats(connection,
                                   riskWindowsTable = riskWindowsTable,
                                   outcomeTable = "condition_era",
                                   outcomeIds = 192671)
+DatabaseConnector::disconnect(connection)
+}
 }
 }

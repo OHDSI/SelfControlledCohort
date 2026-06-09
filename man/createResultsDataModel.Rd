@@ -28,6 +28,7 @@ Only PostgreSQL and SQLite servers are supported.
 }
 \examples{
 \donttest{
+if (interactive()) {
 connectionDetails <- DatabaseConnector::createConnectionDetails(
   dbms = "sqlite",
   server = "myResults.db"
@@ -37,5 +38,6 @@ createResultsDataModel(
   connectionDetails = connectionDetails,
   databaseSchema = "main"
 )
+}
 }
 }
