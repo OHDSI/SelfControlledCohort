@@ -41,6 +41,7 @@
 #' A parameter object of class \code{args} for use with \code{\link{runSelfControlledCohort}}.
 #'
 #' @examples
+#' \donttest{
 #' # Create default parameters
 #' args1 <- createRunSelfControlledCohortArgs()
 #'
@@ -50,6 +51,7 @@
 #'   riskWindowEndExposed = 60,
 #'   hasFullTimeAtRisk = TRUE
 #' )
+#' }
 #' @export
 createRunSelfControlledCohortArgs <- function(firstExposureOnly = TRUE,
                                               firstOutcomeOnly = TRUE,

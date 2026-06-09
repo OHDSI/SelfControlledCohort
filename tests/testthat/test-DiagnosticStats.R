@@ -15,6 +15,7 @@
 # limitations under the License.
 
 test_that("testPreExposureGain identifies biased data", {
+  testthat::skip_on_cran()
   connectionDetails <- Eunomia::getEunomiaConnectionDetails(dbms = "duckdb")
   connection <- connect(connectionDetails)
   on.exit(disconnect(connection))
@@ -61,6 +62,7 @@ test_that("testPreExposureGain identifies biased data", {
 
 
 test_that(".computeEventDependentDiagnostic identifies censoring", {
+  testthat::skip_on_cran()
   connectionDetails <- Eunomia::getEunomiaConnectionDetails(dbms = "duckdb")
   connection <- connect(connectionDetails)
   on.exit(disconnect(connection))

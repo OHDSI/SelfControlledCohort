@@ -56,7 +56,7 @@ Runs a suite of diagnostic tests to assess the validity of SCC analysis assumpti
 Version 1.6.0+ implements diagnostics aligned with SelfControlledCaseSeries package standards.
 }
 \examples{
-\dontrun{
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 connection <- DatabaseConnector::connect(connectionDetails)
 
 diagnostics <- runSccDiagnostics(
@@ -72,5 +72,5 @@ diagnostics <- runSccDiagnostics(
 )
 
 DatabaseConnector::disconnect(connection)
-}
+
 }

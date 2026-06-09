@@ -26,12 +26,14 @@ Lower values indicate less systematic error. A value of 0 means no detectable
 bias. The default threshold of 0.25 is aligned with SCCS package conventions.
 }
 \examples{
+\donttest{
 # Compute EASE from negative control results
 negativeControls <- data.frame(
   rr = c(0.95, 1.02, 0.98, 1.05),
   seLogRr = c(0.2, 0.18, 0.22, 0.19)
 )
 ease <- computeEase(negativeControls)
+}
 }
 \references{
 Schuemie MJ, Hripcsak G, Ryan PB, Madigan D, Suchard MA. Empirical confidence

@@ -120,7 +120,8 @@ Compute time at risk exposed and time at risk unexposed for risk window paramete
 See `getSccRiskWindowStats` for example usage.
 }
 \examples{
-\dontrun{
+\donttest{
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 connection <- DatabaseConnector::connect(connectionDetails)
 
 runSccRiskWindows(
@@ -134,4 +135,5 @@ runSccRiskWindows(
 
 DatabaseConnector::disconnect(connection)
 }
+
 }

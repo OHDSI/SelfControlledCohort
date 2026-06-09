@@ -13,5 +13,7 @@ A list with module metadata
 Get module information
 }
 \examples{
+\donttest{
 moduleInfo <- getModuleInfo()
+}
 }

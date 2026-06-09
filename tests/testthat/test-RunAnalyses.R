@@ -1,6 +1,7 @@
 library(testthat)
 
 test_that("multiple analyses", {
+  testthat::skip_on_cran()
   # Analysis.R is checked elsewhere
   exposureOutcome1 <- createExposureOutcome(701322, 28060)
   exposureOutcome2 <- createExposureOutcome(715997, 4294548)
@@ -31,6 +32,7 @@ test_that("multiple analyses", {
 })
 
 test_that("Fail on analyses clone", {
+  testthat::skip_on_cran()
   withr::with_tempfile("outputFolder", {
     exposureOutcome1 <- createExposureOutcome(767410, 444382)
     exposureOutcome2 <- createExposureOutcome(1314924, 444382)

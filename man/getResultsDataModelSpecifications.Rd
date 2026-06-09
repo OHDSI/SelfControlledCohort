@@ -13,5 +13,7 @@ A data frame object with specifications
 Get specifications for CohortMethod results data model
 }
 \examples{
+\donttest{
 specs <- getResultsDataModelSpecifications()
+}
 }

@@ -18,7 +18,7 @@ A character vector of paths to results folders for each analysis setting.
 Get results folders for an analysis specification
 }
 \examples{
-\dontrun{
+\donttest{
 resultsFolders <- getResultsFolders(analysisSpec, tempdir())
 }
 }

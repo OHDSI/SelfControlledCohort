@@ -42,10 +42,14 @@ Invisibly returns NULL. Uploads results to the database as a side effect.
 Requires the results data model tables have been created using the \code{\link{createResultsDataModel}} function.
 }
 \examples{
-\dontrun{
+\donttest{
+connectionDetails <- DatabaseConnector::createDonnectionDetails(
+  dbms = "sqlite",
+  server = "myResults.db"
+)
 uploadResults(
   connectionDetails = connectionDetails,
-  schema = "results",
+  schema = "main",
   resultsFolder = tempdir()
 )
 }

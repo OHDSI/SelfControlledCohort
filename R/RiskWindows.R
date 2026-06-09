@@ -18,7 +18,8 @@ convertToDateFormat <- function(dateStr) {
 #' Invisibly returns NULL. Creates the risk windows table in the database as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 #' connection <- DatabaseConnector::connect(connectionDetails)
 #'
 #' runSccRiskWindows(
@@ -32,6 +33,7 @@ convertToDateFormat <- function(dateStr) {
 #'
 #' DatabaseConnector::disconnect(connection)
 #' }
+#'
 #' @export
 runSccRiskWindows <- function(connection,
                               cdmDatabaseSchema,

@@ -37,6 +37,7 @@ expectedResultCols <- c(
 
 
 test_that("Default parameters produce valid results", {
+    testthat::skip_on_cran()
     resultPath <- tempfile("scc_default_")
     dir.create(resultPath)
     withr::defer(unlink(resultPath, recursive = TRUE))

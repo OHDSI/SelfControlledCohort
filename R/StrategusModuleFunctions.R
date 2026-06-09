@@ -22,7 +22,9 @@
 #' @return A list with module metadata
 #'
 #' @examples
+#' \donttest{
 #' moduleInfo <- getModuleInfo()
+#' }
 #' @export
 getModuleInfo <- function() {
   desc <- utils::packageDescription("SelfControlledCohort")
@@ -115,7 +117,16 @@ createSelfControlledCohortModuleSpecifications <- function(
 #' No return value. Results are written to the specified export folder as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+#' analysis1 <- createSccAnalysis(analysisId = 1,
+#'                               description = "Main",
+#'                               runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+#'
+#' moduleSpec <- createSelfControlledCohortModuleSpecifications(
+#'   analysisSettings = list(analysis1),
+#'   exposureOutcomeList = list(eo1)
+#' )
 #' execute(
 #'   connectionDetails = connectionDetails,
 #'   executionSettings = list(
@@ -234,7 +245,7 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 #' @return A character vector of paths to results folders for each analysis setting.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' resultsFolders <- getResultsFolders(analysisSpec, tempdir())
 #' }
 #' @export

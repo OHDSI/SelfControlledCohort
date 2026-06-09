@@ -17,8 +17,23 @@ Returns a summary of diagnostic results for each target-outcome pair, including
 blinding status.
 }
 \examples{
-\dontrun{
-diagnosticResults <- runSccDiagnostics(...)
-summary <- getDiagnosticsSummary(diagnosticResults)
+\donttest{
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+connection <- DatabaseConnector::connect(connectionDetails)
+
+diagnostics <- runSccDiagnostics(
+  connection = connection,
+  cdmDatabaseSchema = "main",
+  resultsTable = "#scc_results",
+  riskWindowsTable = "#risk_windows",
+  analysisId = 1,
+  databaseId = "Eunomia",
+  estimates = resultsData,
+  diagnostics = "all",
+  thresholds = getDefaultDiagnosticThresholds()
+)
+
+DatabaseConnector::disconnect(connection)
+summary <- getDiagnosticsSummary(diagnostics)
 }
 }

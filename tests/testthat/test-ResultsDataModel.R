@@ -132,6 +132,7 @@ test_that("Results upload sqlite", {
 # PostgreSQL tests (skipped when env vars not set)
 # ---------------------------------------------------------------------------
 test_that("Create schema postgres", {
+  testthat::skip_on_cran()
   skip_if(
     Sys.getenv("CDM5_POSTGRESQL_SERVER") == "",
     "PostgreSQL credentials not available"
@@ -174,6 +175,7 @@ test_that("Create schema postgres", {
 
 
 test_that("Results upload postgres", {
+  testthat::skip_on_cran()
   skip_if(
     Sys.getenv("CDM5_POSTGRESQL_SERVER") == "",
     "PostgreSQL credentials not available"

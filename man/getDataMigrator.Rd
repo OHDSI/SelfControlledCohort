@@ -20,7 +20,7 @@ Instance of ResultModelManager::DataMigrationManager that has interface for conv
 Returns ResultModelManager DataMigrationsManager instance.
 }
 \examples{
-\dontrun{
+\donttest{
 migrator <- getDataMigrator(
   connectionDetails = connectionDetails,
   databaseSchema = "results"

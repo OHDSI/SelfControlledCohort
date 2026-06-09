@@ -1,4 +1,5 @@
 test_that("SCC method runs on Eunomia", {
+  testthat::skip_on_cran()
   skip_if_not(dbms == "sqlite", "Eunomia tests - skipping dbms platform tests")
   datasetName <- "GiBleed"
   dbFile <- tempfile(fileext = paste0(datasetName, ".sqlite"))

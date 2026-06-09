@@ -31,6 +31,7 @@ Create exposure-outcome combinations.
 Create a hypothesis of interest, to be used with the \code{\link{runSccAnalyses}} function.
 }
 \examples{
+\donttest{
 # Create a simple exposure-outcome pair
 eo1 <- createExposureOutcome(exposureId = 1124300,
                              outcomeId = 444382)
@@ -39,4 +40,5 @@ eo1 <- createExposureOutcome(exposureId = 1124300,
 eo2 <- createExposureOutcome(exposureId = 1124300,
                              outcomeId = 444382,
                              trueEffectSize = 1)
+}
 }

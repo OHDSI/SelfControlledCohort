@@ -21,7 +21,9 @@
 #' A data frame object with specifications
 #'
 #' @examples
+#' \donttest{
 #' specs <- getResultsDataModelSpecifications()
+#' }
 #' @export
 getResultsDataModelSpecifications <- function() {
   pathToCsv <- system.file("resultsDataModelSpecification.csv", package = utils::packageName())
@@ -45,17 +47,15 @@ getResultsDataModelSpecifications <- function() {
 #' Invisibly returns NULL. Creates database tables for results storage as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' connectionDetails <- DatabaseConnector::createConnectionDetails(
-#'   dbms = "postgresql",
-#'   server = "localhost/ohdsi",
-#'   user = "joe",
-#'   password = "secret"
+#'   dbms = "sqlite",
+#'   server = "myResults.db"
 #' )
 #'
 #' createResultsDataModel(
 #'   connectionDetails = connectionDetails,
-#'   databaseSchema = "results"
+#'   databaseSchema = "main"
 #' )
 #' }
 #' @export
@@ -97,10 +97,14 @@ createResultsDataModel <- function(connectionDetails = NULL,
 #' Invisibly returns NULL. Uploads results to the database as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' connectionDetails <- DatabaseConnector::createDonnectionDetails(
+#'   dbms = "sqlite",
+#'   server = "myResults.db"
+#' )
 #' uploadResults(
 #'   connectionDetails = connectionDetails,
-#'   schema = "results",
+#'   schema = "main",
 #'   resultsFolder = tempdir()
 #' )
 #' }
@@ -140,7 +144,7 @@ uploadResults <- function(connectionDetails,
 #' Invisibly returns NULL. Migrates the database schema as a side effect.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' migrateDataModel(
 #'   connectionDetails = connectionDetails,
 #'   databaseSchema = "results"
@@ -168,7 +172,7 @@ migrateDataModel <- function(connectionDetails, databaseSchema, tablePrefix = ""
 #' @returns Instance of ResultModelManager::DataMigrationManager that has interface for converting existing data models
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' migrator <- getDataMigrator(
 #'   connectionDetails = connectionDetails,
 #'   databaseSchema = "results"

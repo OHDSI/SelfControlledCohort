@@ -23,7 +23,7 @@ It is strongly advised that you have a backup of all data (either sqlite files, 
 are using a postgres backend) or have kept the csv/zip files from your data generation.
 }
 \examples{
-\dontrun{
+\donttest{
 migrateDataModel(
   connectionDetails = connectionDetails,
   databaseSchema = "results"

@@ -1,6 +1,7 @@
 library(testthat)
 
 test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
+  testthat::skip_on_cran()
   args1 <- createRunSelfControlledCohortArgs(riskWindowStartUnexposed = -60)
 
   analysis <- createSccAnalysis(analysisId = 1, description = "test", runSelfControlledCohortArgs = args1)
@@ -45,6 +46,7 @@ test_that("createSccAnalysis, saveSccAnalysisList, loadSccAnalysisList", {
 
 
 test_that("loadExposureOutcomeList, saveExposureOutcomeList , createExposureOutcome", {
+  testthat::skip_on_cran()
   exposureOutcome1 <- createExposureOutcome(123, 456)
   expect_s3_class(exposureOutcome1, "exposureOutcome")
   exposureOutcome2 <- createExposureOutcome(789, 101112)

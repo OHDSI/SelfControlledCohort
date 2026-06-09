@@ -46,6 +46,7 @@
 #' An object of class \code{sccAnalysis} containing the analysis specifications.
 #'
 #' @examples
+#' \donttest{
 #' # Create SCC analysis with default risk window settings
 #' sccArgs <- createRunSelfControlledCohortArgs(riskWindowStartExposed = 1,
 #'                                               riskWindowEndExposed = 30)
@@ -53,6 +54,7 @@
 #' analysis1 <- createSccAnalysis(analysisId = 1,
 #'                               description = "30-day exposed risk window",
 #'                               runSelfControlledCohortArgs = sccArgs)
+#' }
 #' @export
 createSccAnalysis <- function(analysisId = 1,
                               description = "",
@@ -152,6 +154,7 @@ loadSccAnalysisList <- function(file) {
 #' An object of class \code{exposureOutcome} specifying an exposure-outcome pair for analysis.
 #'
 #' @examples
+#' \donttest{
 #' # Create a simple exposure-outcome pair
 #' eo1 <- createExposureOutcome(exposureId = 1124300,
 #'                              outcomeId = 444382)
@@ -160,6 +163,7 @@ loadSccAnalysisList <- function(file) {
 #' eo2 <- createExposureOutcome(exposureId = 1124300,
 #'                              outcomeId = 444382,
 #'                              trueEffectSize = 1)
+#' }
 #' @export
 createExposureOutcome <- function(exposureId, outcomeId, trueEffectSize = NA) {
   exposureOutcome <- list(exposureId = exposureId,

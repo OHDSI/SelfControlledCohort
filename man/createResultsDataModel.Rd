@@ -27,17 +27,15 @@ Create the results data model tables on a database server.
 Only PostgreSQL and SQLite servers are supported.
 }
 \examples{
-\dontrun{
+\donttest{
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "postgresql",
-  server = "localhost/ohdsi",
-  user = "joe",
-  password = "secret"
+  dbms = "sqlite",
+  server = "myResults.db"
 )
 
 createResultsDataModel(
   connectionDetails = connectionDetails,
-  databaseSchema = "results"
+  databaseSchema = "main"
 )
 }
 }

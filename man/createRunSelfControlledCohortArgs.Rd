@@ -79,6 +79,7 @@ Create a parameter object for the function runSelfControlledCohort
 Create an object defining the parameter values.
 }
 \examples{
+\donttest{
 # Create default parameters
 args1 <- createRunSelfControlledCohortArgs()
 
@@ -88,4 +89,5 @@ args2 <- createRunSelfControlledCohortArgs(
   riskWindowEndExposed = 60,
   hasFullTimeAtRisk = TRUE
 )
+}
 }

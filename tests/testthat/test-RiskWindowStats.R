@@ -4,6 +4,7 @@ withr::defer({
 }, testthat::teardown_env())
 
 test_that("General test + errors and warnings", {
+  testthat::skip_on_cran()
   expect_error(runSccRiskWindows(connection = NULL,
                                  cdmDatabaseSchema = cdmDatabaseSchema))
 
