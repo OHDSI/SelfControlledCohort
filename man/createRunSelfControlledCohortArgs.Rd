@@ -19,8 +19,7 @@ createRunSelfControlledCohortArgs(
   riskWindowStartUnexposed = -30,
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
-  followupPeriod = 0,
-  computeTarDistribution = FALSE
+  followupPeriod = 0
 )
 }
 \arguments{
@@ -40,8 +39,8 @@ is 'yyyymmdd'.}
 \item{studyEndDate}{Date for maximum allowable data for index exposure. Dateformat
 is 'yyyymmdd'.}
 
-\item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd
-as part of timeAtRisk.}
+\item{addLengthOfExposureExposed}{If TRUE, use the duration from drugEraStart -> drugEraEnd as
+part of timeAtRisk.}
 
 \item{riskWindowStartExposed}{Integer of days to add to drugEraStart for start oftimeAtRisk
 (0 to include index date, 1 to start the dayafter).}
@@ -65,16 +64,32 @@ and unexposed.}
 
 \item{washoutPeriod}{Integer to define required time observed before exposurestart.}
 
-\item{followupPeriod}{Integer to define required time observed after exposurestart.}
-
-\item{computeTarDistribution}{If TRUE, computer the distribution of time-at-risk and
-average absolute time between treatment and outcome. Note,
-may add significant computation time on some database
-engines. If set true in one analysis will default to true for all others.}
+\item{followupPeriod}{Integer to define required time observed after exposurestart.
+absolute time between treatment and outcome. Note, may add
+significant computation time on some database engines. If set
+true in one analysis will default to true for all others.}
+}
+\value{
+A parameter object of class \code{args} for use with \code{\link{runSelfControlledCohort}}.
 }
 \description{
 Create a parameter object for the function runSelfControlledCohort
 }
 \details{
 Create an object defining the parameter values.
+}
+\examples{
+\donttest{
+if (interactive()) {
+# Create default parameters
+args1 <- createRunSelfControlledCohortArgs()
+
+# Custom risk window settings
+args2 <- createRunSelfControlledCohortArgs(
+  riskWindowStartExposed = 1,
+  riskWindowEndExposed = 60,
+  hasFullTimeAtRisk = TRUE
+)
+}
+}
 }

@@ -14,3 +14,10 @@ work/*
 docs/*
 ^doc$
 ^Meta$
+^.idea/*
+errorReportSql.txt
+examples/*
+^cran-comments\.md$
+^sql$
+LICENSE
+^CRAN-SUBMISSION$

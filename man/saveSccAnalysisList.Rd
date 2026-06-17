@@ -11,6 +11,19 @@ saveSccAnalysisList(sccAnalysisList, file)
 
 \item{file}{The name of the file where the results will be written}
 }
+\value{
+Invisibly returns NULL. Saves the analysis list to file as a side effect.
+}
 \description{
 Write a list of objects of type \code{sccAnalysis} to file. The file is in JSON format.
+}
+\examples{
+\donttest{
+if (interactive()) {
+analysis1 <- createSccAnalysis(analysisId = 1,
+                              description = "30-day risk window",
+                              runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+saveSccAnalysisList(list(analysis1), file.path(tempdir(), "analyses.json"))
+}
+}
 }

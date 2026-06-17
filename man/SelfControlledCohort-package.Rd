@@ -2,24 +2,27 @@
 % Please edit documentation in R/SelfControlledCohort.R
 \docType{package}
 \name{SelfControlledCohort-package}
+\alias{SelfControlledCohort}
 \alias{SelfControlledCohort-package}
-\title{SelfControlledCohort: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort}
+\title{SelfControlledCohort: Self-Controlled Cohort Population-Level Estimation}
 \description{
-A method to estimate risk by comparing time exposed with time unexposed among the exposed cohort.
+Estimates incidence rate ratios by comparing time exposed with time unexposed among an exposed cohort using self-controlled cohort methodology as described in Ryan et al. (2013) \doi{10.1002/pds.3457}. Functions used for empirical calibration of effect estimates, confidence intervals, and p-values are included to control for residual bias.
 }
 \seealso{
 Useful links:
 \itemize{
   \item \url{https://github.com/OHDSI/SelfControlledCohort}
+  \item \url{https://ohdsi.github.io/SelfControlledCohort/}
   \item Report bugs at \url{https://github.com/OHDSI/SelfControlledCohort/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: Jamie Gilbert \email{jpg@azimov.co.uk}
+\strong{Maintainer}: Jamie Gilbert \email{gilbert@ohdsi.org} (\href{https://orcid.org/0000-0003-2294-3459}{ORCID})
 
 Authors:
 \itemize{
+  \item Jamie Gilbert \email{gilbert@ohdsi.org} (\href{https://orcid.org/0000-0003-2294-3459}{ORCID})
   \item Martijn Schuemie \email{schuemie@ohdsi.org}
   \item Patrick Ryan
 }

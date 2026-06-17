@@ -1,69 +1,43 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>/404.html</loc>
-  </url>
-  <url>
-    <loc>/articles/UsingSelfControlledCohort.html</loc>
-  </url>
-  <url>
-    <loc>/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>/authors.html</loc>
-  </url>
-  <url>
-    <loc>/index.html</loc>
-  </url>
-  <url>
-    <loc>/news/index.html</loc>
-  </url>
-  <url>
-    <loc>/pull_request_template.html</loc>
-  </url>
-  <url>
-    <loc>/reference/SelfControlledCohort-package.html</loc>
-  </url>
-  <url>
-    <loc>/reference/SelfControlledCohort.html</loc>
-  </url>
-  <url>
-    <loc>/reference/createExposureOutcome.html</loc>
-  </url>
-  <url>
-    <loc>/reference/createRunSelfControlledCohortArgs.html</loc>
-  </url>
-  <url>
-    <loc>/reference/createSccAnalysis.html</loc>
-  </url>
-  <url>
-    <loc>/reference/getSccRiskWindowStats.html</loc>
-  </url>
-  <url>
-    <loc>/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>/reference/loadExposureOutcomeList.html</loc>
-  </url>
-  <url>
-    <loc>/reference/loadSccAnalysisList.html</loc>
-  </url>
-  <url>
-    <loc>/reference/runSccAnalyses.html</loc>
-  </url>
-  <url>
-    <loc>/reference/runSccRiskWindows.html</loc>
-  </url>
-  <url>
-    <loc>/reference/runSelfControlledCohort.html</loc>
-  </url>
-  <url>
-    <loc>/reference/saveExposureOutcomeList.html</loc>
-  </url>
-  <url>
-    <loc>/reference/saveSccAnalysisList.html</loc>
-  </url>
-  <url>
-    <loc>/reference/summarizeAnalyses.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>/404.html</loc></url>
+<url><loc>/LICENSE-text.html</loc></url>
+<url><loc>/articles/StudyDiagnostics.html</loc></url>
+<url><loc>/articles/UsingSelfControlledCohort.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/news/index.html</loc></url>
+<url><loc>/pull_request_template.html</loc></url>
+<url><loc>/reference/SelfControlledCohort-package.html</loc></url>
+<url><loc>/reference/checkModuleVersion.html</loc></url>
+<url><loc>/reference/computeEase.html</loc></url>
+<url><loc>/reference/computeMdrrForRateRatio.html</loc></url>
+<url><loc>/reference/createExposureOutcome.html</loc></url>
+<url><loc>/reference/createResultsDataModel.html</loc></url>
+<url><loc>/reference/createRunSelfControlledCohortArgs.html</loc></url>
+<url><loc>/reference/createSccAnalysis.html</loc></url>
+<url><loc>/reference/createSelfControlledCohortModuleSpecifications.html</loc></url>
+<url><loc>/reference/execute.html</loc></url>
+<url><loc>/reference/exportEstimates.html</loc></url>
+<url><loc>/reference/getDataMigrator.html</loc></url>
+<url><loc>/reference/getDefaultDiagnosticThresholds.html</loc></url>
+<url><loc>/reference/getDefaultExportManager.html</loc></url>
+<url><loc>/reference/getDiagnosticsSummary.html</loc></url>
+<url><loc>/reference/getModuleInfo.html</loc></url>
+<url><loc>/reference/getResultsDataModelSpecifications.html</loc></url>
+<url><loc>/reference/getResultsFolders.html</loc></url>
+<url><loc>/reference/getSccRiskWindowStats.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/loadExposureOutcomeList.html</loc></url>
+<url><loc>/reference/loadSccAnalysisList.html</loc></url>
+<url><loc>/reference/migrateDataModel.html</loc></url>
+<url><loc>/reference/runSccAnalyses.html</loc></url>
+<url><loc>/reference/runSccDiagnostics.html</loc></url>
+<url><loc>/reference/runSccRiskWindows.html</loc></url>
+<url><loc>/reference/runSelfControlledCohort.html</loc></url>
+<url><loc>/reference/saveExposureOutcomeList.html</loc></url>
+<url><loc>/reference/saveSccAnalysisList.html</loc></url>
+<url><loc>/reference/summarizeAnalyses.html</loc></url>
+<url><loc>/reference/uploadResults.html</loc></url>
 </urlset>
+

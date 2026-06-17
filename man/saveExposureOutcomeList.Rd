@@ -11,6 +11,17 @@ saveExposureOutcomeList(exposureOutcomeList, file)
 
 \item{file}{The name of the file where the results will be written}
 }
+\value{
+Invisibly returns NULL. Saves the exposure-outcome list to file as a side effect.
+}
 \description{
 Write a list of objects of type \code{exposureOutcome} to file. The file is in JSON format.
+}
+\examples{
+\donttest{
+if (interactive()) {
+eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+saveExposureOutcomeList(list(eo1), file.path(tempdir(), "exposureOutcomes.json"))
+}
+}
 }

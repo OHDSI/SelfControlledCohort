@@ -15,3 +15,10 @@ A list of objects of type \code{exposureOutcome}.
 \description{
 Load a list of objects of type \code{exposureOutcome} from file. The file is in JSON format.
 }
+\examples{
+\donttest{
+tempFile <- file.path(tempdir(), "exposureOutcomes.json")
+saveExposureOutcomeList(list(createExposureOutcome(1124300, 444382)), tempFile)
+eoList <- loadExposureOutcomeList(tempFile)
+}
+}

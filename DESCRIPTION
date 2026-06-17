@@ -1,38 +1,57 @@
 Package: SelfControlledCohort
 Type: Package
-Title: Population-Level Estimation Method that Estimates Incidence Rate Comparison of Exposed/Unexposed Time Within an Exposed Cohort
-Version: 1.6.0
-Date: 2022-01-05
+Title: Self-Controlled Cohort Population-Level Estimation
+Version: 2.0.0
+Date: 2026-05-27
 Authors@R: c(
-    person("Jamie", "Gilbert", email = "jpg@azimov.co.uk", role = c("cre", "aut")),
+    person("Jamie", "Gilbert", email = "gilbert@ohdsi.org", role = c("cre", "aut"), comment = c(ORCID = "0000-0003-2294-3459")),
     person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut")),
     person("Patrick", "Ryan", role = c("aut")),
     person("Observational Health Data Science and Informatics", role = c("cph"))
     )
-Maintainer: Jamie Gilbert <jpg@azimov.co.uk>
-Description: A method to estimate risk by comparing time
-    exposed with time unexposed among the exposed cohort.
-URL: https://github.com/OHDSI/SelfControlledCohort
+Maintainer: Jamie Gilbert <gilbert@ohdsi.org>
+Description: Estimates incidence rate ratios by comparing time exposed with time unexposed among an exposed cohort using
+    self-controlled cohort methodology as described in Ryan et al. (2013) <doi:10.1002/pds.3457>.
+    Functions used for empirical calibration of effect estimates, confidence intervals, and p-values are included to control
+    for residual bias.
+URL: https://github.com/OHDSI/SelfControlledCohort, https://ohdsi.github.io/SelfControlledCohort/
 BugReports: https://github.com/OHDSI/SelfControlledCohort/issues
+Language: en-US
 Depends:
     DatabaseConnector (>= 5.0.0),
-	R (>= 4.0.0)
+	R (>= 4.1.0)
 Imports:
     SqlRender (>= 1.4.3),
     ParallelLogger,
-    rateratio.test
+    rateratio.test,
+    checkmate,
+    dplyr,
+    EmpiricalCalibration,
+    ResultModelManager,
+    Andromeda,
+    readr,
+    rlang,
+    cli,
+    stats
 Suggests:
     withr,
     testthat,
     knitr,
     rmarkdown,
     Eunomia,
+    duckdb,
     DiagrammeR,
-    dplyr,
     tidyr,
-    R.utils
-Remotes:
-    ohdsi/Eunomia
+    R.utils,
+    jsonlite,
+    DT,
+    ggplot2,
+    shiny,
+    shinycssloaders,
+    plotly,
+    reactable,
+    shinyWidgets
 License: Apache License 2.0
-RoxygenNote: 7.1.2
+RoxygenNote: 8.0.0
 VignetteBuilder: knitr
+Encoding: UTF-8

@@ -15,3 +15,13 @@ A list of objects of type \code{sccAnalysis}.
 \description{
 Load a list of objects of type \code{sccAnalysis} from file. The file is in JSON format.
 }
+\examples{
+\donttest{
+if (interactive()) {
+tempFile <- file.path(tempdir(), "analyses.json")
+saveSccAnalysisList(list(createSccAnalysis(analysisId = 1,
+  runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())), tempFile)
+analysisList <- loadSccAnalysisList(tempFile)
+}
+}
+}

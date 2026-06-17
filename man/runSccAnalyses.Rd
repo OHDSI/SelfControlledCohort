@@ -8,15 +8,15 @@ runSccAnalyses(
   connectionDetails,
   cdmDatabaseSchema,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-  oracleTempSchema = NULL,
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
   outcomeDatabaseSchema = cdmDatabaseSchema,
   outcomeTable = "condition_occurrence",
-  cdmVersion = 5,
-  outputFolder = "./SelfControlledCohortOutput",
+  resultsFolder = "./SelfControlledCohortOutput",
   sccAnalysisList,
   exposureOutcomeList,
+  databaseId,
+  controlType = "outcome",
   analysisThreads = 1,
   computeThreads = 1
 )
@@ -31,10 +31,6 @@ vocabulary.}
 
 \item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To emulate temp
 tables, provide a schema with write privileges where temp tables can be created.}
-
-\item{oracleTempSchema}{For Oracle only: the name of the database schema where you
-want all temporary tables to be managed. Requires
-create/insert permissions to this database.}
 
 \item{exposureDatabaseSchema}{The name of the database schema that is the location where
 the exposure data used to define the exposure cohorts is
@@ -59,10 +55,7 @@ outcomeTable has format of COHORT table:
 COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE,
 COHORT_END_DATE.}
 
-\item{cdmVersion}{Define the OMOP CDM version used: currently support "4" and
-"5".}
-
-\item{outputFolder}{Name of the folder where all the outputs will written to.}
+\item{resultsFolder}{Name of the folder where all the outputs will written to.}
 
 \item{sccAnalysisList}{A list of objects of type \code{sccAnalysis} as created using the
 \code{\link{createSccAnalysis}} function.}
@@ -70,10 +63,18 @@ COHORT_END_DATE.}
 \item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created using
 the \code{\link{createExposureOutcome}} function.}
 
+\item{databaseId}{Unique identifier for database - required}
+
+\item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
+
 \item{analysisThreads}{The number of parallel threads to use to execute the analyses.}
 
 \item{computeThreads}{Number of parallel threads for computing IRRs with exact
 confidence intervals.}
+}
+\value{
+Invisibly returns a data frame containing a reference table for all
+exposure-outcome-analysis combinations executed.
 }
 \description{
 Run a list of analyses
@@ -82,4 +83,25 @@ Run a list of analyses
 Run a list of analyses for the drug-comparator-outcomes of interest. This function will run all
 specified analyses against all hypotheses of interest, meaning that the total number of outcome
 models is `length(cmAnalysisList) * length(drugComparatorOutcomesList)`.
+}
+\examples{
+\donttest{
+if (interactive()) {
+connectionDetails <- Eunomia::getEunomiaConnectionDetails()
+
+eo1 <- createExposureOutcome(exposureId = 1124300, outcomeId = 444382)
+analysis1 <- createSccAnalysis(analysisId = 1,
+                              description = "Main analysis",
+                              runSelfControlledCohortArgs = createRunSelfControlledCohortArgs())
+
+results <- runSccAnalyses(
+  connectionDetails = connectionDetails,
+  cdmDatabaseSchema = "main",
+  exposureOutcomeList = list(eo1),
+  sccAnalysisList = list(analysis1),
+  databaseId = "Eunomia",
+  resultsFolder = tempdir()
+)
+}
+}
 }

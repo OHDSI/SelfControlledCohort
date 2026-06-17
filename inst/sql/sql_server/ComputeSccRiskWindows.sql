@@ -1,38 +1,46 @@
-/************************************************************************
-Copyright 2022 Observational Health Data Sciences and Informatics
+{DEFAULT @analysis_id = 1}
+{@drop_results_table} ? {DROP TABLE IF EXISTS @risk_windows_table;}
 
-This file is part of SelfControlledCohort
+CREATE TABLE IF NOT EXISTS @risk_windows_table (
+  person_id BIGINT,
+  exposure_id BIGINT,
+  analysis_id BIGINT,
+  exposure_start_date DATE,
+  risk_window_start_exposed DATE,
+  risk_window_end_exposed DATE,
+  risk_window_start_unexposed DATE,
+  risk_window_end_unexposed DATE
+);
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+DELETE FROM @risk_windows_table
+WHERE EXISTS (
+    SELECT 1
+    FROM @exposure_database_schema.@exposure_table
+    WHERE @exposure_database_schema.@exposure_table.@exposure_id = @risk_windows_table.exposure_id
+    AND @risk_windows_table.analysis_id = @analysis_id
+);
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-************************************************************************/
-
-{@risk_windows_table == #risk_windows} ? {
-IF OBJECT_ID('tempdb..#risk_windows', 'U') IS NOT NULL
-	DROP TABLE #risk_windows;
-} :{
-IF OBJECT_ID('@risk_windows_table', 'U') IS NOT NULL
-	DROP TABLE @risk_windows_table;
-}
 -- Create risk windows
---HINT DISTRIBUTE_ON_KEY(person_id)
-SELECT person_id,
-  exposure_id,
-  exposure_start_date,
-  risk_window_start_exposed,
-  risk_window_end_exposed,
-  risk_window_start_unexposed,
-  risk_window_end_unexposed
-INTO @risk_windows_table
+INSERT INTO @risk_windows_table
+(
+    person_id,
+    exposure_id,
+    analysis_id,
+    exposure_start_date,
+    risk_window_start_exposed,
+    risk_window_end_exposed,
+    risk_window_start_unexposed,
+    risk_window_end_unexposed
+)
+SELECT
+    person_id,
+    exposure_id,
+    @analysis_id as analysis_id,
+    exposure_start_date,
+    risk_window_start_exposed,
+    risk_window_end_exposed,
+    risk_window_start_unexposed,
+    risk_window_end_unexposed
 FROM (
 	SELECT t1.person_id,
 		exposure_id,
