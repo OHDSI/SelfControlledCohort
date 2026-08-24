@@ -392,7 +392,6 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 
   if (computeThreads > 1 && length(targetGroups) > 1) {
     cluster <- ParallelLogger::makeCluster(min(computeThreads, length(targetGroups)))
-    ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
     on.exit(ParallelLogger::stopCluster(cluster), add = TRUE)
 
     easeResults <- ParallelLogger::clusterApply(
@@ -417,13 +416,33 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 }
 
 #' Compute EASE for a single target cohort
+#'
+#' This worker only uses the EmpiricalCalibration package (a hard dependency) and
+#' base functions, so it can run on ParallelLogger cluster nodes without requiring
+#' the SelfControlledCohort package to be installed (e.g., during R CMD build).
 #' @noRd
 .computeEaseForTarget <- function(data, analysisId, thresholds) {
   targetId <- data$target_cohort_id[1]
 
-  # computeEase needs rr and seLogRr. Reference it via the package namespace so the
-  # function resolves correctly on ParallelLogger cluster workers.
-  ease <- if (nrow(data) > 1) SelfControlledCohort::computeEase(data) else NA_real_
+  ease <- NA_real_
+  if (nrow(data) > 1) {
+    ease <- tryCatch(
+      {
+        negatives <- data[!is.na(data$rr) & !is.na(data$seLogRr), , drop = FALSE]
+        if (nrow(negatives) >= 2) {
+          nullDist <- EmpiricalCalibration::fitNull(logRr = log(negatives$rr), seLogRr = negatives$seLogRr)
+          if (!is.na(nullDist["mean"]) && !is.na(nullDist["sd"])) {
+            as.numeric(EmpiricalCalibration::computeExpectedAbsoluteSystematicError(nullDist))
+          } else {
+            NA_real_
+          }
+        } else {
+          NA_real_
+        }
+      },
+      error = function(e) NA_real_
+    )
+  }
 
   pass <- if (is.na(ease)) {
     0L # Fail if EASE cannot be computed (insufficient controls)
@@ -464,7 +483,6 @@ getDiagnosticsSummary <- function(diagnosticResults) {
   "
 
   cluster <- ParallelLogger::makeCluster(computeThreads)
-  ParallelLogger::clusterRequire(cluster, "SelfControlledCohort")
   on.exit(ParallelLogger::stopCluster(cluster), add = TRUE)
 
   computeMdrrCallBack <- function(rows, position, cluster, analysisId, thresholds) {
@@ -507,17 +525,68 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 }
 
 #' Compute MDRR rows for a chunk of results
+#'
+#' This worker only uses base/stats functions so it can run on ParallelLogger
+#' cluster nodes without requiring the SelfControlledCohort package to be
+#' installed (e.g., during R CMD build when rebuilding vignettes).
 #' @noRd
 .computeMdrrForRows <- function(rows, analysisId, thresholds) {
-  # Reference via the package namespace so the function resolves on cluster workers.
+  computeMdrr <- function(exposedPersonTime, unexposedPersonTime, exposedEvents, unexposedEvents) {
+    if (exposedPersonTime <= 0 || unexposedPersonTime <= 0) {
+      return(NA_real_)
+    }
+    if (exposedEvents < 1 || unexposedEvents < 1) {
+      return(NA_real_)
+    }
+
+    n <- exposedEvents + unexposedEvents
+    r <- exposedPersonTime / (exposedPersonTime + unexposedPersonTime)
+
+    if (r <= 0 || r >= 1) {
+      return(Inf)
+    }
+
+    zAlpha <- stats::qnorm(1 - 0.05 / 2)
+
+    computePowerSrl <- function(b, z, r, n) {
+      if (b <= 0) {
+        return(0)
+      }
+      eb <- exp(b)
+      A <- 2 * ((eb * r / (eb * r + 1 - r)) * b - log(eb * r + 1 - r))
+      B <- b^2 / A * eb * r * (1 - r) / (eb * r + 1 - r)^2
+      zb <- (sqrt(n * A) - z) / sqrt(B)
+      return(stats::pnorm(zb))
+    }
+
+    targetFn <- function(b) {
+      computePowerSrl(b, zAlpha, r, n) - 0.80
+    }
+
+    if (targetFn(log(100)) < 0) {
+      return(100)
+    }
+    if (targetFn(1e-6) > 0) {
+      return(1.0)
+    }
+
+    root <- tryCatch(
+      stats::uniroot(targetFn, interval = c(1e-6, log(100)), tol = 1e-4)$root,
+      error = function(e) NA_real_
+    )
+
+    if (is.na(root)) {
+      return(NA_real_)
+    }
+    return(exp(root))
+  }
+
   mdrr <- vapply(seq_len(nrow(rows)), function(i) {
-    SelfControlledCohort::computeMdrrForRateRatio(
+    computeMdrr(
       exposedPersonTime = rows$timeAtRiskExposed[i],
       unexposedPersonTime = rows$timeAtRiskUnexposed[i],
       exposedEvents = rows$numOutcomesExposed[i],
-      unexposedEvents = rows$numOutcomesUnexposed[i],
-      alpha = 0.05,
-      power = 0.80
+      unexposedEvents = rows$numOutcomesUnexposed[i]
     )
   }, numeric(1))
 
