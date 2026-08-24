@@ -648,8 +648,22 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
       diagnosticResults <- NULL
       if (runDiagnostics) {
         ParallelLogger::logInfo("Running diagnostics")
-        # Extract estimates from andromeda for diagnostics (usually small enough for memory)
-        estimatesDf <- andromeda$estimates |> dplyr::collect()
+        # EASE only needs the negative controls, so avoid materializing the full
+        # estimates table in memory. true_effect_size only exists when there are
+        # negative control pairs.
+        estimatesDf <- NULL
+        if (length(negativeControlPairs) > 0) {
+          estimatesDf <- andromeda$estimates |>
+            dplyr::filter(.data$true_effect_size == 1) |>
+            dplyr::select(
+              .data$target_cohort_id,
+              .data$outcome_cohort_id,
+              .data$rr,
+              .data$se_log_rr,
+              .data$true_effect_size
+            ) |>
+            dplyr::collect()
+        }
         
         diagnosticResults <- runSccDiagnostics(
           connection = connection,
@@ -664,6 +678,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
           estimates = estimatesDf,
           diagnostics = diagnostics,
           thresholds = diagnosticThresholds,
+          computeThreads = computeThreads,
           resultExportManager = resultExportManager
         )
       }
