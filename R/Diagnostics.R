@@ -174,7 +174,8 @@ runSccDiagnostics <- function(connection,
       outcomeDatabaseSchema = outcomeDatabaseSchema,
       analysisId = analysisId,
       thresholds = thresholds,
-      tempEmulationSchema = tempEmulationSchema
+      tempEmulationSchema = tempEmulationSchema,
+      resultsTable = resultsTable
     )
     diagnosticResults <- rbind(diagnosticResults, preExpGainResult)
   }
@@ -612,7 +613,8 @@ getDiagnosticsSummary <- function(diagnosticResults) {
                                               outcomeDatabaseSchema,
                                               analysisId,
                                               thresholds,
-                                              tempEmulationSchema) {
+                                              tempEmulationSchema,
+                                              resultsTable = NULL) {
   preExpData <- testPreExposureGain(
     connection = connection,
     riskWindowsTable = riskWindowsTable,
@@ -620,47 +622,37 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     outcomeDatabaseSchema = outcomeDatabaseSchema,
     analysisId = analysisId,
     cdmDatabaseSchema = cdmDatabaseSchema,
-    tempEmulationSchema = tempEmulationSchema
+    tempEmulationSchema = tempEmulationSchema,
+    resultsTable = resultsTable
   )
 
   if (nrow(preExpData) == 0) {
     return(data.frame())
   }
 
-  diagnostics <- data.frame()
+  # Test passes if p-value > threshold (not significantly higher before)
+  pVal <- preExpData$pValue
+  pass <- ifelse(is.na(pVal), 1L, as.integer(pVal > thresholds$preExposurePThreshold))
 
-  for (i in seq_len(nrow(preExpData))) {
-    row <- preExpData[i, ]
+  rateRatioRows <- data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = preExpData$targetCohortId,
+    outcome_cohort_id = preExpData$outcomeCohortId,
+    diagnostic_name = "PRE_EXPOSURE_RATE_RATIO",
+    diagnostic_value = preExpData$preExposureRateRatio,
+    pass = 1L # We primarily gate on the p-value
+  )
 
+  pValueRows <- data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = preExpData$targetCohortId,
+    outcome_cohort_id = preExpData$outcomeCohortId,
+    diagnostic_name = "PRE_EXPOSURE_P_VALUE",
+    diagnostic_value = pVal,
+    pass = pass
+  )
 
-    # Test passes if p-value > threshold (not significantly higher before)
-    pVal <- row$pValue
-    pass <- if (is.na(pVal)) 1L else as.integer(pVal > thresholds$preExposurePThreshold)
-
-    # Add rate ratio diagnostic
-    diagRow1 <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "PRE_EXPOSURE_RATE_RATIO",
-      diagnostic_value = row$preExposureRateRatio,
-      pass = 1L # We primarily gate on the p-value
-    )
-    diagnostics <- rbind(diagnostics, diagRow1)
-
-    # Add p-value diagnostic
-    diagRow2 <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "PRE_EXPOSURE_P_VALUE",
-      diagnostic_value = pVal,
-      pass = pass
-    )
-    diagnostics <- rbind(diagnostics, diagRow2)
-  }
-
-  return(diagnostics)
+  return(rbind(rateRatioRows, pValueRows))
 }
 
 
