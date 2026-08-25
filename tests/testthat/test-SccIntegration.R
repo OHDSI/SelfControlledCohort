@@ -447,4 +447,59 @@ test_that("Negative controls and calibration run correctly", {
     easeDiag <- diagnostics[diagnostics$diagnostic_name == "EASE" & diagnostics$target_cohort_id == 1, ]
     expect_true(nrow(easeDiag) == 1)
     expect_equal(easeDiag$outcome_cohort_id, 0)
+
+    # Pre-exposure gain and event-dependent observation diagnostics should be
+    # present for the fixed outcome pair.
+    expect_true(any(diagnostics$diagnostic_name == "PRE_EXPOSURE_RATE_RATIO"),
+        info = "PRE_EXPOSURE_RATE_RATIO diagnostic should be exported"
+    )
+    expect_true(any(diagnostics$diagnostic_name == "PRE_EXPOSURE_P_VALUE"),
+        info = "PRE_EXPOSURE_P_VALUE diagnostic should be exported"
+    )
+    expect_true(any(diagnostics$diagnostic_name == "EVENT_DEPENDENT_OBSERVATION"),
+        info = "EVENT_DEPENDENT_OBSERVATION diagnostic should be exported"
+    )
+})
+
+
+test_that("Exposure-based negative controls do not contaminate outcomes", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_exp_control_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # Eunomia GiBleed cohorts: 1 = Celecoxib, 2 = Diclofenac, 3 = GI bleed.
+    # Exposure-based negative control: Diclofenac (2) against GI bleed (3).
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "cohort",
+        exposureIds = c(1, 2),
+        outcomeIds = 3,
+        controlType = "exposure",
+        negativeControlPairs = list(c(2, 3)),
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = FALSE
+    )
+
+    result <- readSccResult(resultPath)
+    expect_true(!is.null(result) && nrow(result) > 0, info = "scc_result.csv should have rows")
+
+    # Exposure cohort IDs must never appear as outcome cohort IDs.
+    expect_false(any(result$outcome_cohort_id %in% c(1, 2)),
+        info = "Exposure cohort IDs should not appear in outcome_cohort_id"
+    )
+    expect_true(all(result$outcome_cohort_id == 3))
+
+    # scc_stat should likewise never report an exposure id as an outcome id.
+    statFile <- file.path(resultPath, "scc_stat.csv")
+    if (file.exists(statFile)) {
+        stat <- read.csv(statFile)
+        expect_false(any(stat$outcome_cohort_id %in% c(1, 2)),
+            info = "Exposure cohort IDs should not appear in scc_stat outcome_cohort_id"
+        )
+    }
 })

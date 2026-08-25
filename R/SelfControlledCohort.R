@@ -525,13 +525,16 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
 
   # Merge negative control outcome IDs into the outcome filter so their
   # estimates are included in the results table (needed for calibration).
+  # For exposure-based negative controls (controlType == "exposure"), the
+  # negative controls are exposures, which are already included in exposureIds,
+  # so nothing needs to be added to the outcome filter. Adding them there would
+  # contaminate the outcomes with target cohort IDs.
   allOutcomeIds <- outcomeIds
-  if (!is.null(negativeControlPairs) && length(negativeControlPairs) > 0 && !is.null(outcomeIds)) {
-    ncOutcomeIds <- if (controlType == "outcome") {
-      unique(vapply(negativeControlPairs, function(p) p[[2]], numeric(1)))
-    } else {
-      unique(vapply(negativeControlPairs, function(p) p[[1]], numeric(1)))
-    }
+  if (controlType == "outcome" &&
+      !is.null(negativeControlPairs) &&
+      length(negativeControlPairs) > 0 &&
+      !is.null(outcomeIds)) {
+    ncOutcomeIds <- unique(vapply(negativeControlPairs, function(p) p[[2]], numeric(1)))
     allOutcomeIds <- unique(c(outcomeIds, ncOutcomeIds))
   }
 

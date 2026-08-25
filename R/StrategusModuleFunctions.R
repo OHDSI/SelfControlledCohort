@@ -134,8 +134,8 @@ createSelfControlledCohortModuleSpecifications <- function(
 #' execute(
 #'   connectionDetails = connectionDetails,
 #'   executionSettings = list(
-#'     databaseSchema = "main",
-#'     cohortTable = "cohort",
+#'     workDatabaseSchema = "main",
+#'     cohortTableNames = CohortGenerator::getCohortTableNames(cohortTable = "cohort"),
 #'     cdmDatabaseSchema = "main"
 #'   ),
 #'   analysisSpecifications = moduleSpec,
@@ -196,6 +196,28 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
   }
 
   cohortTableNames <- executionSettings$cohortTableNames
+
+  # Validate that all required cohorts have actually been generated.
+  # CohortGenerator records a checksum for every generated cohort in the cohort
+  # checksum table. If a cohort ID used by the analysis is absent from that
+  # table, it was never computed and the analysis would silently produce empty
+  # or incorrect results.
+  if (!is.null(cohortTableNames) && !is.null(executionSettings$workDatabaseSchema)) {
+    generatedCohorts <- CohortGenerator::getLastGeneratedCohortChecksums(
+      connectionDetails = connectionDetails,
+      cohortDatabaseSchema = executionSettings$workDatabaseSchema,
+      cohortTableNames = cohortTableNames
+    )
+    generatedCohortIds <- generatedCohorts$cohortDefinitionId
+    requiredCohortIds <- unique(c(exposureCohortIds, outcomeCohortIds))
+    missingCohortIds <- setdiff(requiredCohortIds, generatedCohortIds)
+    if (length(missingCohortIds) > 0) {
+      stop(sprintf(
+        "The following cohort IDs were not found in the cohort checksum table and were therefore not generated: %s",
+        paste(missingCohortIds, collapse = ", ")
+      ))
+    }
+  }
 
   dir.create(exportFolder, recursive = TRUE, showWarnings = FALSE)
 

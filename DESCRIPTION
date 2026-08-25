@@ -32,7 +32,8 @@ Imports:
     readr,
     rlang,
     cli,
-    stats
+    stats,
+    CohortGenerator
 Suggests:
     withr,
     testthat,
