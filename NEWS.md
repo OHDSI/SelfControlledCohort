@@ -6,8 +6,12 @@ Changes:
 - Performance: MDRR, pre-exposure gain, event-dependent observation, and EASE diagnostics now use batched SQL reads and ParallelLogger-based parallelism, and no longer materialize full result sets in memory.
 - Study diagnostics are now configurable via Strategus through `createRunSelfControlledCohortArgs()` (`runDiagnostics`, `diagnostics`, `diagnosticThresholds`).
 - Added a `CohortGenerator` dependency; `execute()` now validates that all requested exposure/outcome cohorts were generated (present in the cohort checksum table).
+
+Bug Fixes:
+
 - Fixed a bug where exposure-based negative controls (`controlType = "exposure"`) were treated as outcomes, contaminating `outcome_cohort_id` in results.
 - Fixed `scc_outcome_exposure` to reflect the full input exposure-outcome list (rather than only pairs with results) and to correctly accumulate `scc_result` across all calibration groups/batches.
+- `scc_result`, `scc_stat`, `scc_diagnostics_summary`, and `scc_outcome_exposure` are now always exported (as empty files when an analysis yields no effect estimates), so the export folder and manifest stay consistent.
 
 SelfControlledCohort 2.0.0
 ==========================
