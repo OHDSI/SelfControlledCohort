@@ -10,6 +10,7 @@ params:
   port: null
   user: null
   password: null
+  configFile: config.yml
   resultsDatabaseSchema: main
   esDatabaseSchema: main
   evidenceSynthesisAnalysisId: null
@@ -37,36 +38,89 @@ library(reactable)
 library(htmltools)
 
 # Quarto renders a standalone document from the document's own directory, so a
-# relative sqlite path supplied in `server` may need to be resolved against the
-# document directory or the repository root before connecting.
-resolveDbPath <- function(server) {
-  if (is.null(server) || !nzchar(server) || file.exists(server)) {
-    return(server)
+# relative path may need to be resolved against the document directory or the
+# repository root before it can be used.
+resolveDbPath <- function(path) {
+  if (is.null(path) || !nzchar(path) || file.exists(path)) {
+    return(path)
   }
   candidates <- c(
-    file.path(".", server),
-    file.path("..", server),
-    file.path("..", "..", server),
-    file.path("mockResults", basename(server)),
-    file.path("..", "mockResults", basename(server))
+    file.path(".", path),
+    file.path("..", path),
+    file.path("..", "..", path),
+    file.path("mockResults", basename(path)),
+    file.path("..", "mockResults", basename(path))
   )
   hits <- candidates[file.exists(candidates)]
-  if (length(hits) > 0) hits[1] else server
+  if (length(hits) > 0) hits[1] else path
 }
 
-if (params$dbms == "sqlite") {
-  serverPath <- resolveDbPath(params$server)
+# Load a Strategus-style config.yml (see
+# https://github.com/ohdsi-studies/StrategusStudyRepoTemplate/blob/main/config.yml)
+# if one can be found. The document uses `resultsConnectionDetails`,
+# `resultsDatabaseSchema`, and (optionally) `esDatabaseSchema` from it.
+configFile <- resolveDbPath(params$configFile)
+
+config <- NULL
+if (!is.null(configFile) && nzchar(configFile) && file.exists(configFile)) {
+  config <- yaml::read_yaml(configFile, eval.expr = TRUE)
+  # The template wraps its settings in a `default` profile
+  if (is.list(config) && length(config) == 1 && identical(names(config), "default")) {
+    config <- config$default
+  }
+}
+
+# Connection details: prefer the config file, otherwise the document parameters.
+connectionDetails <- NULL
+if (!is.null(config$resultsConnectionDetails)) {
+  connectionDetails <- config$resultsConnectionDetails
+} else if (!is.null(params$server) && nzchar(params$server)) {
+  serverPath <- if (params$dbms == "sqlite") {
+    resolveDbPath(params$server)
+  } else {
+    params$server
+  }
+  connectionDetails <- DatabaseConnector::createConnectionDetails(
+    dbms = params$dbms,
+    server = serverPath,
+    port = params$port,
+    user = params$user,
+    password = params$password
+  )
+}
+
+# Resolve relative sqlite paths that came from the config file too
+if (inherits(connectionDetails, "ConnectionDetails") &&
+    identical(connectionDetails$dbms, "sqlite")) {
+  resolvedServer <- resolveDbPath(connectionDetails$server())
+  if (!identical(resolvedServer, connectionDetails$server())) {
+    connectionDetails <- DatabaseConnector::createConnectionDetails(
+      dbms = "sqlite",
+      server = resolvedServer
+    )
+  }
+}
+
+if (is.null(connectionDetails)) {
+  stop(paste0(
+    "No results database connection was provided. Either set the 'configFile' ",
+    "parameter to a Strategus config.yml that contains 'resultsConnectionDetails', ",
+    "or provide the 'server' (and 'dbms') parameters."
+  ))
+}
+
+# Schemas: from the config file, falling back to the document parameters.
+resultsSchema <- if (!is.null(config$resultsDatabaseSchema)) {
+  config$resultsDatabaseSchema
 } else {
-  serverPath <- params$server
+  params$resultsDatabaseSchema
+}
+esSchema <- if (!is.null(config$esDatabaseSchema)) {
+  config$esDatabaseSchema
+} else {
+  resultsSchema
 }
 
-connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = params$dbms,
-  server = serverPath,
-  port = params$port,
-  user = params$user,
-  password = params$password
-)
 connection <- DatabaseConnector::connect(connectionDetails)
 ```
 
@@ -111,7 +165,25 @@ status, and diagnostics, together with the meta-analysis estimate and its diagno
 
 ## Configuration
 
-Render with the connection details of your results database, for example:
+The document works natively with a Strategus-style `config.yml` (as in the
+[Strategus study repository template](https://github.com/ohdsi-studies/StrategusStudyRepoTemplate/blob/main/config.yml)).
+It reads the following keys when present:
+
+- `resultsConnectionDetails`: an `!expr` that evaluates to a
+  `DatabaseConnector::createConnectionDetails(...)` object for the results database,
+- `resultsDatabaseSchema`: the schema holding the `scc_*` and `cg_cohort_definition` tables,
+- `esDatabaseSchema` (optional): the schema holding the `es_*` tables (defaults to
+  `resultsDatabaseSchema`).
+
+The `configFile` parameter defaults to `config.yml`, resolved relative to the document's directory
+(or the repository root). For example, to render against a study repository's own configuration:
+
+```bash
+quarto render extras/ResultsExploration.qmd
+```
+
+Alternatively, the connection can be supplied directly as parameters (these are used when the
+config file is absent or does not define `resultsConnectionDetails`):
 
 ```bash
 quarto render extras/ResultsExploration.qmd \
@@ -131,24 +203,17 @@ If several Evidence Synthesis analyses exist (e.g. random- and fixed-effects), s
 
 A small synthetic mock results database is committed at
 `extras/mockResults/mockResults.sqlite` (regenerate it any time with
-`Rscript extras/mockResults/createMockResultsDb.R`). To render this report against it:
+`Rscript extras/mockResults/createMockResultsDb.R`). A matching config file lives at
+`extras/mockResults/config.yml`. To render this report against it:
 
 ```bash
 quarto render extras/ResultsExploration.qmd \
-  -P dbms:sqlite \
-  -P server:mockResults/mockResults.sqlite \
-  -P resultsDatabaseSchema:main \
-  -P esDatabaseSchema:main
+  -P configFile:extras/mockResults/config.yml
 ```
 
-Relative `server` paths are resolved against the document's directory (and the repository root),
-so `-P server:extras/mockResults/mockResults.sqlite` also works.
-
-```{r read-params, include = FALSE}
-if (is.null(params$server) || nzchar(params$server) == 0) {
-  stop("Please set the 'server' parameter to your results database (path for sqlite, host for postgresql).")
-}
-```
+The mock `config.yml` connects to the sqlite database via
+`resultsConnectionDetails`, so no other parameters are needed. Direct parameter-based
+rendering against the mock is also supported (relative paths are resolved automatically):
 
 ```{r load-tables, include = FALSE}
 loadTable <- function(sql, snakeCaseToCamelCase = TRUE, ...) {
@@ -164,18 +229,18 @@ loadTable <- function(sql, snakeCaseToCamelCase = TRUE, ...) {
   as.data.frame(res)
 }
 
-sccResult <- loadTable("SELECT * FROM @schema.scc_result", schema = params$resultsDatabaseSchema)
-sccDiagnostics <- loadTable("SELECT * FROM @schema.scc_diagnostics_summary", schema = params$resultsDatabaseSchema)
-sccAnalysisSetting <- loadTable("SELECT * FROM @schema.scc_analysis_setting", schema = params$resultsDatabaseSchema)
-sccOutcomeExposure <- loadTable("SELECT * FROM @schema.scc_outcome_exposure", schema = params$resultsDatabaseSchema)
+sccResult <- loadTable("SELECT * FROM @schema.scc_result", schema = resultsSchema)
+sccDiagnostics <- loadTable("SELECT * FROM @schema.scc_diagnostics_summary", schema = resultsSchema)
+sccAnalysisSetting <- loadTable("SELECT * FROM @schema.scc_analysis_setting", schema = resultsSchema)
+sccOutcomeExposure <- loadTable("SELECT * FROM @schema.scc_outcome_exposure", schema = resultsSchema)
 cohortDefs <- loadTable(
   "SELECT cohort_definition_id, cohort_name FROM @cg_schema.cg_cohort_definition",
-  cg_schema = params$resultsDatabaseSchema
+  cg_schema = resultsSchema
 )
 
-esAnalyses <- loadTable("SELECT * FROM @schema.es_analysis", schema = params$esDatabaseSchema)
-esSccResult <- loadTable("SELECT * FROM @schema.es_scc_result", schema = params$esDatabaseSchema)
-esSccDiagnostics <- loadTable("SELECT * FROM @schema.es_scc_diagnostics_summary", schema = params$esDatabaseSchema)
+esAnalyses <- loadTable("SELECT * FROM @schema.es_analysis", schema = esSchema)
+esSccResult <- loadTable("SELECT * FROM @schema.es_scc_result", schema = esSchema)
+esSccDiagnostics <- loadTable("SELECT * FROM @schema.es_scc_diagnostics_summary", schema = esSchema)
 
 cohortNames <- data.frame()
 if (nrow(cohortDefs) > 0) {

@@ -1,0 +1,9 @@
+default:
+  studyName: "sccMock"
+  resultsDatabaseSchema: "main"
+  esDatabaseSchema: "main"
+  resultsConnectionDetails: !expr |
+    DatabaseConnector::createConnectionDetails(
+      dbms = "sqlite",
+      server = "mockResults/mockResults.sqlite"
+    )
