@@ -210,6 +210,9 @@ runSccDiagnostics <- function(connection,
   }
 
   # Add database_id to results
+  # Ensure all required columns exist
+  cols <- c("database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id", "diagnostic_name", "diagnostic_value", "pass")
+
   if (nrow(diagnosticResults) > 0) {
     diagnosticResults$database_id <- databaseId
 
@@ -220,26 +223,38 @@ runSccDiagnostics <- function(connection,
       diagnosticResults$analysis_id <- diagnosticResults$analysisId
     }
 
-    # Ensure all required columns exist
-    cols <- c("database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id", "diagnostic_name", "diagnostic_value", "pass")
     for (col in cols) {
       if (!col %in% colnames(diagnosticResults)) {
         diagnosticResults[[col]] <- NA
       }
     }
+  } else {
+    # No diagnostics were produced - write an empty file with the expected columns
+    # so the export folder stays consistent even when the analysis yields no data.
+    diagnosticResults <- data.frame(
+      database_id = character(0),
+      analysis_id = numeric(0),
+      target_cohort_id = numeric(0),
+      outcome_cohort_id = numeric(0),
+      diagnostic_name = character(0),
+      diagnostic_value = numeric(0),
+      pass = integer(0)
+    )
+  }
 
-    diagnosticResults <- diagnosticResults |>
-      dplyr::select(dplyr::all_of(cols))
+  diagnosticResults <- diagnosticResults |>
+    dplyr::select(dplyr::all_of(cols))
 
-    # Compute blinding status
-    blindingRows <- .computeBlindingStatus(diagnosticResults)
-    if (nrow(blindingRows) > 0) {
-      diagnosticResults <- rbind(diagnosticResults, blindingRows)
-    }
+  # Compute blinding status
+  blindingRows <- .computeBlindingStatus(diagnosticResults)
+  if (nrow(blindingRows) > 0) {
+    diagnosticResults <- rbind(diagnosticResults, blindingRows)
+  }
 
-    # Export all results at once via Manager
-    resultExportManager$exportDataFrame(diagnosticResults, "scc_diagnostics_summary")
+  # Export all results at once via Manager (always export, even if empty)
+  resultExportManager$exportDataFrame(diagnosticResults, "scc_diagnostics_summary")
 
+  if (nrow(diagnosticResults) > 0) {
     ParallelLogger::logInfo(sprintf("Completed %d diagnostic tests", nrow(diagnosticResults)))
 
     failures <- diagnosticResults |>
