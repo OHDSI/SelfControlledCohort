@@ -1,0 +1,877 @@
+---
+title: "SelfControlledCohort Results Exploration"
+subtitle: "Meta-analysis results from the EvidenceSynthesis package with Reward-style benefit/risk exploration"
+format: 
+  html:
+    page-layout: full
+params:
+  dbms: sqlite
+  server: ""
+  port: null
+  user: null
+  password: null
+  resultsDatabaseSchema: main
+  esDatabaseSchema: main
+  evidenceSynthesisAnalysisId: null
+  benefitThreshold: 0.5
+  lowerBenefitThreshold: 0.2
+  riskThreshold: 2.0
+  pCutValue: 0.05
+  forestPlotMaxRr: 1.1
+execute:
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = FALSE
+)
+
+library(DatabaseConnector)
+library(dplyr)
+library(reactable)
+library(htmltools)
+
+# Quarto renders a standalone document from the document's own directory, so a
+# relative sqlite path supplied in `server` may need to be resolved against the
+# document directory or the repository root before connecting.
+resolveDbPath <- function(server) {
+  if (is.null(server) || !nzchar(server) || file.exists(server)) {
+    return(server)
+  }
+  candidates <- c(
+    file.path(".", server),
+    file.path("..", server),
+    file.path("..", "..", server),
+    file.path("mockResults", basename(server)),
+    file.path("..", "mockResults", basename(server))
+  )
+  hits <- candidates[file.exists(candidates)]
+  if (length(hits) > 0) hits[1] else server
+}
+
+if (params$dbms == "sqlite") {
+  serverPath <- resolveDbPath(params$server)
+} else {
+  serverPath <- params$server
+}
+
+connectionDetails <- DatabaseConnector::createConnectionDetails(
+  dbms = params$dbms,
+  server = serverPath,
+  port = params$port,
+  user = params$user,
+  password = params$password
+)
+connection <- DatabaseConnector::connect(connectionDetails)
+```
+
+> Note: chunks in a knitted document run in their own evaluation frames, so the connection is
+> explicitly closed in the final [cleanup] chunk rather than via `on.exit`.
+
+# Overview
+
+This document explores SelfControlledCohort results stored in a results database. It combines two
+perspectives:
+
+1. **Per-data-source results** (`scc_result`, `scc_diagnostics_summary`, `scc_outcome_exposure`,
+   `scc_analysis_setting`) with cohort names from the CohortGenerator results data model
+   (`cg_cohort_definition`).
+2. **Meta-analysis results** produced by the EvidenceSynthesis package in the Strategus pipeline
+   (`es_analysis`, `es_scc_result`, `es_scc_diagnostics_summary`), which provide the
+   meta-analysis perspective for each target/outcome/analysis combination.
+
+## Reward-style benefit / risk exploration
+
+Following the exploration logic of the
+[Reward dashboard](https://github.com/OHDSI/Reward/blob/main/inst/sql/sql_server/dashboard/mainTable.sql),
+a data source counts toward **benefit** when its calibrated relative risk is within
+`[lowerBenefitThreshold, benefitThreshold]` and its calibrated p-value is below `pCutValue`
+(defaults: `[0.2, 0.5]`, p < 0.05), and toward **risk** when its calibrated RR is at or above
+`riskThreshold` (default: 2.0) with p < `pCutValue`. These give `benefit_count` and `risk_count`
+per target/outcome/analysis combination.
+
+## Meta-analysis perspective
+
+The primary table is restricted to results **under meta-analysis that show a potential benefit**:
+
+- the meta-analysis **calibrated** RR is within the benefit range and significant
+  (`calibrated_rr <= benefitThreshold`, `calibrated_rr >= lowerBenefitThreshold`,
+  `calibrated_p < pCutValue`), **and**
+- the meta-analysis calibrated 95% CI does **not cross 1.0** (i.e. is not a null result), **and**
+- the meta-analysis diagnostics pass (`es_scc_diagnostics_summary.unblind == 1`, meaning MDRR,
+  EASE, I&sup2; and tau are all not FAIL).
+
+Click on a row to inspect, for every data source, the effect estimates, event counts, benefit/risk
+status, and diagnostics, together with the meta-analysis estimate and its diagnostics.
+
+## Configuration
+
+Render with the connection details of your results database, for example:
+
+```bash
+quarto render extras/ResultsExploration.qmd \
+  -P dbms:sqlite \
+  -P server:/path/to/results.sqlite \
+  -P resultsDatabaseSchema:main \
+  -P esDatabaseSchema:main
+```
+
+The benefit/risk thresholds can be overridden, e.g. `-P benefitThreshold:0.6 -P riskThreshold:1.5`.
+The maximum RR shown on the forest-plot axes is fixed via `forestPlotMaxRr` (default 1.1).
+If several Evidence Synthesis analyses exist (e.g. random- and fixed-effects), select one with
+`-P evidenceSynthesisAnalysisId:<id>`; by default the first `es_analysis` with
+`source_method = 'SelfControlledCohort'` is used.
+
+### Mock data
+
+A small synthetic mock results database is committed at
+`extras/mockResults/mockResults.sqlite` (regenerate it any time with
+`Rscript extras/mockResults/createMockResultsDb.R`). To render this report against it:
+
+```bash
+quarto render extras/ResultsExploration.qmd \
+  -P dbms:sqlite \
+  -P server:mockResults/mockResults.sqlite \
+  -P resultsDatabaseSchema:main \
+  -P esDatabaseSchema:main
+```
+
+Relative `server` paths are resolved against the document's directory (and the repository root),
+so `-P server:extras/mockResults/mockResults.sqlite` also works.
+
+```{r read-params, include = FALSE}
+if (is.null(params$server) || nzchar(params$server) == 0) {
+  stop("Please set the 'server' parameter to your results database (path for sqlite, host for postgresql).")
+}
+```
+
+```{r load-tables, include = FALSE}
+loadTable <- function(sql, snakeCaseToCamelCase = TRUE, ...) {
+  res <- tryCatch(
+    DatabaseConnector::renderTranslateQuerySql(
+      connection = connection,
+      sql = sql,
+      snakeCaseToCamelCase = snakeCaseToCamelCase,
+      ...
+    ),
+    error = function(e) data.frame()
+  )
+  as.data.frame(res)
+}
+
+sccResult <- loadTable("SELECT * FROM @schema.scc_result", schema = params$resultsDatabaseSchema)
+sccDiagnostics <- loadTable("SELECT * FROM @schema.scc_diagnostics_summary", schema = params$resultsDatabaseSchema)
+sccAnalysisSetting <- loadTable("SELECT * FROM @schema.scc_analysis_setting", schema = params$resultsDatabaseSchema)
+sccOutcomeExposure <- loadTable("SELECT * FROM @schema.scc_outcome_exposure", schema = params$resultsDatabaseSchema)
+cohortDefs <- loadTable(
+  "SELECT cohort_definition_id, cohort_name FROM @cg_schema.cg_cohort_definition",
+  cg_schema = params$resultsDatabaseSchema
+)
+
+esAnalyses <- loadTable("SELECT * FROM @schema.es_analysis", schema = params$esDatabaseSchema)
+esSccResult <- loadTable("SELECT * FROM @schema.es_scc_result", schema = params$esDatabaseSchema)
+esSccDiagnostics <- loadTable("SELECT * FROM @schema.es_scc_diagnostics_summary", schema = params$esDatabaseSchema)
+
+cohortNames <- data.frame()
+if (nrow(cohortDefs) > 0) {
+  cohortNames <- cohortDefs |>
+    dplyr::transmute(
+      cohortId = cohortDefinitionId,
+      cohortName = cohortName
+    ) |>
+    dplyr::distinct()
+}
+
+resolveName <- function(cohortId) {
+  nm <- cohortNames$cohortName[match(cohortId, cohortNames$cohortId)]
+  ifelse(is.na(nm), as.character(cohortId), nm)
+}
+```
+
+```{r select-es-analysis, include = FALSE}
+# Select the Evidence Synthesis analysis of interest (default: first SCC one)
+if (nrow(esAnalyses) > 0) {
+  esAnalyses <- esAnalyses |>
+    dplyr::filter(sourceMethod == "SelfControlledCohort")
+}
+chosenEsId <- params$evidenceSynthesisAnalysisId
+if (is.null(chosenEsId) || length(chosenEsId) == 0 ||
+    !(chosenEsId %in% esAnalyses$evidenceSynthesisAnalysisId)) {
+  chosenEsId <- if (nrow(esAnalyses) > 0) esAnalyses$evidenceSynthesisAnalysisId[1] else NULL
+}
+
+if (nrow(esSccResult) > 0 && !is.null(chosenEsId)) {
+  esSccResult <- esSccResult |>
+    dplyr::filter(evidenceSynthesisAnalysisId == chosenEsId)
+}
+if (nrow(esSccDiagnostics) > 0 && !is.null(chosenEsId)) {
+  esSccDiagnostics <- esSccDiagnostics |>
+    dplyr::filter(evidenceSynthesisAnalysisId == chosenEsId)
+}
+
+# All scc_result rows are per-database sites (meta-analysis lives in the es_ tables).
+# Guard against any 'meta-analysis' marker that some pipelines write into scc_result.
+siteResults <- sccResult |>
+  dplyr::filter(tolower(databaseId) != "meta-analysis")
+```
+
+# Targets and outcomes of interest
+
+Targets and outcomes are identified by cohort ids and named according to the CohortGenerator data
+model (`cg_cohort_definition`). Negative controls (pairs with `true_effect_size = 1`) are flagged.
+
+```{r prepare-targets-outcomes, include = FALSE}
+targets <- data.frame()
+outcomes <- data.frame()
+if (nrow(sccOutcomeExposure) > 0) {
+  negativeTargetIds <- unique(sccOutcomeExposure$targetCohortId[sccOutcomeExposure$trueEffectSize == 1 & !is.na(sccOutcomeExposure$trueEffectSize)])
+  negativeOutcomeIds <- unique(sccOutcomeExposure$outcomeCohortId[sccOutcomeExposure$trueEffectSize == 1 & !is.na(sccOutcomeExposure$trueEffectSize)])
+
+  targets <- sccOutcomeExposure |>
+    dplyr::select(targetCohortId) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      targetCohortName = resolveName(targetCohortId),
+      negativeControl = targetCohortId %in% negativeTargetIds
+    ) |>
+    dplyr::arrange(targetCohortName)
+
+  outcomes <- sccOutcomeExposure |>
+    dplyr::select(outcomeCohortId) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      outcomeCohortName = resolveName(outcomeCohortId),
+      negativeControl = outcomeCohortId %in% negativeOutcomeIds
+    ) |>
+    dplyr::arrange(outcomeCohortName)
+}
+```
+
+### Targets of interest (`r nrow(targets)`)
+
+```{r targets-table}
+if (nrow(targets) > 0) {
+  reactable::reactable(
+    targets,
+    columns = list(
+      targetCohortId = reactable::colDef(name = "Target cohort id"),
+      targetCohortName = reactable::colDef(name = "Target cohort name"),
+      negativeControl = reactable::colDef(name = "Negative control", cell = function(value) {
+        if (isTRUE(value)) "Yes" else "No"
+      })
+    ),
+    defaultPageSize = 10
+  )
+} else {
+  cat("No exposure-outcome pairs found in `scc_outcome_exposure`.")
+}
+```
+
+### Outcomes of interest (`r nrow(outcomes)`)
+
+```{r outcomes-table}
+if (nrow(outcomes) > 0) {
+  reactable::reactable(
+    outcomes,
+    columns = list(
+      outcomeCohortId = reactable::colDef(name = "Outcome cohort id"),
+      outcomeCohortName = reactable::colDef(name = "Outcome cohort name"),
+      negativeControl = reactable::colDef(name = "Negative control", cell = function(value) {
+        if (isTRUE(value)) "Yes" else "No"
+      })
+    ),
+    defaultPageSize = 10
+  )
+}
+```
+
+# Analysis settings
+
+```{r analysis-settings}
+if (nrow(sccAnalysisSetting) > 0) {
+  reactable::reactable(
+    sccAnalysisSetting |>
+      dplyr::select(analysisId, description) |>
+      dplyr::rename(`Analysis id` = analysisId, Description = description),
+    defaultPageSize = 10
+  )
+} else {
+  cat("No analysis settings found in `scc_analysis_setting`.")
+}
+```
+
+# Evidence Synthesis analyses
+
+```{r es-analyses}
+if (nrow(esAnalyses) > 0) {
+  esAnalysesTable <- esAnalyses |>
+    dplyr::select(evidenceSynthesisAnalysisId, evidenceSynthesisDescription, sourceMethod) |>
+    dplyr::mutate(selected = evidenceSynthesisAnalysisId == chosenEsId) |>
+    dplyr::rename(
+      `ES analysis id` = evidenceSynthesisAnalysisId,
+      Description = evidenceSynthesisDescription,
+      `Source method` = sourceMethod
+    )
+  reactable::reactable(
+    esAnalysesTable,
+    columns = list(
+      `ES analysis id` = reactable::colDef(),
+      Description = reactable::colDef(),
+      `Source method` = reactable::colDef(),
+      selected = reactable::colDef(name = "Selected for this report", cell = function(value) {
+        if (isTRUE(value)) "Yes" else ""
+      })
+    ),
+    defaultPageSize = 10
+  )
+} else {
+  cat("No SelfControlledCohort Evidence Synthesis analyses found in `es_analysis`.")
+}
+```
+
+# Diagnostic pass summary
+
+Number of target/outcome pairs per analysis id that are under meta-analysis, pass the meta
+diagnostics (`unblind = 1`), and show a potential benefit (within the benefit range with a CI that
+does not cross 1.0).
+
+```{r diagnostic-summary}
+benefitRangeOk <- function(rr, p) {
+  !is.na(rr) & !is.na(p) &
+    rr <= params$benefitThreshold & rr >= params$lowerBenefitThreshold & p < params$pCutValue
+}
+
+benefitRisk <- data.frame()
+if (nrow(siteResults) > 0) {
+  benefitRisk <- siteResults |>
+    dplyr::mutate(
+      isBenefit = benefitRangeOk(calibratedRr, calibratedPValue),
+      isRisk = !is.na(calibratedRr) & !is.na(calibratedPValue) &
+        calibratedRr >= params$riskThreshold & calibratedPValue < params$pCutValue
+    ) |>
+    dplyr::group_by(analysisId, targetCohortId, outcomeCohortId) |>
+    dplyr::summarise(
+      benefitCount = sum(.data$isBenefit, na.rm = TRUE),
+      riskCount = sum(.data$isRisk, na.rm = TRUE),
+      nSources = dplyr::n_distinct(.data$databaseId),
+      .groups = "drop"
+    )
+}
+
+metaJoined <- data.frame()
+if (nrow(esSccResult) > 0) {
+  metaJoined <- esSccResult |>
+    dplyr::left_join(
+      esSccDiagnostics |>
+        dplyr::select(targetCohortId, outcomeCohortId, analysisId,
+                      mdrr, i2, tau, ease,
+                      mdrrDiagnostic, i2Diagnostic, tauDiagnostic, easeDiagnostic, unblind),
+      by = c("targetCohortId", "outcomeCohortId", "analysisId")
+    )
+}
+
+passingMeta <- data.frame()
+if (nrow(metaJoined) > 0) {
+  passingMeta <- metaJoined |>
+    dplyr::filter(.data$unblind == 1) |>
+    dplyr::mutate(
+      ciCrossesNull = .data$calibratedCi95Lb < 1 & .data$calibratedCi95Ub > 1,
+      inBenefitRange = benefitRangeOk(.data$calibratedRr, .data$calibratedP)
+    ) |>
+    dplyr::filter(.data$inBenefitRange & !.data$ciCrossesNull)
+}
+
+if (nrow(metaJoined) > 0) {
+  summaryStats <- metaJoined |>
+    dplyr::group_by(analysisId) |>
+    dplyr::summarise(nMetaResults = dplyr::n(), .groups = "drop") |>
+    dplyr::left_join(
+      metaJoined |>
+        dplyr::filter(.data$unblind == 1) |>
+        dplyr::group_by(analysisId) |>
+        dplyr::summarise(nPassDiagnostics = dplyr::n(), .groups = "drop"),
+      by = "analysisId"
+    ) |>
+    dplyr::left_join(
+      passingMeta |>
+        dplyr::group_by(analysisId) |>
+        dplyr::summarise(nPotentialBenefit = dplyr::n(), .groups = "drop"),
+      by = "analysisId"
+    ) |>
+    dplyr::mutate(
+      nPassDiagnostics = dplyr::coalesce(.data$nPassDiagnostics, 0L),
+      nPotentialBenefit = dplyr::coalesce(.data$nPotentialBenefit, 0L),
+      pctBenefit = round(100 * .data$nPotentialBenefit / .data$nMetaResults, 1)
+    ) |>
+    dplyr::left_join(
+      sccAnalysisSetting |>
+        dplyr::select(analysisId, description),
+      by = "analysisId"
+    ) |>
+    dplyr::arrange(dplyr::desc(.data$nPotentialBenefit), analysisId)
+
+  reactable::reactable(
+    summaryStats,
+    columns = list(
+      analysisId = reactable::colDef(name = "Analysis id"),
+      description = reactable::colDef(name = "Description"),
+      nMetaResults = reactable::colDef(name = "Meta-analysis results", align = "right"),
+      nPassDiagnostics = reactable::colDef(name = "Pass meta diagnostics", align = "right"),
+      nPotentialBenefit = reactable::colDef(name = "Potential benefit", align = "right"),
+      pctBenefit = reactable::colDef(name = "% potential benefit", align = "right", format = reactable::colFormat(suffix = "%"))
+    ),
+    defaultPageSize = 10
+  )
+} else {
+  cat("No meta-analysis results found in `es_scc_result` for the selected Evidence Synthesis analysis.")
+}
+```
+
+# Results showing potential benefit
+
+Each row is a target / outcome / analysis id combination whose meta-analysis result is within the
+benefit range, is significant, does **not** cross the null (RR = 1), and passes the meta
+diagnostics. `benefit_count` / `risk_count` show how many data sources fall in the benefit / risk
+range, and the final column shows the meta-analysis estimate (calibrated RR from `es_scc_result`,
+with I&sup2; from `es_scc_diagnostics_summary`). Forest-plot axes use a fixed maximum RR
+(`forestPlotMaxRr`, default 1.1). **Click on a row** to view the grouped combination as a forest
+plot with one row per data source (plus the meta-analysis), alongside a per-data-source table with
+effect estimates, event counts, and diagnostics.
+
+```{r forest-plot-helpers, include = FALSE}
+fmtNum <- function(x) {
+  if (length(x) == 0 || is.na(x) || !is.finite(x)) "NA" else sprintf("%.2f", x)
+}
+fmtCi <- function(lb, ub) {
+  ok <- !is.na(lb) && is.finite(lb) && lb > 0 && !is.na(ub) && is.finite(ub) && ub > 0
+  if (ok) sprintf("(%.2f - %.2f)", lb, ub) else "(NA)"
+}
+fmtP <- function(p) {
+  if (length(p) == 0 || is.na(p)) "NA"
+  else if (p < 0.001) format(p, scientific = TRUE, digits = 2)
+  else sprintf("%.3f", p)
+}
+fmtDiagVal <- function(v) {
+  if (length(v) == 0 || is.na(v)) "-"
+  else if (v != 0 && abs(v) < 0.001) format(v, scientific = TRUE, digits = 2)
+  else sprintf("%.3f", v)
+}
+hasVal <- function(v) length(v) == 1 && !is.na(v) && is.finite(v) && v > 0
+
+# Log-RR domain for a forest plot. The maximum is fixed (default 1.1) via the
+# `forestPlotMaxRr` parameter so plots share a common right edge; the minimum is
+# driven by the data (the reference value RR = 1 is always included).
+rowDomain <- function(rr, lb, ub, fixedMax = params$forestPlotMaxRr) {
+  vals <- c(rr, lb, ub)
+  vals <- vals[is.finite(vals) & vals > 0]
+  vals <- c(log(vals), 0)
+  lo <- min(vals)
+  hi <- log(fixedMax)
+  if (lo >= hi) hi <- lo + 0.5
+  pad <- (hi - lo) * 0.05
+  c(lo - pad, hi)
+}
+
+# Hand-rolled inline SVG forest plot (no plot file is created). Shows the estimate,
+# its confidence interval whisker, and small text with the RR and CI bounds.
+forestSvg <- function(rr, lb, ub, xMin, xMax, meta = FALSE, i2 = NULL,
+                      piLb = NULL, piUb = NULL, width = 175, height = 52) {
+  textX <- 31
+  plotLeft <- 62
+  plotRight <- width - 8
+  yMid <- 27
+
+  xPos <- function(v) {
+    t <- (log(v) - xMin) / (xMax - xMin)
+    plotLeft + t * (plotRight - plotLeft)
+  }
+
+  s <- sprintf(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">',
+    width, height, width, height
+  )
+
+  # Reference line at RR = 1
+  refX <- xPos(1)
+  refX <- max(plotLeft, min(plotRight, refX))
+  s <- paste0(s, sprintf(
+    '<line x1="%.1f" y1="4" x2="%.1f" y2="%d" stroke="#cccccc" stroke-width="1" stroke-dasharray="3,2"/>',
+    refX, refX, height - 4
+  ))
+
+  # Small text with RR and CI bounds
+  s <- paste0(s, sprintf(
+    '<text x="%.1f" y="20" font-size="9" fill="#333333" text-anchor="middle" font-family="monospace">%s</text>',
+    textX, fmtNum(rr)
+  ))
+  s <- paste0(s, sprintf(
+    '<text x="%.1f" y="33" font-size="8" fill="#777777" text-anchor="middle" font-family="monospace">%s</text>',
+    textX, fmtCi(lb, ub)
+  ))
+
+  if (hasVal(rr) && hasVal(lb) && hasVal(ub)) {
+    xr <- xPos(rr)
+    xl <- xPos(lb)
+    xu <- xPos(ub)
+    # Whisker with end caps
+    s <- paste0(s, sprintf(
+      '<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="#666666" stroke-width="2"/>',
+      xl, yMid, xu, yMid
+    ))
+    s <- paste0(s, sprintf(
+      '<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="#666666" stroke-width="1.5"/>',
+      xl, yMid - 5, xl, yMid + 5
+    ))
+    s <- paste0(s, sprintf(
+      '<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="#666666" stroke-width="1.5"/>',
+      xu, yMid - 5, xu, yMid + 5
+    ))
+    if (meta) {
+      # Prediction interval (wider, lighter whisker) if available
+      if (hasVal(piLb) && hasVal(piUb) && hasVal(lb) && hasVal(ub)) {
+        xpl <- xPos(piLb)
+        xpu <- xPos(piUb)
+        s <- paste0(s, sprintf(
+          '<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="#cba3a3" stroke-width="1.5"/>',
+          xpl, yMid, xpu, yMid
+        ))
+      }
+      s <- paste0(s, sprintf(
+        '<polygon points="%.1f,%d %.1f,%d %.1f,%d %.1f,%d" fill="#B22222" stroke="#B22222"/>',
+        xr, yMid - 4, xr + 4, yMid, xr, yMid + 4, xr - 4, yMid
+      ))
+      if (!is.null(i2) && is.finite(i2)) {
+        s <- paste0(s, sprintf(
+          '<text x="%.1f" y="46" font-size="8" fill="#B22222" text-anchor="middle" font-family="monospace">I&sup2; = %.0f%%</text>',
+          textX, 100 * i2
+        ))
+      }
+    } else {
+      s <- paste0(s, sprintf(
+        '<circle cx="%.1f" cy="%d" r="3.2" fill="#1f77b4" stroke="#ffffff" stroke-width="0.8"/>',
+        xr, yMid
+      ))
+    }
+  } else {
+    s <- paste0(s, sprintf(
+      '<text x="%.1f" y="15" font-size="8" fill="#999999" text-anchor="middle" font-family="monospace">not evaluated</text>',
+      textX
+    ))
+  }
+
+  paste0(s, '</svg>')
+}
+
+# Hand-rolled inline SVG forest plot for a grouped combination: one row per
+# data source, plus a meta-analysis row (diamond). Shared fixed x-max (RR scale).
+# Built as htmltools tags (not a raw HTML string) so reactable's details renderer
+# displays it as an image rather than escaping it to text.
+groupForestTag <- function(rr, lb, ub, label, meta = FALSE,
+                           fixedMax = params$forestPlotMaxRr, width = 560) {
+  dom <- rowDomain(rr, lb, ub, fixedMax = fixedMax)
+  n <- length(rr)
+  labelW <- 160
+  textW <- 90
+  plotL <- labelW + 10
+  plotR <- width - textW
+  rowH <- 20
+  top <- 12
+  height <- top + n * rowH + 6
+
+  xPos <- function(v) {
+    t <- (log(v) - dom[1]) / (dom[2] - dom[1])
+    plotL + t * (plotR - plotL)
+  }
+  yMid <- function(i) top + (i - 1) * rowH + rowH / 2
+
+  # Reference line at RR = 1
+  refX <- xPos(1)
+  refX <- max(plotL, min(plotR, refX))
+
+  elems <- list(tags$line(
+    x1 = refX, y1 = top - 2, x2 = refX, y2 = height - 2,
+    stroke = "#dddddd", `stroke-width` = 1, `stroke-dasharray` = "3,2"
+  ))
+
+  for (i in seq_len(n)) {
+    ym <- yMid(i)
+    isMeta <- isTRUE(meta[i])
+    col <- if (isMeta) "#B22222" else "#333333"
+
+    # Label
+    elems[[length(elems) + 1]] <- tags$text(
+      x = labelW - 6, y = ym + 4, `font-size` = 11, fill = col,
+      `text-anchor` = "end", `font-family` = "sans-serif", label[i]
+    )
+    # RR and CI text on the right
+    elems[[length(elems) + 1]] <- tags$text(
+      x = plotR + 8, y = ym + 4, `font-size` = 10, fill = col,
+      `font-family` = "monospace",
+      sprintf("%s %s", fmtNum(rr[i]), fmtCi(lb[i], ub[i]))
+    )
+
+    if (hasVal(rr[i]) && hasVal(lb[i]) && hasVal(ub[i])) {
+      xr <- xPos(rr[i])
+      xl <- xPos(lb[i])
+      xu <- xPos(ub[i])
+      elems[[length(elems) + 1]] <- tags$line(
+        x1 = xl, y1 = ym, x2 = xu, y2 = ym, stroke = "#666666", `stroke-width` = 1.5
+      )
+      elems[[length(elems) + 1]] <- tags$line(
+        x1 = xl, y1 = ym - 3.5, x2 = xl, y2 = ym + 3.5, stroke = "#666666", `stroke-width` = 1
+      )
+      elems[[length(elems) + 1]] <- tags$line(
+        x1 = xu, y1 = ym - 3.5, x2 = xu, y2 = ym + 3.5, stroke = "#666666", `stroke-width` = 1
+      )
+      if (isMeta) {
+        elems[[length(elems) + 1]] <- tags$polygon(
+          points = sprintf(
+            "%.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f",
+            xr, ym - 3.5, xr + 3.5, ym, xr, ym + 3.5, xr - 3.5, ym
+          ),
+          fill = "#B22222", stroke = "#B22222"
+        )
+      } else {
+        elems[[length(elems) + 1]] <- tags$circle(
+          cx = xr, cy = ym, r = 3, fill = "#1f77b4", stroke = "#ffffff", `stroke-width` = 0.6
+        )
+      }
+    }
+  }
+
+  tags$svg(
+    xmlns = "http://www.w3.org/2000/svg",
+    width = width,
+    height = height,
+    viewBox = sprintf("0 0 %d %d", width, height),
+    elems
+  )
+}
+```
+
+```{r build-main-table, include = FALSE}
+siteIds <- sort(unique(siteResults$databaseId))
+
+if (nrow(passingMeta) > 0 && length(siteIds) > 0) {
+  passingMeta <- passingMeta |>
+    dplyr::left_join(benefitRisk, by = c("analysisId", "targetCohortId", "outcomeCohortId"))
+
+  siteWide <- siteResults |>
+    dplyr::inner_join(
+      passingMeta |>
+        dplyr::select(analysisId, targetCohortId, outcomeCohortId) |>
+        dplyr::distinct(),
+      by = c("analysisId", "targetCohortId", "outcomeCohortId")
+    )
+
+  reportRows <- passingMeta |>
+    dplyr::select(analysisId, targetCohortId, outcomeCohortId,
+                  benefitCount, riskCount, nSources,
+                  calibratedRr, calibratedCi95Lb, calibratedCi95Ub, calibratedP,
+                  pi95Lb, pi95Ub, nDatabases,
+                  numOutcomesExposed, numOutcomesUnexposed, numExposures,
+                  mdrr, i2, tau, ease,
+                  mdrrDiagnostic, i2Diagnostic, tauDiagnostic, easeDiagnostic, unblind)
+  reportRows$sites <- lapply(seq_len(nrow(reportRows)), function(i) {
+    siteWide[siteWide$analysisId == reportRows$analysisId[i] &
+               siteWide$targetCohortId == reportRows$targetCohortId[i] &
+               siteWide$outcomeCohortId == reportRows$outcomeCohortId[i], ]
+  })
+
+  # Compact HTML for a set of diagnostic rows
+  diagHtmlString <- function(diags) {
+    if (nrow(diags) == 0) return("")
+    lines <- vapply(seq_len(nrow(diags)), function(j) {
+      d <- diags[j, ]
+      status <- if (is.na(d$pass)) "NOT EVALUATED" else if (d$pass == 1) "PASS" else "FAIL"
+      color <- switch(status, PASS = "#27ae60", FAIL = "#c0392b", "#7f8c8d")
+      sprintf("%s: %s <span style='color:%s;font-weight:600;'>%s</span>",
+              d$diagnosticName, fmtDiagVal(d$diagnosticValue), color, status)
+    }, character(1))
+    paste(lines, collapse = "<br/>")
+  }
+
+  metaDiagStatus <- function(x) {
+    if (length(x) == 0 || is.na(x) || nchar(x) == 0) "NOT EVALUATED" else x
+  }
+  metaDiagColor <- function(x) {
+    switch(metaDiagStatus(x), PASS = "#27ae60", FAIL = "#c0392b", "#7f8c8d")
+  }
+  metaDiagHtml <- function(r) {
+    rows <- list(
+      sprintf("MDRR: %s <span style='color:%s;font-weight:600;'>%s</span>",
+              fmtDiagVal(r$mdrr), metaDiagColor(r$mdrrDiagnostic), metaDiagStatus(r$mdrrDiagnostic)),
+      sprintf("EASE: %s <span style='color:%s;font-weight:600;'>%s</span>",
+              fmtDiagVal(r$ease), metaDiagColor(r$easeDiagnostic), metaDiagStatus(r$easeDiagnostic)),
+      sprintf("I&sup2;: %s <span style='color:%s;font-weight:600;'>%s</span>",
+              fmtDiagVal(r$i2), metaDiagColor(r$i2Diagnostic), metaDiagStatus(r$i2Diagnostic)),
+      sprintf("tau: %s <span style='color:%s;font-weight:600;'>%s</span>",
+              fmtDiagVal(r$tau), metaDiagColor(r$tauDiagnostic), metaDiagStatus(r$tauDiagnostic))
+    )
+    paste(rows, collapse = "<br/>")
+  }
+
+  getSiteDiags <- function(e) {
+    diags <- data.frame()
+    if (nrow(sccDiagnostics) > 0) {
+      diags <- sccDiagnostics |>
+        dplyr::filter(
+          analysisId == e$analysisId,
+          targetCohortId == e$targetCohortId,
+          outcomeCohortId == e$outcomeCohortId,
+          databaseId == e$databaseId,
+          !(diagnosticName %in% c("UNBLIND", "UNBLIND_FOR_CALIBRATION", "EASE"))
+        )
+      ease <- sccDiagnostics |>
+        dplyr::filter(
+          analysisId == e$analysisId,
+          targetCohortId == e$targetCohortId,
+          outcomeCohortId == 0,
+          databaseId == e$databaseId,
+          diagnosticName == "EASE"
+        )
+      diags <- dplyr::bind_rows(diags, ease)
+    }
+    diags
+  }
+
+  # Per-database rows shown when a row is expanded
+  buildDbTable <- function(est, r) {
+    siteRowsTbl <- lapply(seq_len(nrow(est)), function(i) {
+      e <- est[i, ]
+      diags <- getSiteDiags(e)
+      data.frame(
+        database = e$databaseId,
+        rr = fmtNum(e$calibratedRr),
+        ci = fmtCi(e$calibratedLb95, e$calibratedUb95),
+        p = fmtP(e$calibratedPValue),
+        exposed = as.character(e$numOutcomesExposed),
+        unexposed = as.character(e$numOutcomesUnexposed),
+        exposures = as.character(e$numExposures),
+        benefit = if (benefitRangeOk(e$calibratedRr, e$calibratedPValue)) "Yes" else "No",
+        risk = if (!is.na(e$calibratedRr) && !is.na(e$calibratedPValue) &&
+                     e$calibratedRr >= params$riskThreshold && e$calibratedPValue < params$pCutValue) "Yes" else "No",
+        diagnostics = diagHtmlString(diags),
+        stringsAsFactors = FALSE
+      )
+    })
+    dbTbl <- dplyr::bind_rows(siteRowsTbl)
+    metaRow <- data.frame(
+      database = "Meta-analysis",
+      rr = fmtNum(r$calibratedRr),
+      ci = fmtCi(r$calibratedCi95Lb, r$calibratedCi95Ub),
+      p = fmtP(r$calibratedP),
+      exposed = as.character(r$numOutcomesExposed),
+      unexposed = as.character(r$numOutcomesUnexposed),
+      exposures = as.character(r$numExposures),
+      benefit = if (benefitRangeOk(r$calibratedRr, r$calibratedP)) "Yes" else "No",
+      risk = "No",
+      diagnostics = metaDiagHtml(r),
+      stringsAsFactors = FALSE
+    )
+    rbind(dbTbl, metaRow)
+  }
+
+  # Expandable details: grouped forest plot + per-database table
+  buildDetails <- function(est, r) {
+    groupPlot <- groupForestTag(
+      rr = c(est$calibratedRr, r$calibratedRr),
+      lb = c(est$calibratedLb95, r$calibratedCi95Lb),
+      ub = c(est$calibratedUb95, r$calibratedCi95Ub),
+      label = c(est$databaseId, "Meta-analysis"),
+      meta = c(rep(FALSE, nrow(est)), TRUE)
+    )
+    dbTbl <- buildDbTable(est, r)
+    tblWidget <- reactable::reactable(
+      dbTbl,
+      columns = list(
+        database = reactable::colDef(name = "Data source", minWidth = 140),
+        rr = reactable::colDef(name = "Calibrated RR"),
+        ci = reactable::colDef(name = "95% CI"),
+        p = reactable::colDef(name = "p-value"),
+        exposed = reactable::colDef(name = "Outcomes exposed"),
+        unexposed = reactable::colDef(name = "Outcomes unexposed"),
+        exposures = reactable::colDef(name = "Exposures"),
+        benefit = reactable::colDef(name = "Benefit"),
+        risk = reactable::colDef(name = "Risk"),
+        diagnostics = reactable::colDef(name = "Diagnostics", html = TRUE, minWidth = 300)
+      ),
+      defaultPageSize = nrow(dbTbl),
+      highlight = TRUE,
+      bordered = TRUE
+    )
+    htmltools::tagList(
+      groupPlot,
+      htmltools::tags$div(style = "margin-top:8px;", tblWidget)
+    )
+  }
+
+  reportDfList <- lapply(seq_len(nrow(reportRows)), function(i) {
+    r <- reportRows[i, ]
+    est <- r$sites[[1]]
+    dom <- rowDomain(r$calibratedRr, r$calibratedCi95Lb, r$calibratedCi95Ub)
+    out <- list(
+      name = sprintf(
+        "%s / %s / analysis %d",
+        resolveName(r$targetCohortId),
+        resolveName(r$outcomeCohortId),
+        r$analysisId
+      ),
+      benefitCount = r$benefitCount,
+      riskCount = r$riskCount,
+      nSources = r$nSources
+    )
+    out$meta <- forestSvg(r$calibratedRr, r$calibratedCi95Lb, r$calibratedCi95Ub,
+                          dom[1], dom[2], meta = TRUE, i2 = r$i2,
+                          piLb = r$pi95Lb, piUb = r$pi95Ub)
+    out$details <- buildDetails(est, r)
+    out
+  })
+
+  reportDf <- do.call(rbind, lapply(reportDfList, function(x) {
+    as.data.frame(x[setdiff(names(x), "details")], stringsAsFactors = FALSE, check.names = FALSE)
+  }))
+  detailsList <- lapply(reportDfList, function(x) x$details)
+}
+```
+
+```{r render-results}
+if (nrow(passingMeta) > 0 && length(siteIds) > 0) {
+  columns <- list(
+    name = reactable::colDef(name = "Target / Outcome / Analysis", minWidth = 260),
+    benefitCount = reactable::colDef(name = "Sources in benefit range", align = "right"),
+    riskCount = reactable::colDef(name = "Sources in risk range", align = "right"),
+    nSources = reactable::colDef(name = "Data sources", align = "right"),
+    meta = reactable::colDef(name = "Meta-analysis (EvidenceSynthesis)", html = TRUE, width = 180, align = "center")
+  )
+
+  reactable::reactable(
+    reportDf,
+    columns = columns,
+    details = function(index) {
+      detailsList[[index]]
+    },
+    defaultPageSize = 15,
+    filterable = TRUE,
+    searchable = TRUE,
+    defaultSorted = list(benefitCount = "desc", name = "asc"),
+    wrap = FALSE,
+    highlight = TRUE,
+    bordered = TRUE,
+    striped = TRUE
+  )
+} else {
+  cat("No meta-analysis results show a potential benefit within the configured range.")
+}
+```
+
+```{r cleanup, include = FALSE}
+if (exists("connection") && DatabaseConnector::dbIsValid(connection)) {
+  DatabaseConnector::disconnect(connection)
+}
+```
