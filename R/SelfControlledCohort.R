@@ -762,9 +762,14 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
     # 4. Export the exposure-outcome pairs from the input settings. This does not
     #    depend on the effect estimates, so it is always exported.
     outcomeExposurePairs <- .buildOutcomeExposurePairs(exposureOutcomeList, negativeControlPairs, andromeda)
-    if (!is.null(outcomeExposurePairs) && nrow(outcomeExposurePairs) > 0) {
-      resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure")
+    if (is.null(outcomeExposurePairs)) {
+      outcomeExposurePairs <- data.frame(
+        outcome_cohort_id = numeric(0),
+        target_cohort_id = numeric(0),
+        true_effect_size = numeric(0)
+      )
     }
+    resultExportManager$exportDataFrame(outcomeExposurePairs, "scc_outcome_exposure")
 
     # 5. Export final results (scc_result). When no effect estimates were
     #    produced, write an empty scc_result so the export folder is consistent.

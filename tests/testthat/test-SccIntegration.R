@@ -579,3 +579,38 @@ test_that("scc_result includes all target groups when calibrating", {
         info = "scc_result should contain results for every target group"
     )
 })
+
+
+test_that("All result files are exported even when no estimates are produced", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_empty_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # The exposure cohort does not exist, so there are no risk windows and no
+    # effect estimates, but the result files must still be written.
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "cohort",
+        exposureIds = 999999,
+        outcomeIds = 3,
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = TRUE
+    )
+
+    for (f in c(
+        "scc_analysis_setting.csv",
+        "scc_result.csv",
+        "scc_stat.csv",
+        "scc_diagnostics_summary.csv",
+        "scc_outcome_exposure.csv"
+    )) {
+        expect_true(file.exists(file.path(resultPath, f)),
+            info = paste(f, "should always be exported")
+        )
+    }
+})
