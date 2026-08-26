@@ -37,8 +37,8 @@
 #' @param runDiagnostics                Logical indicating whether to run diagnostic tests on
 #'                                      the results. Default is TRUE.
 #' @param diagnostics                   Character vector specifying which diagnostics to run.
-#'                                      Options: "all", "counts", "event_dependent", "pre_exposure",
-#'                                      "window_balance", "cohort_stability". Default is "all".
+#'                                      Options: "all", "mdrr", "pre_exposure_gain",
+#'                                      "event_dependent", "ease". Default is "all".
 #' @param diagnosticThresholds          Named list of diagnostic thresholds. See
 #'                                      getDefaultDiagnosticThresholds() for defaults.
 #'

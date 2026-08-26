@@ -40,8 +40,8 @@ are "outcome" or "exposure". Default is "outcome".}
 the results. Default is TRUE.}
 
 \item{diagnostics}{Character vector specifying which diagnostics to run.
-Options: "all", "counts", "event_dependent", "pre_exposure",
-"window_balance", "cohort_stability". Default is "all".}
+Options: "all", "mdrr", "pre_exposure_gain",
+"event_dependent", "ease". Default is "all".}
 
 \item{diagnosticThresholds}{Named list of diagnostic thresholds. See
 getDefaultDiagnosticThresholds() for defaults.}

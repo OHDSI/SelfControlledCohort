@@ -12,6 +12,7 @@ runSelfControlledCohort(
   exposureIds = NULL,
   outcomeIds = NULL,
   negativeControlPairs = NULL,
+  exposureOutcomeList = NULL,
   controlType = "outcome",
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
@@ -71,6 +72,11 @@ outcomes of interest. If empty, all the outcomes in the
 outcome table will be included.}
 
 \item{negativeControlPairs}{A list of vectors for pairs of negative control}
+
+\item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created
+using \code{createExposureOutcome}, defining the full set of
+exposure-outcome pairs for the study. Used to populate the
+\code{scc_outcome_exposure} results table.}
 
 \item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 
@@ -184,8 +190,8 @@ an alternative mechanism for exporting results}
 \item{runDiagnostics}{If TRUE, run diagnostic tests on the results}
 
 \item{diagnostics}{Character vector specifying which diagnostics to run.
-Options: "all", "counts", "event_dependent", "pre_exposure",
-"window_balance", "cohort_stability". Default is "all".}
+Options: "all", "mdrr", "pre_exposure_gain",
+"event_dependent", "ease". Default is "all".}
 
 \item{diagnosticThresholds}{Named list of diagnostic thresholds. See getDefaultDiagnosticThresholds()}
 }

@@ -134,8 +134,8 @@ createSelfControlledCohortModuleSpecifications <- function(
 #' execute(
 #'   connectionDetails = connectionDetails,
 #'   executionSettings = list(
-#'     databaseSchema = "main",
-#'     cohortTable = "cohort",
+#'     workDatabaseSchema = "main",
+#'     cohortTableNames = CohortGenerator::getCohortTableNames(cohortTable = "cohort"),
 #'     cdmDatabaseSchema = "main"
 #'   ),
 #'   analysisSpecifications = moduleSpec,
@@ -197,11 +197,36 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
 
   cohortTableNames <- executionSettings$cohortTableNames
 
+  # Validate that all required cohorts have actually been generated.
+  # CohortGenerator records a checksum for every generated cohort in the cohort
+  # checksum table. If a cohort ID used by the analysis is absent from that
+  # table, it was never computed and the analysis would silently produce empty
+  # or incorrect results.
+  if (!is.null(cohortTableNames) && !is.null(executionSettings$workDatabaseSchema)) {
+    generatedCohorts <- CohortGenerator::getLastGeneratedCohortChecksums(
+      connectionDetails = connectionDetails,
+      cohortDatabaseSchema = executionSettings$workDatabaseSchema,
+      cohortTableNames = cohortTableNames
+    )
+    generatedCohortIds <- generatedCohorts$cohortDefinitionId
+    requiredCohortIds <- unique(c(exposureCohortIds, outcomeCohortIds))
+    missingCohortIds <- setdiff(requiredCohortIds, generatedCohortIds)
+    if (length(missingCohortIds) > 0) {
+      stop(sprintf(
+        "The following cohort IDs were not found in the cohort checksum table and were therefore not generated: %s",
+        paste(missingCohortIds, collapse = ", ")
+      ))
+    }
+  }
+
   dir.create(exportFolder, recursive = TRUE, showWarnings = FALSE)
 
   cli::cli_alert_info("Starting scc execution")
   for (refRow in analysisSettings) {
     getrunSelfControlledCohortArgs <- refRow$runSelfControlledCohortArgs
+    if (is.null(getrunSelfControlledCohortArgs)) {
+      getrunSelfControlledCohortArgs <- list()
+    }
     resultsExportPath <- file.path(exportFolder, paste0("A_", refRow$analysisId))
 
     if (file.exists(file.path(resultsExportPath, "manifest.json"))) {
@@ -209,11 +234,32 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
       next
     }
 
-    # Extract analysis-specific diagnostic settings with defaults
+    # Extract analysis-specific control type
     controlType <- if (!is.null(refRow$controlType)) refRow$controlType else "outcome"
-    runDiagnostics <- if (!is.null(refRow$runDiagnostics)) refRow$runDiagnostics else TRUE
-    diagnostics <- if (!is.null(refRow$diagnostics)) refRow$diagnostics else c("all")
-    diagnosticThresholds <- if (!is.null(refRow$diagnosticThresholds)) refRow$diagnosticThresholds else getDefaultDiagnosticThresholds()
+
+    # Diagnostic settings live in runSelfControlledCohortArgs (the settings object).
+    # Fall back to top-level analysis settings for backwards compatibility.
+    getrunSelfControlledCohortArgs$runDiagnostics <- if (!is.null(getrunSelfControlledCohortArgs$runDiagnostics)) {
+      getrunSelfControlledCohortArgs$runDiagnostics
+    } else if (!is.null(refRow$runDiagnostics)) {
+      refRow$runDiagnostics
+    } else {
+      TRUE
+    }
+    getrunSelfControlledCohortArgs$diagnostics <- if (!is.null(getrunSelfControlledCohortArgs$diagnostics)) {
+      getrunSelfControlledCohortArgs$diagnostics
+    } else if (!is.null(refRow$diagnostics)) {
+      refRow$diagnostics
+    } else {
+      c("all")
+    }
+    getrunSelfControlledCohortArgs$diagnosticThresholds <- if (!is.null(getrunSelfControlledCohortArgs$diagnosticThresholds)) {
+      getrunSelfControlledCohortArgs$diagnosticThresholds
+    } else if (!is.null(refRow$diagnosticThresholds)) {
+      refRow$diagnosticThresholds
+    } else {
+      getDefaultDiagnosticThresholds()
+    }
 
     args <- list(
       connectionDetails = connectionDetails,
@@ -228,14 +274,12 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
       databaseId = databaseId,
       controlType = controlType,
       negativeControlPairs = negativeControlsList,
+      exposureOutcomeList = exposureOutcomeList,
       analysisDescription = refRow$description,
       analysisId = refRow$analysisId,
       tempEmulationSchema = executionSettings$tempEmulationSchema,
       resultExportPath = resultsExportPath,
-      computeThreads = computeThreads,
-      runDiagnostics = runDiagnostics,
-      diagnostics = diagnostics,
-      diagnosticThresholds = diagnosticThresholds
+      computeThreads = computeThreads
     )
 
     args <- append(args, getrunSelfControlledCohortArgs)
