@@ -503,3 +503,79 @@ test_that("Exposure-based negative controls do not contaminate outcomes", {
         )
     }
 })
+
+
+test_that("scc_outcome_exposure reflects the full input exposure-outcome list", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_oe_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # The second outcome is deliberately absent from `outcomeIds` so it produces
+    # no results, but it must still appear in scc_outcome_exposure because it is
+    # part of the input settings.
+    exposureOutcomeList <- list(
+        createExposureOutcome(exposureId = 1, outcomeId = 192671),
+        createExposureOutcome(exposureId = 1, outcomeId = 44444444)
+    )
+
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "condition_occurrence",
+        exposureIds = 1,
+        outcomeIds = 192671,
+        exposureOutcomeList = exposureOutcomeList,
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = FALSE
+    )
+
+    oeFile <- file.path(resultPath, "scc_outcome_exposure.csv")
+    expect_true(file.exists(oeFile))
+    oe <- read.csv(oeFile)
+
+    expect_true(all(c(192671, 44444444) %in% oe$outcome_cohort_id),
+        info = "scc_outcome_exposure should contain every input outcome, even those without results"
+    )
+    expect_true(all(oe$target_cohort_id == 1))
+})
+
+
+test_that("scc_result includes all target groups when calibrating", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_multigroup_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # Two targets with outcome-based negative controls exercise the group-by-target
+    # calibration loop, which must not clobber earlier groups in scc_result.
+    diagThresholds <- getDefaultDiagnosticThresholds()
+    diagThresholds$minEventsPerWindow <- 0
+    diagThresholds$mdrrMaxAcceptable <- Inf
+
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "condition_occurrence",
+        exposureIds = c(1, 2),
+        outcomeIds = 192671,
+        controlType = "outcome",
+        negativeControlPairs = list(c(1, 40481087), c(2, 4112343)),
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = TRUE,
+        diagnosticThresholds = diagThresholds
+    )
+
+    result <- readSccResult(resultPath)
+    expect_true(!is.null(result) && nrow(result) > 0)
+
+    expect_true(all(c(1, 2) %in% result$target_cohort_id),
+        info = "scc_result should contain results for every target group"
+    )
+})

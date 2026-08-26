@@ -12,6 +12,7 @@ runSelfControlledCohort(
   exposureIds = NULL,
   outcomeIds = NULL,
   negativeControlPairs = NULL,
+  exposureOutcomeList = NULL,
   controlType = "outcome",
   exposureDatabaseSchema = cdmDatabaseSchema,
   exposureTable = "drug_era",
@@ -71,6 +72,11 @@ outcomes of interest. If empty, all the outcomes in the
 outcome table will be included.}
 
 \item{negativeControlPairs}{A list of vectors for pairs of negative control}
+
+\item{exposureOutcomeList}{A list of objects of type \code{exposureOutcome} as created
+using \code{createExposureOutcome}, defining the full set of
+exposure-outcome pairs for the study. Used to populate the
+\code{scc_outcome_exposure} results table.}
 
 \item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls}
 

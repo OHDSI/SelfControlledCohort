@@ -274,6 +274,7 @@ execute <- function(connectionDetails, executionSettings, analysisSpecifications
       databaseId = databaseId,
       controlType = controlType,
       negativeControlPairs = negativeControlsList,
+      exposureOutcomeList = exposureOutcomeList,
       analysisDescription = refRow$description,
       analysisId = refRow$analysisId,
       tempEmulationSchema = executionSettings$tempEmulationSchema,
