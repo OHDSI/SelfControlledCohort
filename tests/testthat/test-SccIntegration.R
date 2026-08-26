@@ -614,3 +614,21 @@ test_that("All result files are exported even when no estimates are produced", {
         )
     }
 })
+
+
+test_that("scc_outcome_exposure drops pairs with missing cohort IDs", {
+    testthat::skip_on_cran()
+
+    # outcome_cohort_id / target_cohort_id are NOT NULL primary keys, so pairs
+    # with missing ids must never be exported.
+    exposureOutcomeList <- list(
+        list(exposureId = 1, outcomeId = 3, trueEffectSize = NA),
+        list(exposureId = 1, outcomeId = NA, trueEffectSize = NA)
+    )
+    pairs <- SelfControlledCohort:::.buildOutcomeExposurePairs(exposureOutcomeList, NULL, NULL)
+
+    expect_true(nrow(pairs) == 1)
+    expect_false(any(is.na(pairs$outcome_cohort_id)))
+    expect_false(any(is.na(pairs$target_cohort_id)))
+    expect_equal(pairs$outcome_cohort_id, 3)
+})

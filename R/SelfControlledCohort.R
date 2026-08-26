@@ -287,6 +287,8 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
 #' Build the scc_outcome_exposure data frame from the input settings
 #' @noRd
 .buildOutcomeExposurePairs <- function(exposureOutcomeList, negativeControlPairs, andromeda) {
+  pairs <- NULL
+
   if (!is.null(exposureOutcomeList) && length(exposureOutcomeList) > 0) {
     pairs <- dplyr::bind_rows(lapply(exposureOutcomeList, function(eo) {
       exposureIds <- if (is.list(eo$exposureId)) unlist(eo$exposureId) else eo$exposureId
@@ -301,40 +303,49 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
         dplyr::mutate(true_effect_size = trueEffectSize)
     })) |>
       dplyr::distinct()
+  } else if ("estimates" %in% names(andromeda)) {
+    # Fallback for direct runSelfControlledCohort calls without the input list:
+    # reconstruct from the negative control pairs and the computed results.
+    pairs <- andromeda$estimates |>
+      dplyr::select("target_cohort_id", "outcome_cohort_id") |>
+      dplyr::collect() |>
+      dplyr::distinct() |>
+      dplyr::mutate(true_effect_size = NA_real_)
 
-    return(pairs)
-  }
+    if (!is.null(negativeControlPairs) && length(negativeControlPairs) > 0) {
+      ncPairs <- do.call(rbind, lapply(negativeControlPairs, function(p) {
+        data.frame(
+          target_cohort_id = as.numeric(p[[1]]),
+          outcome_cohort_id = as.numeric(p[[2]]),
+          true_effect_size = 1
+        )
+      })) |>
+        dplyr::distinct()
 
-  # Fallback for direct runSelfControlledCohort calls without the input list:
-  # reconstruct from the negative control pairs and the computed results.
-  if (!("estimates" %in% names(andromeda))) {
-    return(NULL)
-  }
-
-  pairs <- andromeda$estimates |>
-    dplyr::select("target_cohort_id", "outcome_cohort_id") |>
-    dplyr::collect() |>
-    dplyr::distinct() |>
-    dplyr::mutate(true_effect_size = NA_real_)
-
-  if (!is.null(negativeControlPairs) && length(negativeControlPairs) > 0) {
-    ncPairs <- do.call(rbind, lapply(negativeControlPairs, function(p) {
-      data.frame(
-        target_cohort_id = as.numeric(p[[1]]),
-        outcome_cohort_id = as.numeric(p[[2]]),
-        true_effect_size = 1
+      pairs <- dplyr::bind_rows(
+        pairs |>
+          dplyr::anti_join(
+            ncPairs |> dplyr::select("target_cohort_id", "outcome_cohort_id"),
+            by = c("target_cohort_id", "outcome_cohort_id")
+          ),
+        ncPairs
       )
-    })) |>
-      dplyr::distinct()
+    }
+  }
 
-    pairs <- dplyr::bind_rows(
-      pairs |>
-        dplyr::anti_join(
-          ncPairs |> dplyr::select("target_cohort_id", "outcome_cohort_id"),
-          by = c("target_cohort_id", "outcome_cohort_id")
-        ),
-      ncPairs
-    )
+  # The primary keys of scc_outcome_exposure are outcome_cohort_id and
+  # target_cohort_id, both NOT NULL. Drop any rows with missing ids so the
+  # exported table never violates the key constraints on upload.
+  if (!is.null(pairs) && nrow(pairs) > 0) {
+    nBefore <- nrow(pairs)
+    pairs <- pairs |>
+      dplyr::filter(!is.na(.data$target_cohort_id) & !is.na(.data$outcome_cohort_id))
+    if (nrow(pairs) < nBefore) {
+      ParallelLogger::logWarn(sprintf(
+        "Dropped %d exposure-outcome pair(s) with missing cohort IDs from scc_outcome_exposure",
+        nBefore - nrow(pairs)
+      ))
+    }
   }
 
   return(pairs)

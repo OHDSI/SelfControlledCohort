@@ -12,6 +12,7 @@ Bug Fixes:
 - Fixed a bug where exposure-based negative controls (`controlType = "exposure"`) were treated as outcomes, contaminating `outcome_cohort_id` in results.
 - Fixed `scc_outcome_exposure` to reflect the full input exposure-outcome list (rather than only pairs with results) and to correctly accumulate `scc_result` across all calibration groups/batches.
 - `scc_result`, `scc_stat`, `scc_diagnostics_summary`, and `scc_outcome_exposure` are now always exported (as empty files when an analysis yields no effect estimates), so the export folder and manifest stay consistent.
+- `scc_outcome_exposure` no longer emits exposure-outcome pairs with missing cohort IDs, which previously violated the NOT NULL primary key constraints on results upload.
 
 SelfControlledCohort 2.0.0
 ==========================
