@@ -17,6 +17,8 @@ runSccDiagnostics(
   estimates = NULL,
   diagnostics = c("all"),
   thresholds = getDefaultDiagnosticThresholds(),
+  computeThreads = getOption("strategus.SelfControlledCohort.computeThreads", default =
+    parallel::detectCores() - 1),
   resultExportManager
 )
 }
@@ -45,6 +47,10 @@ runSccDiagnostics(
 "all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"}
 
 \item{thresholds}{Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)}
+
+\item{computeThreads}{Number of parallel threads to use for CPU-bound diagnostic
+computations (e.g., MDRR and EASE). Default is the number of
+available cores minus 1.}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance}
 }

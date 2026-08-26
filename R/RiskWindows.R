@@ -193,6 +193,30 @@ runSccRiskWindows <- function(connection,
     DatabaseConnector::renderTranslateExecuteSql(connection, "TRUNCATE TABLE @table; DROP TABLE @table", table = table)
 
   })
+
+  # Ensure scc_stat is always exported, even when all statistics are empty, so
+  # the export folder stays consistent for analyses with no results.
+  statFile <- file.path(exportManager$exportDir, "scc_stat.csv")
+  if (!file.exists(statFile)) {
+    emptyStat <- data.frame(
+      database_id = character(0),
+      analysis_id = numeric(0),
+      outcome_cohort_id = numeric(0),
+      target_cohort_id = numeric(0),
+      stat_type = character(0),
+      mean = numeric(0),
+      sd = numeric(0),
+      minimum = numeric(0),
+      p10 = numeric(0),
+      p25 = numeric(0),
+      median = numeric(0),
+      p75 = numeric(0),
+      p90 = numeric(0),
+      maximum = numeric(0),
+      total = numeric(0)
+    )
+    exportManager$exportDataFrame(emptyStat, "scc_stat")
+  }
 }
 
 #' @title

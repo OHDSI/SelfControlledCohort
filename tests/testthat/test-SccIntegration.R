@@ -447,4 +447,188 @@ test_that("Negative controls and calibration run correctly", {
     easeDiag <- diagnostics[diagnostics$diagnostic_name == "EASE" & diagnostics$target_cohort_id == 1, ]
     expect_true(nrow(easeDiag) == 1)
     expect_equal(easeDiag$outcome_cohort_id, 0)
+
+    # Pre-exposure gain and event-dependent observation diagnostics should be
+    # present for the fixed outcome pair.
+    expect_true(any(diagnostics$diagnostic_name == "PRE_EXPOSURE_RATE_RATIO"),
+        info = "PRE_EXPOSURE_RATE_RATIO diagnostic should be exported"
+    )
+    expect_true(any(diagnostics$diagnostic_name == "PRE_EXPOSURE_P_VALUE"),
+        info = "PRE_EXPOSURE_P_VALUE diagnostic should be exported"
+    )
+    expect_true(any(diagnostics$diagnostic_name == "EVENT_DEPENDENT_OBSERVATION"),
+        info = "EVENT_DEPENDENT_OBSERVATION diagnostic should be exported"
+    )
+})
+
+
+test_that("Exposure-based negative controls do not contaminate outcomes", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_exp_control_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # Eunomia GiBleed cohorts: 1 = Celecoxib, 2 = Diclofenac, 3 = GI bleed.
+    # Exposure-based negative control: Diclofenac (2) against GI bleed (3).
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "cohort",
+        exposureIds = c(1, 2),
+        outcomeIds = 3,
+        controlType = "exposure",
+        negativeControlPairs = list(c(2, 3)),
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = FALSE
+    )
+
+    result <- readSccResult(resultPath)
+    expect_true(!is.null(result) && nrow(result) > 0, info = "scc_result.csv should have rows")
+
+    # Exposure cohort IDs must never appear as outcome cohort IDs.
+    expect_false(any(result$outcome_cohort_id %in% c(1, 2)),
+        info = "Exposure cohort IDs should not appear in outcome_cohort_id"
+    )
+    expect_true(all(result$outcome_cohort_id == 3))
+
+    # scc_stat should likewise never report an exposure id as an outcome id.
+    statFile <- file.path(resultPath, "scc_stat.csv")
+    if (file.exists(statFile)) {
+        stat <- read.csv(statFile)
+        expect_false(any(stat$outcome_cohort_id %in% c(1, 2)),
+            info = "Exposure cohort IDs should not appear in scc_stat outcome_cohort_id"
+        )
+    }
+})
+
+
+test_that("scc_outcome_exposure reflects the full input exposure-outcome list", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_oe_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # The second outcome is deliberately absent from `outcomeIds` so it produces
+    # no results, but it must still appear in scc_outcome_exposure because it is
+    # part of the input settings.
+    exposureOutcomeList <- list(
+        createExposureOutcome(exposureId = 1, outcomeId = 192671),
+        createExposureOutcome(exposureId = 1, outcomeId = 44444444)
+    )
+
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "condition_occurrence",
+        exposureIds = 1,
+        outcomeIds = 192671,
+        exposureOutcomeList = exposureOutcomeList,
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = FALSE
+    )
+
+    oeFile <- file.path(resultPath, "scc_outcome_exposure.csv")
+    expect_true(file.exists(oeFile))
+    oe <- read.csv(oeFile)
+
+    expect_true(all(c(192671, 44444444) %in% oe$outcome_cohort_id),
+        info = "scc_outcome_exposure should contain every input outcome, even those without results"
+    )
+    expect_true(all(oe$target_cohort_id == 1))
+})
+
+
+test_that("scc_result includes all target groups when calibrating", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_multigroup_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # Two targets with outcome-based negative controls exercise the group-by-target
+    # calibration loop, which must not clobber earlier groups in scc_result.
+    diagThresholds <- getDefaultDiagnosticThresholds()
+    diagThresholds$minEventsPerWindow <- 0
+    diagThresholds$mdrrMaxAcceptable <- Inf
+
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "condition_occurrence",
+        exposureIds = c(1, 2),
+        outcomeIds = 192671,
+        controlType = "outcome",
+        negativeControlPairs = list(c(1, 40481087), c(2, 4112343)),
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = TRUE,
+        diagnosticThresholds = diagThresholds
+    )
+
+    result <- readSccResult(resultPath)
+    expect_true(!is.null(result) && nrow(result) > 0)
+
+    expect_true(all(c(1, 2) %in% result$target_cohort_id),
+        info = "scc_result should contain results for every target group"
+    )
+})
+
+
+test_that("All result files are exported even when no estimates are produced", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_empty_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # The exposure cohort does not exist, so there are no risk windows and no
+    # effect estimates, but the result files must still be written.
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "cohort",
+        exposureIds = 999999,
+        outcomeIds = 3,
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = TRUE
+    )
+
+    for (f in c(
+        "scc_analysis_setting.csv",
+        "scc_result.csv",
+        "scc_stat.csv",
+        "scc_diagnostics_summary.csv",
+        "scc_outcome_exposure.csv"
+    )) {
+        expect_true(file.exists(file.path(resultPath, f)),
+            info = paste(f, "should always be exported")
+        )
+    }
+})
+
+
+test_that("scc_outcome_exposure drops pairs with missing cohort IDs", {
+    testthat::skip_on_cran()
+
+    # outcome_cohort_id / target_cohort_id are NOT NULL primary keys, so pairs
+    # with missing ids must never be exported.
+    exposureOutcomeList <- list(
+        list(exposureId = 1, outcomeId = 3, trueEffectSize = NA),
+        list(exposureId = 1, outcomeId = NA, trueEffectSize = NA)
+    )
+    pairs <- SelfControlledCohort:::.buildOutcomeExposurePairs(exposureOutcomeList, NULL, NULL)
+
+    expect_true(nrow(pairs) == 1)
+    expect_false(any(is.na(pairs$outcome_cohort_id)))
+    expect_false(any(is.na(pairs$target_cohort_id)))
+    expect_equal(pairs$outcome_cohort_id, 3)
 })
