@@ -47,8 +47,8 @@ moduleSpec <- createSelfControlledCohortModuleSpecifications(
 execute(
   connectionDetails = connectionDetails,
   executionSettings = list(
-    databaseSchema = "main",
-    cohortTable = "cohort",
+    workDatabaseSchema = "main",
+    cohortTableNames = CohortGenerator::getCohortTableNames(cohortTable = "cohort"),
     cdmDatabaseSchema = "main"
   ),
   analysisSpecifications = moduleSpec,

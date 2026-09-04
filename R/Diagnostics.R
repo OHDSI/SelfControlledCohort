@@ -75,6 +75,9 @@ getDefaultDiagnosticThresholds <- function() {
 #' @param diagnostics                 Character vector of diagnostics to run. Options:
 #'                                    "all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"
 #' @param thresholds                  Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)
+#' @param computeThreads              Number of parallel threads to use for CPU-bound diagnostic
+#'                                    computations (e.g., MDRR and EASE). Default is the number of
+#'                                    available cores minus 1.
 #' @param resultExportManager         ResultModelManager::ResultExportManager instance
 #'
 #' @return
@@ -114,6 +117,9 @@ runSccDiagnostics <- function(connection,
                               estimates = NULL,
                               diagnostics = c("all"),
                               thresholds = getDefaultDiagnosticThresholds(),
+                              computeThreads = getOption("strategus.SelfControlledCohort.computeThreads",
+                                default = parallel::detectCores() - 1
+                              ),
                               resultExportManager) {
   if (!DatabaseConnector::dbIsValid(connection)) {
     stop("Invalid connection object")
@@ -151,7 +157,8 @@ runSccDiagnostics <- function(connection,
       resultsTable = resultsTable,
       analysisId = analysisId,
       thresholds = thresholds,
-      tempEmulationSchema = tempEmulationSchema
+      tempEmulationSchema = tempEmulationSchema,
+      computeThreads = computeThreads
     )
     diagnosticResults <- rbind(diagnosticResults, mdrrResult)
   }
@@ -167,7 +174,8 @@ runSccDiagnostics <- function(connection,
       outcomeDatabaseSchema = outcomeDatabaseSchema,
       analysisId = analysisId,
       thresholds = thresholds,
-      tempEmulationSchema = tempEmulationSchema
+      tempEmulationSchema = tempEmulationSchema,
+      resultsTable = resultsTable
     )
     diagnosticResults <- rbind(diagnosticResults, preExpGainResult)
   }
@@ -183,7 +191,8 @@ runSccDiagnostics <- function(connection,
       outcomeDatabaseSchema = outcomeDatabaseSchema,
       analysisId = analysisId,
       thresholds = thresholds,
-      tempEmulationSchema = tempEmulationSchema
+      tempEmulationSchema = tempEmulationSchema,
+      resultsTable = resultsTable
     )
     diagnosticResults <- rbind(diagnosticResults, eventDepResult)
   }
@@ -194,12 +203,16 @@ runSccDiagnostics <- function(connection,
     easeResult <- .computeEaseDiagnostic(
       estimates = estimates,
       analysisId = analysisId,
-      thresholds = thresholds
+      thresholds = thresholds,
+      computeThreads = computeThreads
     )
     diagnosticResults <- rbind(diagnosticResults, easeResult)
   }
 
   # Add database_id to results
+  # Ensure all required columns exist
+  cols <- c("database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id", "diagnostic_name", "diagnostic_value", "pass")
+
   if (nrow(diagnosticResults) > 0) {
     diagnosticResults$database_id <- databaseId
 
@@ -210,26 +223,38 @@ runSccDiagnostics <- function(connection,
       diagnosticResults$analysis_id <- diagnosticResults$analysisId
     }
 
-    # Ensure all required columns exist
-    cols <- c("database_id", "analysis_id", "target_cohort_id", "outcome_cohort_id", "diagnostic_name", "diagnostic_value", "pass")
     for (col in cols) {
       if (!col %in% colnames(diagnosticResults)) {
         diagnosticResults[[col]] <- NA
       }
     }
+  } else {
+    # No diagnostics were produced - write an empty file with the expected columns
+    # so the export folder stays consistent even when the analysis yields no data.
+    diagnosticResults <- data.frame(
+      database_id = character(0),
+      analysis_id = numeric(0),
+      target_cohort_id = numeric(0),
+      outcome_cohort_id = numeric(0),
+      diagnostic_name = character(0),
+      diagnostic_value = numeric(0),
+      pass = integer(0)
+    )
+  }
 
-    diagnosticResults <- diagnosticResults |>
-      dplyr::select(dplyr::all_of(cols))
+  diagnosticResults <- diagnosticResults |>
+    dplyr::select(dplyr::all_of(cols))
 
-    # Compute blinding status
-    blindingRows <- .computeBlindingStatus(diagnosticResults)
-    if (nrow(blindingRows) > 0) {
-      diagnosticResults <- rbind(diagnosticResults, blindingRows)
-    }
+  # Compute blinding status
+  blindingRows <- .computeBlindingStatus(diagnosticResults)
+  if (nrow(blindingRows) > 0) {
+    diagnosticResults <- rbind(diagnosticResults, blindingRows)
+  }
 
-    # Export all results at once via Manager
-    resultExportManager$exportDataFrame(diagnosticResults, "scc_diagnostics_summary")
+  # Export all results at once via Manager (always export, even if empty)
+  resultExportManager$exportDataFrame(diagnosticResults, "scc_diagnostics_summary")
 
+  if (nrow(diagnosticResults) > 0) {
     ParallelLogger::logInfo(sprintf("Completed %d diagnostic tests", nrow(diagnosticResults)))
 
     failures <- diagnosticResults |>
@@ -344,7 +369,7 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 
 #' Compute EASE diagnostic
 #' @noRd
-.computeEaseDiagnostic <- function(estimates, analysisId, thresholds) {
+.computeEaseDiagnostic <- function(estimates, analysisId, thresholds, computeThreads = 1) {
   if (is.null(estimates) || nrow(estimates) == 0) {
     return(data.frame())
   }
@@ -379,34 +404,76 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     }
   }
 
-  easeResults <- negatives |>
-    dplyr::group_by(.data$target_cohort_id) |>
-    dplyr::group_map(function(data, grp) {
-      # Use the grouping variable from grp
-      targetId <- grp[[1]] 
+  targetGroups <- split(negatives, negatives$target_cohort_id)
 
-      # computeEase needs rr and seLogRr
-      ease <- if (nrow(data) > 1) computeEase(data) else NA_real_
+  if (computeThreads > 1 && length(targetGroups) > 1) {
+    cluster <- ParallelLogger::makeCluster(min(computeThreads, length(targetGroups)))
+    on.exit(ParallelLogger::stopCluster(cluster), add = TRUE)
 
-      pass <- if (is.na(ease)) {
-        0L # Fail if EASE cannot be computed (insufficient controls)
-      } else {
-        as.integer(ease <= thresholds$easeMaxAcceptable)
-      }
-
-      data.frame(
-        analysis_id = analysisId,
-        target_cohort_id = targetId,
-        outcome_cohort_id = 0, # EASE is per target
-        diagnostic_name = "EASE",
-        diagnostic_value = ease,
-        pass = pass
-      )
-    }) |>
-    dplyr::bind_rows()
-
+    easeResults <- ParallelLogger::clusterApply(
+      cluster,
+      targetGroups,
+      .computeEaseForTarget,
+      analysisId = analysisId,
+      thresholds = thresholds,
+      progressBar = FALSE
+    )
+    easeResults <- dplyr::bind_rows(easeResults)
+  } else {
+    easeResults <- dplyr::bind_rows(lapply(
+      targetGroups,
+      .computeEaseForTarget,
+      analysisId = analysisId,
+      thresholds = thresholds
+    ))
+  }
 
   return(easeResults)
+}
+
+#' Compute EASE for a single target cohort
+#'
+#' This worker only uses the EmpiricalCalibration package (a hard dependency) and
+#' base functions, so it can run on ParallelLogger cluster nodes without requiring
+#' the SelfControlledCohort package to be installed (e.g., during R CMD build).
+#' @noRd
+.computeEaseForTarget <- function(data, analysisId, thresholds) {
+  targetId <- data$target_cohort_id[1]
+
+  ease <- NA_real_
+  if (nrow(data) > 1) {
+    ease <- tryCatch(
+      {
+        negatives <- data[!is.na(data$rr) & !is.na(data$seLogRr), , drop = FALSE]
+        if (nrow(negatives) >= 2) {
+          nullDist <- EmpiricalCalibration::fitNull(logRr = log(negatives$rr), seLogRr = negatives$seLogRr)
+          if (!is.na(nullDist["mean"]) && !is.na(nullDist["sd"])) {
+            as.numeric(EmpiricalCalibration::computeExpectedAbsoluteSystematicError(nullDist))
+          } else {
+            NA_real_
+          }
+        } else {
+          NA_real_
+        }
+      },
+      error = function(e) NA_real_
+    )
+  }
+
+  pass <- if (is.na(ease)) {
+    0L # Fail if EASE cannot be computed (insufficient controls)
+  } else {
+    as.integer(ease <= thresholds$easeMaxAcceptable)
+  }
+
+  data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = targetId,
+    outcome_cohort_id = 0, # EASE is per target
+    diagnostic_name = "EASE",
+    diagnostic_value = ease,
+    pass = pass
+  )
 }
 
 
@@ -417,7 +484,8 @@ getDiagnosticsSummary <- function(diagnosticResults) {
                                    resultsTable,
                                    analysisId,
                                    thresholds,
-                                   tempEmulationSchema) {
+                                   tempEmulationSchema,
+                                   computeThreads = 1) {
   sql <- "
   SELECT
     target_cohort_id,
@@ -430,53 +498,125 @@ getDiagnosticsSummary <- function(diagnosticResults) {
   WHERE analysis_id = @analysis_id
   "
 
-  results <- DatabaseConnector::renderTranslateQuerySql(
+  cluster <- ParallelLogger::makeCluster(computeThreads)
+  on.exit(ParallelLogger::stopCluster(cluster), add = TRUE)
+
+  computeMdrrCallBack <- function(rows, position, cluster, analysisId, thresholds) {
+    if (nrow(rows) == 0) {
+      return(NULL)
+    }
+    batches <- ceiling(nrow(rows) / 10000)
+    rows <- split(rows, rep_len(seq_len(batches), nrow(rows)))
+    rows <- ParallelLogger::clusterApply(
+      cluster,
+      rows,
+      .computeMdrrForRows,
+      analysisId = analysisId,
+      thresholds = thresholds,
+      progressBar = FALSE
+    )
+    dplyr::bind_rows(rows)
+  }
+
+  # Stream the results table in batches to avoid materializing the full
+  # target-outcome grid in memory.
+  batchResults <- DatabaseConnector::renderTranslateQueryApplyBatched(
     connection = connection,
     sql = sql,
+    fun = computeMdrrCallBack,
+    args = list(cluster = cluster, analysisId = analysisId, thresholds = thresholds),
     results_table = resultsTable,
     analysis_id = analysisId,
     tempEmulationSchema = tempEmulationSchema,
     snakeCaseToCamelCase = TRUE
   )
 
-  if (nrow(results) == 0) {
+  diagnostics <- dplyr::bind_rows(batchResults)
+
+  if (is.null(diagnostics) || nrow(diagnostics) == 0) {
     return(data.frame())
   }
 
-  diagnostics <- data.frame()
+  return(diagnostics)
+}
 
-  for (i in seq_len(nrow(results))) {
-    row <- results[i, ]
-
-    # Compute MDRR
-    mdrr <- computeMdrrForRateRatio(
-      exposedPersonTime = row$timeAtRiskExposed,
-      unexposedPersonTime = row$timeAtRiskUnexposed,
-      exposedEvents = row$numOutcomesExposed,
-      unexposedEvents = row$numOutcomesUnexposed,
-      alpha = 0.05,
-      power = 0.80
-    )
-
-    # Check if MDRR is acceptable
-    pass <- if (is.na(mdrr)) {
-      0L # Fail if MDRR cannot be computed
-    } else {
-      as.integer(mdrr <= thresholds$mdrrMaxAcceptable)
+#' Compute MDRR rows for a chunk of results
+#'
+#' This worker only uses base/stats functions so it can run on ParallelLogger
+#' cluster nodes without requiring the SelfControlledCohort package to be
+#' installed (e.g., during R CMD build when rebuilding vignettes).
+#' @noRd
+.computeMdrrForRows <- function(rows, analysisId, thresholds) {
+  computeMdrr <- function(exposedPersonTime, unexposedPersonTime, exposedEvents, unexposedEvents) {
+    if (exposedPersonTime <= 0 || unexposedPersonTime <= 0) {
+      return(NA_real_)
+    }
+    if (exposedEvents < 1 || unexposedEvents < 1) {
+      return(NA_real_)
     }
 
-    diagRow <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "MDRR",
-      diagnostic_value = mdrr,
-      pass = pass
+    n <- exposedEvents + unexposedEvents
+    r <- exposedPersonTime / (exposedPersonTime + unexposedPersonTime)
+
+    if (r <= 0 || r >= 1) {
+      return(Inf)
+    }
+
+    zAlpha <- stats::qnorm(1 - 0.05 / 2)
+
+    computePowerSrl <- function(b, z, r, n) {
+      if (b <= 0) {
+        return(0)
+      }
+      eb <- exp(b)
+      A <- 2 * ((eb * r / (eb * r + 1 - r)) * b - log(eb * r + 1 - r))
+      B <- b^2 / A * eb * r * (1 - r) / (eb * r + 1 - r)^2
+      zb <- (sqrt(n * A) - z) / sqrt(B)
+      return(stats::pnorm(zb))
+    }
+
+    targetFn <- function(b) {
+      computePowerSrl(b, zAlpha, r, n) - 0.80
+    }
+
+    if (targetFn(log(100)) < 0) {
+      return(100)
+    }
+    if (targetFn(1e-6) > 0) {
+      return(1.0)
+    }
+
+    root <- tryCatch(
+      stats::uniroot(targetFn, interval = c(1e-6, log(100)), tol = 1e-4)$root,
+      error = function(e) NA_real_
     )
-    diagnostics <- rbind(diagnostics, diagRow)
+
+    if (is.na(root)) {
+      return(NA_real_)
+    }
+    return(exp(root))
   }
 
-  return(diagnostics)
+  mdrr <- vapply(seq_len(nrow(rows)), function(i) {
+    computeMdrr(
+      exposedPersonTime = rows$timeAtRiskExposed[i],
+      unexposedPersonTime = rows$timeAtRiskUnexposed[i],
+      exposedEvents = rows$numOutcomesExposed[i],
+      unexposedEvents = rows$numOutcomesUnexposed[i]
+    )
+  }, numeric(1))
+
+  # Check if MDRR is acceptable
+  pass <- ifelse(is.na(mdrr), 0L, as.integer(mdrr <= thresholds$mdrrMaxAcceptable))
+
+  data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = rows$targetCohortId,
+    outcome_cohort_id = rows$outcomeCohortId,
+    diagnostic_name = "MDRR",
+    diagnostic_value = mdrr,
+    pass = pass
+  )
 }
 
 #' Compute pre-exposure gain diagnostic
@@ -488,7 +628,8 @@ getDiagnosticsSummary <- function(diagnosticResults) {
                                               outcomeDatabaseSchema,
                                               analysisId,
                                               thresholds,
-                                              tempEmulationSchema) {
+                                              tempEmulationSchema,
+                                              resultsTable = NULL) {
   preExpData <- testPreExposureGain(
     connection = connection,
     riskWindowsTable = riskWindowsTable,
@@ -496,47 +637,37 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     outcomeDatabaseSchema = outcomeDatabaseSchema,
     analysisId = analysisId,
     cdmDatabaseSchema = cdmDatabaseSchema,
-    tempEmulationSchema = tempEmulationSchema
+    tempEmulationSchema = tempEmulationSchema,
+    resultsTable = resultsTable
   )
 
   if (nrow(preExpData) == 0) {
     return(data.frame())
   }
 
-  diagnostics <- data.frame()
+  # Test passes if p-value > threshold (not significantly higher before)
+  pVal <- preExpData$pValue
+  pass <- ifelse(is.na(pVal), 1L, as.integer(pVal > thresholds$preExposurePThreshold))
 
-  for (i in seq_len(nrow(preExpData))) {
-    row <- preExpData[i, ]
+  rateRatioRows <- data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = preExpData$targetCohortId,
+    outcome_cohort_id = preExpData$outcomeCohortId,
+    diagnostic_name = "PRE_EXPOSURE_RATE_RATIO",
+    diagnostic_value = preExpData$preExposureRateRatio,
+    pass = 1L # We primarily gate on the p-value
+  )
 
+  pValueRows <- data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = preExpData$targetCohortId,
+    outcome_cohort_id = preExpData$outcomeCohortId,
+    diagnostic_name = "PRE_EXPOSURE_P_VALUE",
+    diagnostic_value = pVal,
+    pass = pass
+  )
 
-    # Test passes if p-value > threshold (not significantly higher before)
-    pVal <- row$pValue
-    pass <- if (is.na(pVal)) 1L else as.integer(pVal > thresholds$preExposurePThreshold)
-
-    # Add rate ratio diagnostic
-    diagRow1 <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "PRE_EXPOSURE_RATE_RATIO",
-      diagnostic_value = row$preExposureRateRatio,
-      pass = 1L # We primarily gate on the p-value
-    )
-    diagnostics <- rbind(diagnostics, diagRow1)
-
-    # Add p-value diagnostic
-    diagRow2 <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "PRE_EXPOSURE_P_VALUE",
-      diagnostic_value = pVal,
-      pass = pass
-    )
-    diagnostics <- rbind(diagnostics, diagRow2)
-  }
-
-  return(diagnostics)
+  return(rbind(rateRatioRows, pValueRows))
 }
 
 
@@ -549,7 +680,8 @@ getDiagnosticsSummary <- function(diagnosticResults) {
                                              outcomeDatabaseSchema,
                                              analysisId,
                                              thresholds,
-                                             tempEmulationSchema) {
+                                             tempEmulationSchema,
+                                             resultsTable = NULL) {
   # Determine outcome table columns
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
@@ -566,7 +698,20 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     outcomePersonId <- "subject_id"
   }
 
-  sql <- "
+  # Restrict to the outcomes of interest when possible, so the database does not
+  # scan the entire outcome table for concept ids the study never requested.
+  outcomeRestriction <- ""
+  if (!is.null(resultsTable)) {
+    outcomeRestriction <- "
+  INNER JOIN (
+    SELECT DISTINCT outcome_cohort_id
+    FROM @results_table
+    WHERE analysis_id = @analysis_id
+  ) roi
+    ON o.@outcome_id = roi.outcome_cohort_id"
+  }
+
+  sql <- sprintf("
   SELECT
     rw.exposure_id as target_cohort_id,
     o.@outcome_id as outcome_cohort_id,
@@ -577,16 +722,16 @@ getDiagnosticsSummary <- function(diagnosticResults) {
   INNER JOIN @outcome_database_schema.@outcome_table o
     ON rw.person_id = o.@outcome_person_id
     AND o.@outcome_start_date >= rw.risk_window_start_unexposed
-    AND o.@outcome_start_date <= rw.risk_window_end_exposed
+    AND o.@outcome_start_date <= rw.risk_window_end_exposed%s
   INNER JOIN @cdm_database_schema.observation_period op
     ON rw.person_id = op.person_id
     AND o.@outcome_start_date >= op.observation_period_start_date
     AND o.@outcome_start_date <= op.observation_period_end_date
   WHERE rw.analysis_id = @analysis_id
   GROUP BY rw.exposure_id, o.@outcome_id
-  "
+  ", outcomeRestriction)
 
-  results <- DatabaseConnector::renderTranslateQuerySql(
+  args <- list(
     connection = connection,
     sql = sql,
     risk_windows_table = riskWindowsTable,
@@ -600,28 +745,26 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     tempEmulationSchema = tempEmulationSchema,
     snakeCaseToCamelCase = TRUE
   )
+  if (!is.null(resultsTable)) {
+    args$results_table <- resultsTable
+  }
+
+  results <- do.call(DatabaseConnector::renderTranslateQuerySql, args)
 
   if (nrow(results) == 0) {
     return(data.frame())
   }
 
-  diagnostics <- data.frame()
+  proportion <- results$censoredWithin30Days / results$totalPersonsWithOutcome
 
-  for (i in seq_len(nrow(results))) {
-    row <- results[i, ]
-
-    proportion <- row$censoredWithin30Days / row$totalPersonsWithOutcome
-
-    diagRow <- data.frame(
-      analysis_id = analysisId,
-      target_cohort_id = row$targetCohortId,
-      outcome_cohort_id = row$outcomeCohortId,
-      diagnostic_name = "EVENT_DEPENDENT_OBSERVATION",
-      diagnostic_value = proportion,
-      pass = as.integer(proportion <= thresholds$maxEventDependentCensoring)
-    )
-    diagnostics <- rbind(diagnostics, diagRow)
-  }
+  diagnostics <- data.frame(
+    analysis_id = analysisId,
+    target_cohort_id = results$targetCohortId,
+    outcome_cohort_id = results$outcomeCohortId,
+    diagnostic_name = "EVENT_DEPENDENT_OBSERVATION",
+    diagnostic_value = proportion,
+    pass = as.integer(proportion <= thresholds$maxEventDependentCensoring)
+  )
 
   return(diagnostics)
 }
