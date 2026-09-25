@@ -330,16 +330,35 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     return(data.frame())
   }
 
+  # EASE is computed per target and stored with outcome_cohort_id = 0, whereas
+  # the other diagnostics are stored per target-outcome pair.  Separate the two
+  # so the per-target EASE result can be applied to every outcome of its target.
+  easeRows <- diagnosticResults |>
+    dplyr::filter(.data$diagnostic_name == "EASE") |>
+    dplyr::select("database_id", "analysis_id", "target_cohort_id", "pass") |>
+    dplyr::rename(easePass = "pass")
+
+  pairRows <- diagnosticResults |>
+    dplyr::filter(.data$diagnostic_name != "EASE", .data$outcome_cohort_id != 0)
+
   # Group by target-outcome pair and compute aggregate pass status
-  blindingStatus <- diagnosticResults |>
+  blindingStatus <- pairRows |>
     dplyr::group_by(.data$database_id, .data$analysis_id, .data$target_cohort_id, .data$outcome_cohort_id) |>
     dplyr::summarize(
       # Tier 1: unblind_for_calibration - all non-MDRR diagnostics must pass
-      pass_for_calibration = as.integer(all(.data$pass[.data$diagnostic_name != "MDRR"] == 1)),
+      pass_for_calibration = as.integer(all(.data$pass[.data$diagnostic_name != "MDRR"] == 1, na.rm = TRUE)),
       # Tier 2: unblind - all diagnostics must pass (including MDRR)
-      pass_all = as.integer(all(.data$pass == 1)),
+      pass_all = as.integer(all(.data$pass == 1, na.rm = TRUE)),
       .groups = "drop"
-    )
+    ) |>
+    dplyr::left_join(easeRows, by = c("database_id", "analysis_id", "target_cohort_id")) |>
+    dplyr::mutate(
+      # EASE gates unblinding when it was evaluated (pass = 0 blocks).  When EASE
+      # is missing or not evaluated (pass = NA) it is treated as pass-through.
+      pass_for_calibration = as.integer(.data$pass_for_calibration == 1 & (is.na(.data$easePass) | .data$easePass == 1)),
+      pass_all = as.integer(.data$pass_all == 1 & (is.na(.data$easePass) | .data$easePass == 1))
+    ) |>
+    dplyr::select(-"easePass")
 
   # Create new rows for the summary
   unblindRows <- blindingStatus |>
@@ -461,7 +480,7 @@ getDiagnosticsSummary <- function(diagnosticResults) {
   }
 
   pass <- if (is.na(ease)) {
-    0L # Fail if EASE cannot be computed (insufficient controls)
+    NA_integer_ # Not evaluated (insufficient controls) - treated as pass-through
   } else {
     as.integer(ease <= thresholds$easeMaxAcceptable)
   }
