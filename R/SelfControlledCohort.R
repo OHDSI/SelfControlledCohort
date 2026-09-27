@@ -305,23 +305,31 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
       dplyr::distinct()
   } else if ("estimates" %in% names(andromeda)) {
     # Fallback for direct runSelfControlledCohort calls without the input list:
-    # reconstruct from the negative control pairs and the computed results.
+    # reconstruct from the computed results.
     pairs <- andromeda$estimates |>
       dplyr::select("target_cohort_id", "outcome_cohort_id") |>
       dplyr::collect() |>
       dplyr::distinct() |>
       dplyr::mutate(true_effect_size = NA_real_)
+  }
 
-    if (!is.null(negativeControlPairs) && length(negativeControlPairs) > 0) {
-      ncPairs <- do.call(rbind, lapply(negativeControlPairs, function(p) {
-        data.frame(
-          target_cohort_id = as.numeric(p[[1]]),
-          outcome_cohort_id = as.numeric(p[[2]]),
-          true_effect_size = 1
-        )
-      })) |>
-        dplyr::distinct()
+  # Mark negative controls regardless of how the pairs were built above.
+  # Negative control pairs can be supplied separately from the exposure-outcome
+  # list (e.g. via the negativeControlPairs argument), so they must always be
+  # flagged with true_effect_size = 1 for empirical calibration to find them.
+  if (!is.null(negativeControlPairs) && length(negativeControlPairs) > 0) {
+    ncPairs <- do.call(rbind, lapply(negativeControlPairs, function(p) {
+      data.frame(
+        target_cohort_id = as.numeric(p[[1]]),
+        outcome_cohort_id = as.numeric(p[[2]]),
+        true_effect_size = 1
+      )
+    })) |>
+      dplyr::distinct()
 
+    if (is.null(pairs) || nrow(pairs) == 0) {
+      pairs <- ncPairs
+    } else {
       pairs <- dplyr::bind_rows(
         pairs |>
           dplyr::anti_join(

@@ -632,3 +632,35 @@ test_that("scc_outcome_exposure drops pairs with missing cohort IDs", {
     expect_false(any(is.na(pairs$target_cohort_id)))
     expect_equal(pairs$outcome_cohort_id, 3)
 })
+
+test_that("scc_outcome_exposure exports negative controls passed separately", {
+    # Exposure-based negative controls supplied via negativeControlPairs rather
+    # than inside the exposureOutcomeList must still be flagged with
+    # true_effect_size = 1 (e.g. controlType = "exposure" with fixed outcomes).
+    exposureOutcomeList <- list(
+        list(exposureId = 1, outcomeId = 3, trueEffectSize = NA)
+    )
+    negativeControlPairs <- list(c(2, 3))
+
+    pairs <- SelfControlledCohort:::.buildOutcomeExposurePairs(exposureOutcomeList, negativeControlPairs, NULL)
+
+    expect_equal(nrow(pairs), 2)
+    negRow <- pairs[pairs$target_cohort_id == 2 & pairs$outcome_cohort_id == 3, ]
+    expect_equal(nrow(negRow), 1)
+    expect_equal(negRow$true_effect_size, 1)
+
+    interestRow <- pairs[pairs$target_cohort_id == 1 & pairs$outcome_cohort_id == 3, ]
+    expect_equal(nrow(interestRow), 1)
+    expect_true(is.na(interestRow$true_effect_size))
+})
+
+test_that("scc_outcome_exposure exports negative controls when no pairs are listed", {
+    negativeControlPairs <- list(c(2, 3))
+
+    pairs <- SelfControlledCohort:::.buildOutcomeExposurePairs(NULL, negativeControlPairs, NULL)
+
+    expect_equal(nrow(pairs), 1)
+    expect_equal(pairs$target_cohort_id, 2)
+    expect_equal(pairs$outcome_cohort_id, 3)
+    expect_equal(pairs$true_effect_size, 1)
+})
