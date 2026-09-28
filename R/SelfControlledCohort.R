@@ -194,19 +194,24 @@ getDefaultExportManager <- function(resultExportPath, databaseId) {
       dataColSnake <- SqlRender::camelCaseToSnakeCase(dataCol)
       groupByColSnake <- SqlRender::camelCaseToSnakeCase(groupByCol)
 
-      ncPairsDf |>
-        dplyr::select(-"true_effect_size") |>
-        dplyr::group_by(.data[[groupByColSnake]]) |>
-        dplyr::group_map(function(nc_data, grp) {
-          grpCol <- grp[[groupByColSnake]]
+      # Iterate over every distinct group (target or outcome) present in the
+      # estimates, not just those that happen to have negative controls. Groups
+      # without negative controls must still be exported (uncalibrated), otherwise
+      # their results are silently dropped from scc_result.
+      allGroups <- andromeda$estimates |>
+        dplyr::select(dplyr::all_of(groupByColSnake)) |>
+        dplyr::collect() |>
+        dplyr::pull(dplyr::all_of(groupByColSnake)) |>
+        unique()
 
-          estimates <- andromeda$estimates |>
-            dplyr::filter(.data[[filterColSnake]] == grpCol) |>
-            dplyr::collect()
+      lapply(allGroups, function(grpCol) {
+        estimates <- andromeda$estimates |>
+          dplyr::filter(.data[[filterColSnake]] == grpCol) |>
+          dplyr::collect()
 
-          if (nrow(estimates) == 0) {
-            return(NULL)
-          }
+        if (nrow(estimates) == 0) {
+          return(NULL)
+        }
 
           # Identify negatives
           negatives <- estimates |>

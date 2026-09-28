@@ -581,6 +581,38 @@ test_that("scc_result includes all target groups when calibrating", {
 })
 
 
+test_that("scc_result includes targets without negative controls when calibrating", {
+    testthat::skip_on_cran()
+    resultPath <- tempfile("scc_partial_neg_")
+    dir.create(resultPath)
+    withr::defer(unlink(resultPath, recursive = TRUE))
+
+    # Target 1 has negative controls; target 2 does not.  Both targets must be
+    # exported to scc_result - target 2 uncalibrated - rather than being dropped.
+    runSelfControlledCohort(
+        connectionDetails = connectionDetails,
+        cdmDatabaseSchema = cdmDatabaseSchema,
+        exposureTable = "cohort",
+        outcomeTable = "condition_occurrence",
+        exposureIds = c(1, 2),
+        outcomeIds = 192671,
+        controlType = "outcome",
+        negativeControlPairs = list(c(1, 40481087), c(1, 4112343)),
+        databaseId = "test",
+        computeThreads = 1,
+        resultExportPath = resultPath,
+        runDiagnostics = FALSE
+    )
+
+    result <- readSccResult(resultPath)
+    expect_true(!is.null(result) && nrow(result) > 0)
+
+    expect_true(all(c(1, 2) %in% result$target_cohort_id),
+        info = "scc_result should contain results for targets without negative controls too"
+    )
+})
+
+
 test_that("All result files are exported even when no estimates are produced", {
     testthat::skip_on_cran()
     resultPath <- tempfile("scc_empty_")
