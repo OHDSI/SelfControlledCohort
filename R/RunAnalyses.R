@@ -124,6 +124,34 @@ runSccAnalyses <- function(connectionDetails,
     analysisRow <- ParallelLogger::matchInList(sccAnalysisList,
                                                list(analysisId = refRow$analysisId))[[1]]
     getrunSelfControlledCohortArgs <- analysisRow$runSelfControlledCohortArgs
+    if (is.null(getrunSelfControlledCohortArgs)) {
+      getrunSelfControlledCohortArgs <- list()
+    }
+
+    # Diagnostic settings live in runSelfControlledCohortArgs; fall back to
+    # top-level analysis settings for backwards compatibility.
+    getrunSelfControlledCohortArgs$runDiagnostics <- if (!is.null(getrunSelfControlledCohortArgs$runDiagnostics)) {
+      getrunSelfControlledCohortArgs$runDiagnostics
+    } else if (!is.null(analysisRow$runDiagnostics)) {
+      analysisRow$runDiagnostics
+    } else {
+      TRUE
+    }
+    getrunSelfControlledCohortArgs$diagnostics <- if (!is.null(getrunSelfControlledCohortArgs$diagnostics)) {
+      getrunSelfControlledCohortArgs$diagnostics
+    } else if (!is.null(analysisRow$diagnostics)) {
+      analysisRow$diagnostics
+    } else {
+      c("all")
+    }
+    getrunSelfControlledCohortArgs$diagnosticThresholds <- if (!is.null(getrunSelfControlledCohortArgs$diagnosticThresholds)) {
+      getrunSelfControlledCohortArgs$diagnosticThresholds
+    } else if (!is.null(analysisRow$diagnosticThresholds)) {
+      analysisRow$diagnosticThresholds
+    } else {
+      getDefaultDiagnosticThresholds()
+    }
+
     exposureIds <- unique(resultsReference$exposureId[resultsReference$sccResultsRef == sccResultsRef])
     outcomeId <- unique(resultsReference$outcomeId[resultsReference$sccResultsRef == sccResultsRef])
 
@@ -138,6 +166,7 @@ runSccAnalyses <- function(connectionDetails,
                  databaseId = databaseId,
                  controlType = controlType,
                  negativeControlPairs = negativeControlPairs,
+                 exposureOutcomeList = exposureOutcomeList,
                  analysisId = refRow$analysisId,
                  tempEmulationSchema = tempEmulationSchema,
                  resultExportPath = file.path(resultsFolder, paste0("A_", refRow$analysisId)),

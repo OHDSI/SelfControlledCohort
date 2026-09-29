@@ -168,7 +168,8 @@ testPreExposureGain <- function(connection,
                                 outcomeDatabaseSchema,
                                 analysisId,
                                 cdmDatabaseSchema,
-                                tempEmulationSchema) {
+                                tempEmulationSchema,
+                                resultsTable = NULL) {
   # Determine outcome table columns
   outcomeTable <- tolower(outcomeTable)
   if (outcomeTable == "condition_era") {
@@ -185,7 +186,20 @@ testPreExposureGain <- function(connection,
     outcomePersonId <- "subject_id"
   }
 
-  sql <- "
+  # Restrict to the outcomes of interest when possible, so the database does not
+  # scan the entire outcome table for concept ids the study never requested.
+  outcomeRestriction <- ""
+  if (!is.null(resultsTable)) {
+    outcomeRestriction <- "
+      INNER JOIN (
+        SELECT DISTINCT outcome_cohort_id
+        FROM @results_table
+        WHERE analysis_id = @analysis_id
+      ) roi
+        ON o.@outcome_id = roi.outcome_cohort_id"
+  }
+
+  sql <- sprintf("
   WITH windows AS (
       SELECT 
           rw.exposure_id as target_cohort_id,
@@ -237,6 +251,8 @@ testPreExposureGain <- function(connection,
       FROM windows w
       INNER JOIN @outcome_database_schema.@outcome_table o
           ON w.person_id = o.@outcome_person_id
+          AND o.@outcome_start_date >= w.wb_start
+          AND o.@outcome_start_date <= w.wa_end%s
       GROUP BY w.target_cohort_id, o.@outcome_id
   )
   SELECT 
@@ -248,9 +264,9 @@ testPreExposureGain <- function(connection,
       tp.total_pt_after
   FROM pair_counts pc
   INNER JOIN target_pt tp ON pc.target_cohort_id = tp.target_cohort_id;
-  "
+  ", outcomeRestriction)
 
-  aggregatedResults <- DatabaseConnector::renderTranslateQuerySql(
+  args <- list(
     connection = connection,
     sql = sql,
     risk_windows_table = riskWindowsTable,
@@ -264,30 +280,32 @@ testPreExposureGain <- function(connection,
     tempEmulationSchema = tempEmulationSchema,
     snakeCaseToCamelCase = TRUE
   )
+  if (!is.null(resultsTable)) {
+    args$results_table <- resultsTable
+  }
+
+  aggregatedResults <- do.call(DatabaseConnector::renderTranslateQuerySql, args)
 
   if (nrow(aggregatedResults) == 0) {
     return(data.frame())
   }
 
-  results <- data.frame()
-
-  for (i in seq_len(nrow(aggregatedResults))) {
+  computeRow <- function(i) {
     row <- aggregatedResults[i, ]
-    
+
     totalPtBefore <- row$totalPtBefore
     totalPtAfter <- row$totalPtAfter
     countBefore <- row$countBefore
     countAfter <- row$countAfter
-    
+
     # Safe guard
     if (totalPtBefore <= 0 || totalPtAfter <= 0 || (countBefore == 0 && countAfter == 0)) {
-       results <- rbind(results, data.frame(
+      return(data.frame(
         targetCohortId = row$targetCohortId,
         outcomeCohortId = row$outcomeCohortId,
         preExposureRateRatio = NA_real_,
         pValue = NA_real_
       ))
-       next
     }
 
     # Perform rateratio test (Before vs After)
@@ -297,14 +315,16 @@ testPreExposureGain <- function(connection,
       n = c(totalPtBefore, totalPtAfter),
       alternative = "greater"
     )
-    
-    results <- rbind(results, data.frame(
+
+    data.frame(
       targetCohortId = row$targetCohortId,
       outcomeCohortId = row$outcomeCohortId,
       preExposureRateRatio = testResult$estimate[1],
       pValue = testResult$p.value
-    ))
+    )
   }
+
+  results <- dplyr::bind_rows(lapply(seq_len(nrow(aggregatedResults)), computeRow))
 
   return(results)
 }
