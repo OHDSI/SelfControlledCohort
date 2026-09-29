@@ -72,6 +72,8 @@ getDefaultDiagnosticThresholds <- function() {
 #' @param analysisId                  Analysis identifier
 #' @param databaseId                  Database identifier for results export
 #' @param estimates                   Data frame of raw SCC results (including rr and se_log_rr)
+#' @param controlType                 Calibrate effect estimates with outcome (default) or exposure controls.
+#'                                    Determines whether EASE is grouped by target or outcome.
 #' @param diagnostics                 Character vector of diagnostics to run. Options:
 #'                                    "all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"
 #' @param thresholds                  Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)
@@ -115,6 +117,7 @@ runSccDiagnostics <- function(connection,
                               analysisId,
                               databaseId,
                               estimates = NULL,
+                              controlType = "outcome",
                               diagnostics = c("all"),
                               thresholds = getDefaultDiagnosticThresholds(),
                               computeThreads = getOption("strategus.SelfControlledCohort.computeThreads",
@@ -204,6 +207,7 @@ runSccDiagnostics <- function(connection,
       estimates = estimates,
       analysisId = analysisId,
       thresholds = thresholds,
+      controlType = controlType,
       computeThreads = computeThreads
     )
     diagnosticResults <- rbind(diagnosticResults, easeResult)
@@ -246,7 +250,7 @@ runSccDiagnostics <- function(connection,
     dplyr::select(dplyr::all_of(cols))
 
   # Compute blinding status
-  blindingRows <- .computeBlindingStatus(diagnosticResults)
+  blindingRows <- .computeBlindingStatus(diagnosticResults, controlType = controlType)
   if (nrow(blindingRows) > 0) {
     diagnosticResults <- rbind(diagnosticResults, blindingRows)
   }
@@ -325,18 +329,29 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 
 #' Compute blinding status rows
 #' @noRd
-.computeBlindingStatus <- function(diagnosticResults) {
+.computeBlindingStatus <- function(diagnosticResults, controlType = "outcome") {
   if (nrow(diagnosticResults) == 0) {
     return(data.frame())
   }
 
-  # EASE is computed per target and stored with outcome_cohort_id = 0, whereas
-  # the other diagnostics are stored per target-outcome pair.  Separate the two
-  # so the per-target EASE result can be applied to every outcome of its target.
-  easeRows <- diagnosticResults |>
-    dplyr::filter(.data$diagnostic_name == "EASE") |>
-    dplyr::select("database_id", "analysis_id", "target_cohort_id", "pass") |>
-    dplyr::rename(easePass = "pass")
+  # EASE is computed per calibration group and stored with a 0 on the opposing
+  # cohort column: outcome_cohort_id = 0 for outcome controls (grouped by target),
+  # target_cohort_id = 0 for exposure controls (grouped by outcome).  Separate
+  # EASE from the per-pair diagnostics so it can be applied to every row of its
+  # calibration group.
+  if (controlType == "exposure") {
+    easeRows <- diagnosticResults |>
+      dplyr::filter(.data$diagnostic_name == "EASE") |>
+      dplyr::select("database_id", "analysis_id", "outcome_cohort_id", "pass") |>
+      dplyr::rename(easePass = "pass")
+    easeJoinBy <- c("database_id", "analysis_id", "outcome_cohort_id")
+  } else {
+    easeRows <- diagnosticResults |>
+      dplyr::filter(.data$diagnostic_name == "EASE") |>
+      dplyr::select("database_id", "analysis_id", "target_cohort_id", "pass") |>
+      dplyr::rename(easePass = "pass")
+    easeJoinBy <- c("database_id", "analysis_id", "target_cohort_id")
+  }
 
   pairRows <- diagnosticResults |>
     dplyr::filter(.data$diagnostic_name != "EASE", .data$outcome_cohort_id != 0)
@@ -351,7 +366,7 @@ getDiagnosticsSummary <- function(diagnosticResults) {
       pass_all = as.integer(all(.data$pass == 1, na.rm = TRUE)),
       .groups = "drop"
     ) |>
-    dplyr::left_join(easeRows, by = c("database_id", "analysis_id", "target_cohort_id")) |>
+    dplyr::left_join(easeRows, by = easeJoinBy) |>
     dplyr::mutate(
       # EASE gates unblinding when it was evaluated (pass = 0 blocks).  When EASE
       # is missing or not evaluated (pass = NA) it is treated as pass-through.
@@ -388,7 +403,7 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 
 #' Compute EASE diagnostic
 #' @noRd
-.computeEaseDiagnostic <- function(estimates, analysisId, thresholds, computeThreads = 1) {
+.computeEaseDiagnostic <- function(estimates, analysisId, thresholds, controlType = "outcome", computeThreads = 1) {
   if (is.null(estimates) || nrow(estimates) == 0) {
     return(data.frame())
   }
@@ -423,41 +438,45 @@ getDiagnosticsSummary <- function(diagnosticResults) {
     }
   }
 
-  targetGroups <- split(negatives, negatives$target_cohort_id)
+  groupCol <- if (controlType == "exposure") "outcome_cohort_id" else "target_cohort_id"
+  groups <- split(negatives, negatives[[groupCol]])
 
-  if (computeThreads > 1 && length(targetGroups) > 1) {
-    cluster <- ParallelLogger::makeCluster(min(computeThreads, length(targetGroups)))
+  if (computeThreads > 1 && length(groups) > 1) {
+    cluster <- ParallelLogger::makeCluster(min(computeThreads, length(groups)))
     on.exit(ParallelLogger::stopCluster(cluster), add = TRUE)
 
     easeResults <- ParallelLogger::clusterApply(
       cluster,
-      targetGroups,
-      .computeEaseForTarget,
+      groups,
+      .computeEaseForGroup,
       analysisId = analysisId,
       thresholds = thresholds,
+      controlType = controlType,
       progressBar = FALSE
     )
     easeResults <- dplyr::bind_rows(easeResults)
   } else {
     easeResults <- dplyr::bind_rows(lapply(
-      targetGroups,
-      .computeEaseForTarget,
+      groups,
+      .computeEaseForGroup,
       analysisId = analysisId,
-      thresholds = thresholds
+      thresholds = thresholds,
+      controlType = controlType
     ))
   }
 
   return(easeResults)
 }
 
-#' Compute EASE for a single target cohort
+#' Compute EASE for a single calibration group
 #'
 #' This worker only uses the EmpiricalCalibration package (a hard dependency) and
 #' base functions, so it can run on ParallelLogger cluster nodes without requiring
 #' the SelfControlledCohort package to be installed (e.g., during R CMD build).
 #' @noRd
-.computeEaseForTarget <- function(data, analysisId, thresholds) {
-  targetId <- data$target_cohort_id[1]
+.computeEaseForGroup <- function(data, analysisId, thresholds, controlType = "outcome") {
+  groupCol <- if (controlType == "exposure") "outcome_cohort_id" else "target_cohort_id"
+  groupId <- data[[groupCol]][1]
 
   ease <- NA_real_
   if (nrow(data) > 1) {
@@ -487,8 +506,8 @@ getDiagnosticsSummary <- function(diagnosticResults) {
 
   data.frame(
     analysis_id = analysisId,
-    target_cohort_id = targetId,
-    outcome_cohort_id = 0, # EASE is per target
+    target_cohort_id = if (controlType == "exposure") 0 else groupId,
+    outcome_cohort_id = if (controlType == "exposure") groupId else 0,
     diagnostic_name = "EASE",
     diagnostic_value = ease,
     pass = pass

@@ -626,6 +626,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
   }
 
   settingsString <- list(
+    controlType = controlType,
     firstExposureOnly = firstExposureOnly,
     firstOutcomeOnly = firstOutcomeOnly,
     minAge = minAge,
@@ -759,6 +760,7 @@ runSelfControlledCohort <- function(connectionDetails = NULL,
         analysisId = analysisId,
         databaseId = databaseId,
         estimates = estimatesDf,
+        controlType = controlType,
         diagnostics = diagnostics,
         thresholds = diagnosticThresholds,
         computeThreads = computeThreads,
