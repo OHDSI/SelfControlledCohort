@@ -10,3 +10,4 @@ errorReportSql.txt
 /.Rprofile
 /renv.lock
 /sql/
+/tests/testthat/scc_result/
