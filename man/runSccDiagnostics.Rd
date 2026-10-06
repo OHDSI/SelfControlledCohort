@@ -15,6 +15,7 @@ runSccDiagnostics(
   analysisId,
   databaseId,
   estimates = NULL,
+  controlType = "outcome",
   diagnostics = c("all"),
   thresholds = getDefaultDiagnosticThresholds(),
   computeThreads = getOption("strategus.SelfControlledCohort.computeThreads", default =
@@ -42,6 +43,9 @@ runSccDiagnostics(
 \item{databaseId}{Database identifier for results export}
 
 \item{estimates}{Data frame of raw SCC results (including rr and se_log_rr)}
+
+\item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls.
+Determines whether EASE is grouped by target or outcome.}
 
 \item{diagnostics}{Character vector of diagnostics to run. Options:
 "all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"}
