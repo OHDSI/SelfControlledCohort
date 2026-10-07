@@ -19,7 +19,10 @@ createRunSelfControlledCohortArgs(
   riskWindowStartUnexposed = -30,
   hasFullTimeAtRisk = FALSE,
   washoutPeriod = 0,
-  followupPeriod = 0
+  followupPeriod = 0,
+  runDiagnostics = TRUE,
+  diagnostics = c("all"),
+  diagnosticThresholds = getDefaultDiagnosticThresholds()
 )
 }
 \arguments{
@@ -68,6 +71,15 @@ and unexposed.}
 absolute time between treatment and outcome. Note, may add
 significant computation time on some database engines. If set
 true in one analysis will default to true for all others.}
+
+\item{runDiagnostics}{If TRUE, run diagnostic tests on the results.}
+
+\item{diagnostics}{Character vector specifying which diagnostics to run.
+Options: "all", "mdrr", "pre_exposure_gain",
+"event_dependent", "ease". Default is "all".}
+
+\item{diagnosticThresholds}{Named list of diagnostic thresholds. See
+getDefaultDiagnosticThresholds() for defaults.}
 }
 \value{
 A parameter object of class \code{args} for use with \code{\link{runSelfControlledCohort}}.

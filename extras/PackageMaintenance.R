@@ -44,7 +44,7 @@ sequenceDiagram
 ")
 
 print("Use R studio export view to save diag object to vignettes/ExposureWindowsDiagram.png")
-
+dir.create("inst/doc")
 rmarkdown::render("vignettes/UsingSelfControlledCohort.Rmd",
                   output_file = "../inst/doc/UsingSelfControlledCohort.pdf",
                   rmarkdown::pdf_document(latex_engine = "pdflatex",

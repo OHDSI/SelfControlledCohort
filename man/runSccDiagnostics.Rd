@@ -15,8 +15,11 @@ runSccDiagnostics(
   analysisId,
   databaseId,
   estimates = NULL,
+  controlType = "outcome",
   diagnostics = c("all"),
   thresholds = getDefaultDiagnosticThresholds(),
+  computeThreads = getOption("strategus.SelfControlledCohort.computeThreads", default =
+    parallel::detectCores() - 1),
   resultExportManager
 )
 }
@@ -41,10 +44,17 @@ runSccDiagnostics(
 
 \item{estimates}{Data frame of raw SCC results (including rr and se_log_rr)}
 
+\item{controlType}{Calibrate effect estimates with outcome (default) or exposure controls.
+Determines whether EASE is grouped by target or outcome.}
+
 \item{diagnostics}{Character vector of diagnostics to run. Options:
 "all", "mdrr", "pre_exposure_gain", "event_dependent", "ease"}
 
 \item{thresholds}{Named list of diagnostic thresholds (see getDefaultDiagnosticThresholds)}
+
+\item{computeThreads}{Number of parallel threads to use for CPU-bound diagnostic
+computations (e.g., MDRR and EASE). Default is the number of
+available cores minus 1.}
 
 \item{resultExportManager}{ResultModelManager::ResultExportManager instance}
 }
